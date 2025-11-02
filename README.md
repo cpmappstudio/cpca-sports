@@ -38,7 +38,6 @@ mindmap
       Accede a su panel
       Consulta estado y finanzas
       Realiza pagos en línea
-
 ```
 
 ---
