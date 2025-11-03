@@ -23,15 +23,22 @@ import {
   UserButton,
   useUser,
   useOrganization,
+  useAuth,
 } from "@clerk/nextjs";
 import {
   HomeIcon,
   InboxIcon,
+  Cog6ToothIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/20/solid";
 import { usePathname } from "next/navigation";
 import { UserButtonSkeleton } from "./skeletons/user-button-skeleton";
 import { OrganizationSwitcherSkeleton } from "./skeletons/organization-switcher-skeleton";
+import {
+  buildNavUrl,
+  getNavigationContext,
+  isNavItemActive,
+} from "@/lib/navigation/navigation";
 
 export default function AppSidebar({
   children,
@@ -39,8 +46,15 @@ export default function AppSidebar({
   children: React.ReactNode;
 }) {
   const { isLoaded: isUserLoaded } = useUser();
-  const { isLoaded: isOrganizationLoaded } = useOrganization();
+  const { isLoaded: isOrganizationLoaded, organization } = useOrganization();
+  const { has } = useAuth();
   let pathname = usePathname();
+
+  const orgSlug = organization?.slug;
+  const { role, navItems } =
+    has && orgSlug
+      ? getNavigationContext(orgSlug, has)
+      : { role: null, navItems: [] };
   return (
     <SidebarLayout
       navbar={
@@ -68,31 +82,27 @@ export default function AppSidebar({
           </SidebarHeader>
           <SidebarBody>
             <SidebarSection>
-              <SidebarItem href="/" current={pathname === "/"}>
-                <HomeIcon />
-                <SidebarLabel>Home</SidebarLabel>
-              </SidebarItem>
-              {/*<SidebarItem
-                href="/events"
-                current={pathname.startsWith("/events")}
-              >
-                <Square2StackIcon />
-                <SidebarLabel>Events</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem
-                href="/orders"
-                current={pathname.startsWith("/orders")}
-              >
-                <TicketIcon />
-                <SidebarLabel>Orders</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem
-                href="/settings"
-                current={pathname.startsWith("/settings")}
-              >
-                <Cog6ToothIcon />
-                <SidebarLabel>Settings</SidebarLabel>
-              </SidebarItem>*/}
+              {role &&
+                orgSlug &&
+                navItems.map((item) => {
+                  const href = buildNavUrl(orgSlug, role, item.href);
+                  const isCurrent = isNavItemActive(
+                    pathname,
+                    href,
+                    item.href === "",
+                  );
+
+                  return (
+                    <SidebarItem
+                      key={item.label}
+                      href={href}
+                      current={isCurrent}
+                    >
+                      <item.icon />
+                      <SidebarLabel>{item.label}</SidebarLabel>
+                    </SidebarItem>
+                  );
+                })}
             </SidebarSection>
             <SidebarSpacer />
             <SidebarSection>

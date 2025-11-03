@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getRouteByRole } from "@/lib/auth";
+import { getRouteByRole } from "@/lib/auth/auth";
 
 const isPublic = createRouteMatcher([
   "/sign-in(.*)", // login global (superadmin)
