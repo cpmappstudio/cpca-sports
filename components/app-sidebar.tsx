@@ -1,13 +1,5 @@
 "use client";
-import { Avatar } from "@/components/ui/avatar";
-import {
-  Dropdown,
-  DropdownButton,
-  DropdownDivider,
-  DropdownItem,
-  DropdownLabel,
-  DropdownMenu,
-} from "@/components/ui/dropdown";
+
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import {
   Navbar,
@@ -20,7 +12,6 @@ import {
   SidebarBody,
   SidebarFooter,
   SidebarHeader,
-  SidebarHeading,
   SidebarItem,
   SidebarLabel,
   SidebarSection,
@@ -29,29 +20,18 @@ import {
 import { SidebarLayout } from "@/components/ui/sidebar-layout";
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 import {
-  ArrowRightStartOnRectangleIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  Cog8ToothIcon,
-  LightBulbIcon,
-  PlusIcon,
-  ShieldCheckIcon,
-  UserIcon,
-} from "@heroicons/react/16/solid";
-import {
-  Cog6ToothIcon,
   HomeIcon,
   InboxIcon,
   MagnifyingGlassIcon,
-  MegaphoneIcon,
-  QuestionMarkCircleIcon,
-  SparklesIcon,
-  Square2StackIcon,
-  TicketIcon,
 } from "@heroicons/react/20/solid";
 import { usePathname } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function AppSidebar({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   let pathname = usePathname();
   return (
     <SidebarLayout
@@ -65,53 +45,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <NavbarItem href="/inbox" aria-label="Inbox">
               <InboxIcon />
             </NavbarItem>
-            <Dropdown>
-              <DropdownButton as={NavbarItem}>
-                <Avatar src="/profile-photo.jpg" square />
-              </DropdownButton>
-              <DropdownMenu className="min-w-64" anchor="bottom end">
-                <DropdownItem href="/my-profile">
-                  <UserIcon />
-                  <DropdownLabel>My profile</DropdownLabel>
-                </DropdownItem>
-                <DropdownItem href="/settings">
-                  <Cog8ToothIcon />
-                  <DropdownLabel>Settings</DropdownLabel>
-                </DropdownItem>
-                <DropdownDivider />
-                <DropdownItem href="/privacy-policy">
-                  <ShieldCheckIcon />
-                  <DropdownLabel>Privacy policy</DropdownLabel>
-                </DropdownItem>
-                <DropdownItem href="/share-feedback">
-                  <LightBulbIcon />
-                  <DropdownLabel>Share feedback</DropdownLabel>
-                </DropdownItem>
-                <DropdownDivider />
-                <DropdownItem href="/logout">
-                  <ArrowRightStartOnRectangleIcon />
-                  <DropdownLabel>Sign out</DropdownLabel>
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
+            <UserButton />
           </NavbarSection>
         </Navbar>
       }
       sidebar={
         <Sidebar>
           <SidebarHeader>
-            <OrganizationSwitcher />
+            <OrganizationSwitcher afterSelectOrganizationUrl="/:slug" />
           </SidebarHeader>
           <SidebarBody>
             <SidebarSection>
-              <SidebarItem
-                href="/superadmin"
-                current={pathname === "/superadmin"}
-              >
+              <SidebarItem href="/" current={pathname === "/"}>
                 <HomeIcon />
                 <SidebarLabel>Home</SidebarLabel>
               </SidebarItem>
-              <SidebarItem
+              {/*<SidebarItem
                 href="/events"
                 current={pathname.startsWith("/events")}
               >
@@ -131,30 +80,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 <Cog6ToothIcon />
                 <SidebarLabel>Settings</SidebarLabel>
-              </SidebarItem>
-            </SidebarSection>
-            <SidebarSection className="max-lg:hidden">
-              <SidebarHeading>Upcoming Events</SidebarHeading>
-              <SidebarItem href="/events/1">
-                Bear Hug: Live in Concert
-              </SidebarItem>
-              <SidebarItem href="/events/2">Viking People</SidebarItem>
-              <SidebarItem href="/events/3">Six Fingers — DJ Set</SidebarItem>
-              <SidebarItem href="/events/4">We All Look The Same</SidebarItem>
+              </SidebarItem>*/}
             </SidebarSection>
             <SidebarSpacer />
             <SidebarSection>
-              {/*<SidebarItem>
+              <SidebarItem>
                 <ModeToggle />
-              </SidebarItem>*/}
-              <SidebarItem href="/support">
+                {/*<SidebarLabel>Support</SidebarLabel>*/}
+              </SidebarItem>
+              {/*<SidebarItem href="/support">
                 <QuestionMarkCircleIcon />
                 <SidebarLabel>Support</SidebarLabel>
               </SidebarItem>
               <SidebarItem href="/changelog">
                 <SparklesIcon />
                 <SidebarLabel>Changelog</SidebarLabel>
-              </SidebarItem>
+              </SidebarItem>*/}
             </SidebarSection>
           </SidebarBody>
           <SidebarFooter className="max-lg:hidden">
@@ -174,7 +115,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </Sidebar>
       }
     >
-      <main className="flex-1">{children}</main>
+      {children}
     </SidebarLayout>
   );
 }

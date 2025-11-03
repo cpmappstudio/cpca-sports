@@ -1,4 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { getRouteByRole } from "@/lib/auth";
 
 const isPublic = createRouteMatcher([
   "/sign-in(.*)", // login global (superadmin)
@@ -9,12 +11,26 @@ const isPublic = createRouteMatcher([
 
 export default clerkMiddleware(
   async (auth, req) => {
+    const { userId, orgSlug, has } = await auth();
+    const { pathname } = req.nextUrl;
     if (!isPublic(req)) await auth.protect();
+
+    const orgRouteMatch = pathname.match(/^\/([^\/]+)$/);
+    if (orgRouteMatch && userId && orgSlug) {
+      const slugInUrl = orgRouteMatch[1];
+
+      if (slugInUrl === orgSlug) {
+        if (slugInUrl === orgSlug) {
+          const targetPath = getRouteByRole(orgSlug, has);
+          return NextResponse.redirect(new URL(targetPath, req.url));
+        }
+      }
+    }
+    return NextResponse.next();
   },
   {
-    // Activa/ajusta la organización según el slug de la URL
     organizationSyncOptions: {
-      organizationPatterns: ["/:slug", "/:slug/(.*)"], // si usas i18n: añade '/:locale/:slug...'
+      organizationPatterns: ["/:slug", "/:slug/(.*)"],
     },
   },
 );
