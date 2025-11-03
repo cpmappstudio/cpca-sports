@@ -15,15 +15,10 @@ export default clerkMiddleware(
     const { pathname } = req.nextUrl;
     if (!isPublic(req)) await auth.protect();
 
-    const orgRouteMatch = pathname.match(/^\/([^\/]+)$/);
-    if (orgRouteMatch && userId && orgSlug) {
-      const slugInUrl = orgRouteMatch[1];
-
-      if (slugInUrl === orgSlug) {
-        if (slugInUrl === orgSlug) {
-          const targetPath = getRouteByRole(orgSlug, has);
-          return NextResponse.redirect(new URL(targetPath, req.url));
-        }
+    if (pathname === "/" && userId) {
+      if (orgSlug) {
+        const targetPath = getRouteByRole(orgSlug, has);
+        return NextResponse.redirect(new URL(targetPath, req.url));
       }
     }
     return NextResponse.next();
