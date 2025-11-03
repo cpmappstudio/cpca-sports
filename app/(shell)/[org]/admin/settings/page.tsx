@@ -9,6 +9,7 @@ import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import type { Metadata } from "next";
 import { Address } from "./address";
+import Tabs from "@/components/settings/tabs";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -17,9 +18,9 @@ export const metadata: Metadata = {
 export default function Settings() {
   return (
     <form method="post">
-      <Heading>Settings</Heading>
-      <Divider className="my-10 mt-6" />
-
+      <Heading>
+        <Tabs />
+      </Heading>
       <section className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
         <div className="space-y-1">
           <Subheading>Organization Name</Subheading>
