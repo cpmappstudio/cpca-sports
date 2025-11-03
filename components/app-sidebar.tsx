@@ -18,20 +18,28 @@ import {
   SidebarSpacer,
 } from "@/components/ui/sidebar";
 import { SidebarLayout } from "@/components/ui/sidebar-layout";
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
+import {
+  OrganizationSwitcher,
+  UserButton,
+  useUser,
+  useOrganization,
+} from "@clerk/nextjs";
 import {
   HomeIcon,
   InboxIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/20/solid";
 import { usePathname } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { UserButtonSkeleton } from "./skeletons/user-button-skeleton";
+import { OrganizationSwitcherSkeleton } from "./skeletons/organization-switcher-skeleton";
 
 export default function AppSidebar({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { isLoaded: isUserLoaded } = useUser();
+  const { isLoaded: isOrganizationLoaded } = useOrganization();
   let pathname = usePathname();
   return (
     <SidebarLayout
@@ -52,7 +60,11 @@ export default function AppSidebar({
       sidebar={
         <Sidebar>
           <SidebarHeader>
-            <OrganizationSwitcher afterSelectOrganizationUrl="/:slug" />
+            {!isOrganizationLoaded ? (
+              <OrganizationSwitcherSkeleton />
+            ) : (
+              <OrganizationSwitcher afterSelectOrganizationUrl="/:slug" />
+            )}
           </SidebarHeader>
           <SidebarBody>
             <SidebarSection>
@@ -99,18 +111,22 @@ export default function AppSidebar({
             </SidebarSection>
           </SidebarBody>
           <SidebarFooter className="max-lg:hidden">
-            <UserButton
-              appearance={{
-                elements: {
-                  userButtonBox: {
-                    flexDirection: "row-reverse",
-                    textAlign: "left",
-                    width: "100%",
+            {!isUserLoaded ? (
+              <UserButtonSkeleton />
+            ) : (
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonBox: {
+                      flexDirection: "row-reverse",
+                      textAlign: "left",
+                      width: "100%",
+                    },
                   },
-                },
-              }}
-              showName
-            />
+                }}
+                showName
+              />
+            )}
           </SidebarFooter>
         </Sidebar>
       }
