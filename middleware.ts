@@ -19,6 +19,20 @@ export default clerkMiddleware(
       if (orgSlug) {
         const targetPath = getRouteByRole(orgSlug, has);
         return NextResponse.redirect(new URL(targetPath, req.url));
+      } else {
+        return NextResponse.next();
+      }
+    }
+
+    const orgRouteMatch = pathname.match(/^\/([^\/]+)$/);
+    if (orgRouteMatch && userId && orgSlug) {
+      const slugInUrl = orgRouteMatch[1];
+
+      if (slugInUrl === orgSlug) {
+        if (slugInUrl === orgSlug) {
+          const targetPath = getRouteByRole(orgSlug, has);
+          return NextResponse.redirect(new URL(targetPath, req.url));
+        }
       }
     }
     return NextResponse.next();
