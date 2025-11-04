@@ -1,4 +1,4 @@
-import type { NavItem, RoleNavigationConfig } from "./types";
+import type { RoleNavigationConfig } from "./types";
 import type { UserRole, HasRoleFunction } from "../auth/types";
 import { getUserRole, getRoleBasePath } from "../auth/auth";
 import { NAVIGATION_CONFIG } from "./config";
