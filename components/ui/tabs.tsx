@@ -34,7 +34,7 @@ function TabsList({
           {...props}
         />
       </LayoutGroup>
-      <Divider className="mb-4 mt-0.5" />
+      <Divider className="mb-8 mt-0.5" />
     </>
   );
 }
