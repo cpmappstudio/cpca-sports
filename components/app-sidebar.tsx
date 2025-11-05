@@ -23,7 +23,8 @@ import {
   useUser,
   useOrganization,
   useAuth,
-  Protect,
+  ClerkLoading,
+  ClerkLoaded,
 } from "@clerk/nextjs";
 import { InboxIcon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import { usePathname } from "next/navigation";
@@ -34,27 +35,35 @@ import {
   getNavigationContext,
   isNavItemActive,
 } from "@/lib/navigation/navigation";
+import { SidebarSkeleton } from "./skeletons/sidebar-skeleton";
+import { NavbarSkeleton } from "./skeletons/navbar-skeleton";
 
 export function NavbarAppSidebar() {
   return (
-    <Navbar>
-      <NavbarSpacer />
-      <NavbarSection>
-        <NavbarItem href="/search" aria-label="Search">
-          <MagnifyingGlassIcon />
-        </NavbarItem>
-        <NavbarItem href="/inbox" aria-label="Inbox">
-          <InboxIcon />
-        </NavbarItem>
-        <UserButton />
-      </NavbarSection>
-    </Navbar>
+    <>
+      <ClerkLoading>
+        <NavbarSkeleton />
+      </ClerkLoading>
+      <ClerkLoaded>
+        <Navbar>
+          <NavbarSpacer />
+          <NavbarSection>
+            <NavbarItem href="/search" aria-label="Search">
+              <MagnifyingGlassIcon />
+            </NavbarItem>
+            <NavbarItem href="/inbox" aria-label="Inbox">
+              <InboxIcon />
+            </NavbarItem>
+            <UserButton />
+          </NavbarSection>
+        </Navbar>
+      </ClerkLoaded>
+    </>
   );
 }
 
 export function SidebarAppSidebar() {
-  const { isLoaded: isUserLoaded } = useUser();
-  const { isLoaded: isOrganizationLoaded, organization } = useOrganization();
+  const { organization } = useOrganization();
   const { has } = useAuth();
   let pathname = usePathname();
 
@@ -64,84 +73,75 @@ export function SidebarAppSidebar() {
       ? getNavigationContext(orgSlug, has)
       : { role: null, navItems: [] };
   return (
-    <Sidebar>
-      <SidebarHeader>
-        {!isOrganizationLoaded ? (
-          <OrganizationSwitcherSkeleton />
-        ) : (
-          <OrganizationSwitcher
-            afterSelectOrganizationUrl="/:slug"
-            appearance={{
-              elements: {
-                rootBox: {
-                  width: "100%",
-                  justifyContent: "left",
+    <>
+      <ClerkLoading>
+        <SidebarSkeleton />
+      </ClerkLoading>
+      <ClerkLoaded>
+        <Sidebar>
+          <SidebarHeader>
+            <OrganizationSwitcher
+              afterSelectOrganizationUrl="/:slug"
+              appearance={{
+                elements: {
+                  rootBox: {
+                    width: "100%",
+                    justifyContent: "left",
+                  },
+                  organizationSwitcherTrigger: {
+                    width: "100%",
+                    justifyContent: "space-between",
+                  },
                 },
-                organizationSwitcherTrigger: {
-                  width: "100%",
-                  justifyContent: "space-between",
-                },
-              },
-            }}
-          />
-        )}
-      </SidebarHeader>
-      <SidebarBody>
-        <SidebarSection>
-          <Protect>
-            {role &&
-              orgSlug &&
-              navItems.map((item) => {
-                const href = buildNavUrl(orgSlug, role, item.href);
-                const isCurrent = isNavItemActive(
-                  pathname,
-                  href,
-                  item.href === "",
-                );
-
-                return (
-                  <SidebarItem key={item.label} href={href} current={isCurrent}>
-                    <item.icon />
-                    <SidebarLabel>{item.label}</SidebarLabel>
-                  </SidebarItem>
-                );
-              })}
-          </Protect>
-        </SidebarSection>
-        <SidebarSpacer />
-        <SidebarSection>
-          <SidebarItem>
-            <ModeToggle />
-            {/*<SidebarLabel>Support</SidebarLabel> */}
-          </SidebarItem>
-          {/*<SidebarItem href="/support">
-                <QuestionMarkCircleIcon />
-                <SidebarLabel>Support</SidebarLabel>
+              }}
+            />
+          </SidebarHeader>
+          <SidebarBody>
+            <SidebarSection>
+              {role &&
+                orgSlug &&
+                navItems.map((item) => {
+                  const href = buildNavUrl(orgSlug, role, item.href);
+                  const isCurrent = isNavItemActive(
+                    pathname,
+                    href,
+                    item.href === "",
+                  );
+                  return (
+                    <SidebarItem
+                      key={item.label}
+                      href={href}
+                      current={isCurrent}
+                    >
+                      <item.icon />
+                      <SidebarLabel>{item.label}</SidebarLabel>
+                    </SidebarItem>
+                  );
+                })}
+            </SidebarSection>
+            <SidebarSpacer />
+            <SidebarSection>
+              <SidebarItem>
+                <ModeToggle />
               </SidebarItem>
-              <SidebarItem href="/changelog">
-                <SparklesIcon />
-                <SidebarLabel>Changelog</SidebarLabel>
-              </SidebarItem>*/}
-        </SidebarSection>
-      </SidebarBody>
-      <SidebarFooter className="max-lg:hidden">
-        {!isUserLoaded ? (
-          <UserButtonSkeleton />
-        ) : (
-          <UserButton
-            appearance={{
-              elements: {
-                userButtonBox: {
-                  flexDirection: "row-reverse",
-                  textAlign: "left",
-                  // width: "100%",
+            </SidebarSection>
+          </SidebarBody>
+          <SidebarFooter className="max-lg:hidden">
+            <UserButton
+              appearance={{
+                elements: {
+                  userButtonBox: {
+                    flexDirection: "row-reverse",
+                    textAlign: "left",
+                    // width: "100%",
+                  },
                 },
-              },
-            }}
-            showName
-          />
-        )}
-      </SidebarFooter>
-    </Sidebar>
+              }}
+              showName
+            />
+          </SidebarFooter>
+        </Sidebar>
+      </ClerkLoaded>
+    </>
   );
 }
