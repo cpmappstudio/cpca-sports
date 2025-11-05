@@ -15,9 +15,6 @@ import type { RoleNavigationConfig } from "@/lib/navigation/types";
  * =============================================================================
  * CONFIGURACIÓN DE NAVEGACIÓN
  * =============================================================================
- *
- * Define las rutas del sidebar para cada rol.
- * Para agregar/modificar rutas, edita este objeto.
  */
 export const NAVIGATION_CONFIG: Record<UserRole, RoleNavigationConfig> = {
   admin: [
