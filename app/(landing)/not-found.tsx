@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-import { Button } from "@/components/landing/Button";
+import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/landing/Logo";
-import { SlimLayout } from "@/components/landing/SlimLayout";
+import { SlimLayout } from "@/components/ui/slim-layout";
 
 export default function NotFound() {
   return (

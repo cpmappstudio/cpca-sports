@@ -1,9 +1,9 @@
-import { AuthLayout } from "@/components/ui/auth-layout";
+import { SlimLayout } from "@/components/ui/slim-layout";
 
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AuthLayout>{children}</AuthLayout>;
+  return <SlimLayout>{children}</SlimLayout>;
 }

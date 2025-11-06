@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 import { Container } from "@/components/landing/Container";
 
 const faqs = [
