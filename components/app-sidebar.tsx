@@ -28,13 +28,11 @@ import {
 } from "@clerk/nextjs";
 import { InboxIcon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import { usePathname } from "next/navigation";
-import { UserButtonSkeleton } from "./skeletons/user-button-skeleton";
-import { OrganizationSwitcherSkeleton } from "./skeletons/organization-switcher-skeleton";
 import {
   buildNavUrl,
   getNavigationContext,
   isNavItemActive,
-} from "@/lib/navigation/navigation";
+} from "@/lib/navigation/utils";
 import { SidebarSkeleton } from "./skeletons/sidebar-skeleton";
 import { NavbarSkeleton } from "./skeletons/navbar-skeleton";
 
