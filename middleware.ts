@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getRouteByRole } from "@/lib/auth/auth";
 
 const isPublic = createRouteMatcher([
+  "/",
   "/sign-in(.*)", // login global (superadmin)
   "/:org/sign-in(.*)", // login de tenant
   "/:org/sign-up(.*)",
