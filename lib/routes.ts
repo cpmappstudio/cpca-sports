@@ -6,24 +6,9 @@
  * and TypeScript will flag any breaking usages.
  *
  * Route Hierarchy:
- *   /admin/*                    - Superadmin global routes
- *   /{organization}/*           - Organization-level routes
- *
- * Usage:
- *   import { ROUTES } from "@/lib/routes";
- *
- *   // Static routes
- *   ROUTES.home                              // "/"
- *   ROUTES.auth.signIn                       // "/sign-in"
- *
- *   // Admin routes
- *   ROUTES.admin.root                        // "/admin"
- *   ROUTES.admin.organizations.list          // "/admin/organizations"
- *
- *   // Organization routes
- *   ROUTES.org.root(orgSlug)                 // "/acme"
- *   ROUTES.org.offerings.list(orgSlug)       // "/acme/offerings"
- *   ROUTES.org.members.detail(orgSlug, id)   // "/acme/members/123"
+ *   /admin/*                       - Superadmin global routes
+ *   /{league}/*                    - League-level routes
+ *   /{league}/{club}/*             - Club-level routes
  */
 
 export const ROUTE_SEGMENTS = {
@@ -46,19 +31,15 @@ export const ROUTE_SEGMENTS = {
 export type RouteSegment = (typeof ROUTE_SEGMENTS)[keyof typeof ROUTE_SEGMENTS];
 
 export const ROUTES = {
-  // Public routes
   home: "/",
 
-  // Auth routes
   auth: {
     signIn: "/sign-in",
     signUp: "/sign-up",
   },
 
-  // Onboarding
   onboarding: "/onboarding",
 
-  // Superadmin routes (/admin/*)
   admin: {
     root: "/admin",
 
@@ -77,63 +58,124 @@ export const ROUTES = {
     },
   },
 
-  // Organization routes (/{organization}/*)
-  org: {
-    root: (orgSlug: string) => `/${orgSlug}`,
+  league: {
+    root: (leagueSlug: string) => `/${leagueSlug}`,
 
     offerings: {
-      list: (orgSlug: string) => `/${orgSlug}/offerings`,
-      detail: (orgSlug: string, offeringId: string) =>
-        `/${orgSlug}/offerings/${offeringId}`,
-      create: (orgSlug: string) => `/${orgSlug}/offerings/create`,
+      list: (leagueSlug: string) => `/${leagueSlug}/offerings`,
+      detail: (leagueSlug: string, offeringId: string) =>
+        `/${leagueSlug}/offerings/${offeringId}`,
+      create: (leagueSlug: string) => `/${leagueSlug}/offerings/create`,
     },
 
     applications: {
-      list: (orgSlug: string) => `/${orgSlug}/applications`,
-      detail: (orgSlug: string, applicationId: string) =>
-        `/${orgSlug}/applications/${applicationId}`,
+      list: (leagueSlug: string) => `/${leagueSlug}/applications`,
+      detail: (leagueSlug: string, applicationId: string) =>
+        `/${leagueSlug}/applications/${applicationId}`,
     },
 
     members: {
-      list: (orgSlug: string) => `/${orgSlug}/members`,
-      detail: (orgSlug: string, memberId: string) =>
-        `/${orgSlug}/members/${memberId}`,
-      fees: (orgSlug: string, memberId: string) =>
-        `/${orgSlug}/members/${memberId}/fees`,
+      list: (leagueSlug: string) => `/${leagueSlug}/members`,
+      detail: (leagueSlug: string, memberId: string) =>
+        `/${leagueSlug}/members/${memberId}`,
     },
 
     fees: {
-      templates: (orgSlug: string) => `/${orgSlug}/fees`,
-      assignments: (orgSlug: string) => `/${orgSlug}/fees/assignments`,
+      list: (leagueSlug: string) => `/${leagueSlug}/fees`,
+      assignments: (leagueSlug: string) => `/${leagueSlug}/fees/assignments`,
     },
 
     forms: {
-      list: (orgSlug: string) => `/${orgSlug}/forms`,
-      detail: (orgSlug: string, formId: string) =>
-        `/${orgSlug}/forms/${formId}`,
-      create: (orgSlug: string) => `/${orgSlug}/forms/create`,
+      list: (leagueSlug: string) => `/${leagueSlug}/forms`,
+      detail: (leagueSlug: string, formId: string) =>
+        `/${leagueSlug}/forms/${formId}`,
+      create: (leagueSlug: string) => `/${leagueSlug}/forms/create`,
     },
 
     staff: {
-      list: (orgSlug: string) => `/${orgSlug}/staff`,
-      detail: (orgSlug: string, staffId: string) =>
-        `/${orgSlug}/staff/${staffId}`,
+      list: (leagueSlug: string) => `/${leagueSlug}/staff`,
+      detail: (leagueSlug: string, staffId: string) =>
+        `/${leagueSlug}/staff/${staffId}`,
     },
 
-    payments: (orgSlug: string) => `/${orgSlug}/payments`,
+    payments: (leagueSlug: string) => `/${leagueSlug}/payments`,
 
     settings: {
-      root: (orgSlug: string) => `/${orgSlug}/settings`,
-      appearance: (orgSlug: string) => `/${orgSlug}/settings/appearance`,
-      notifications: (orgSlug: string) => `/${orgSlug}/settings/notifications`,
-      security: (orgSlug: string) => `/${orgSlug}/settings/security`,
-      billing: (orgSlug: string) => `/${orgSlug}/settings/billing`,
+      root: (leagueSlug: string) => `/${leagueSlug}/settings`,
+      appearance: (leagueSlug: string) => `/${leagueSlug}/settings/appearance`,
+      notifications: (leagueSlug: string) =>
+        `/${leagueSlug}/settings/notifications`,
+      security: (leagueSlug: string) => `/${leagueSlug}/settings/security`,
+      billing: (leagueSlug: string) => `/${leagueSlug}/settings/billing`,
     },
   },
 
-  // Utility for building dynamic href in navigation config
-  buildOrgHref: (orgSlug: string, segment: string) =>
-    segment ? `/${orgSlug}/${segment}` : `/${orgSlug}`,
+  club: {
+    root: (leagueSlug: string, clubSlug: string) =>
+      `/${leagueSlug}/${clubSlug}`,
+
+    offerings: {
+      list: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/offerings`,
+      detail: (leagueSlug: string, clubSlug: string, offeringId: string) =>
+        `/${leagueSlug}/${clubSlug}/offerings/${offeringId}`,
+      create: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/offerings/create`,
+    },
+
+    applications: {
+      list: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/applications`,
+      detail: (leagueSlug: string, clubSlug: string, applicationId: string) =>
+        `/${leagueSlug}/${clubSlug}/applications/${applicationId}`,
+    },
+
+    members: {
+      list: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/members`,
+      detail: (leagueSlug: string, clubSlug: string, memberId: string) =>
+        `/${leagueSlug}/${clubSlug}/members/${memberId}`,
+    },
+
+    fees: {
+      list: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/fees`,
+      assignments: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/fees/assignments`,
+    },
+
+    forms: {
+      list: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/forms`,
+      detail: (leagueSlug: string, clubSlug: string, formId: string) =>
+        `/${leagueSlug}/${clubSlug}/forms/${formId}`,
+      create: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/forms/create`,
+    },
+
+    staff: {
+      list: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/staff`,
+      detail: (leagueSlug: string, clubSlug: string, staffId: string) =>
+        `/${leagueSlug}/${clubSlug}/staff/${staffId}`,
+    },
+
+    payments: (leagueSlug: string, clubSlug: string) =>
+      `/${leagueSlug}/${clubSlug}/payments`,
+
+    settings: {
+      root: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/settings`,
+      appearance: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/settings/appearance`,
+      notifications: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/settings/notifications`,
+      security: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/settings/security`,
+      billing: (leagueSlug: string, clubSlug: string) =>
+        `/${leagueSlug}/${clubSlug}/settings/billing`,
+    },
+  },
 } as const;
 
 export type Routes = typeof ROUTES;

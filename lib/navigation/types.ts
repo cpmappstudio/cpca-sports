@@ -1,41 +1,16 @@
 import type { ForwardRefExoticComponent, SVGProps } from "react";
 import type { AppRole } from "@/convex/lib/auth_types";
-import {
-  HomeIcon,
-  TrophyIcon,
-  BuildingOfficeIcon,
-  UsersIcon,
-  UserGroupIcon,
-  ShieldCheckIcon,
-} from "@heroicons/react/24/outline";
+import type { RouteSegment } from "@/lib/routes";
 
 export type NavItem = {
-  label: string;
+  segment: RouteSegment;
+  labelKey: string;
   icon: ForwardRefExoticComponent<SVGProps<SVGSVGElement>>;
-  href: string;
 };
 
-/**
- * Configuración de navegación para un rol
- */
-export type RoleNavigationConfig = NavItem[];
+export type NavContext = "admin" | "league" | "club";
 
-/**
- * Contexto de navegación completo
- */
-export type NavigationContext = {
-  role: AppRole | null;
-  navItems: NavItem[];
-  basePath: string;
+export type NavConfig = {
+  items: NavItem[];
+  showSettings: boolean;
 };
-
-export const iconMap = {
-  home: HomeIcon,
-  trophy: TrophyIcon,
-  building: BuildingOfficeIcon,
-  users: UsersIcon,
-  "user-group": UserGroupIcon,
-  shield: ShieldCheckIcon,
-} as const;
-
-export type IconName = keyof typeof iconMap;
