@@ -1,53 +1,78 @@
-import type { UserRole, HasRoleFunction } from "@/lib/auth/types";
-import { CLERK_ROLES } from "@/lib/auth/types";
+import type { auth } from "@clerk/nextjs/server";
+import type { AppRole } from "@/convex/lib/auth_types";
+
+export type Auth = Awaited<ReturnType<typeof auth>>;
 
 /**
- * Determina el rol del usuario desde Clerk
- * @param hasRole - Función has() de Clerk auth
- * @returns El rol del usuario o null
- *
- * @example
- * ```ts
- * const { has } = await auth();
- * const role = getUserRole(has);
- * // role: "admin" | "staff" | "member" | null
- * ```
+ * Get user's roles from Clerk session claims.
+ * Handles both session token format and publicMetadata format.
  */
-export function getUserRole(hasRole: HasRoleFunction): UserRole | null {
-  // Orden de prioridad: admin > staff > member
-  if (hasRole({ role: CLERK_ROLES.ADMIN })) return "admin";
-  if (hasRole({ role: CLERK_ROLES.STAFF })) return "staff";
-  if (hasRole({ role: CLERK_ROLES.MEMBER })) return "member";
+export function getRolesFromClaims(auth: Auth): Record<string, AppRole> | null {
+  // Try to get from top-level session claims first (after JWT configuration)
+  const directRoles = auth.sessionClaims?.roles as Record<string, AppRole> | undefined;
+  if (directRoles && typeof directRoles === 'object') {
+    return directRoles;
+  }
+
+  // Fallback to publicMetadata (before JWT configuration)
+  const publicMetadata = auth.sessionClaims?.publicMetadata as
+    | { roles?: Record<string, AppRole> }
+    | undefined;
+
+  return publicMetadata?.roles || null;
+}
+
+/**
+ * Get role for a specific organization
+ * Updated to fallback to SuperAdmin if the specific org role doesn't exist
+ */
+export function getRoleForOrg(auth: Auth, orgSlug: string): AppRole | null {
+  const roles = getRolesFromClaims(auth);
+  if (!roles) return null;
+
+  // Priority 1: Specific Role in this Org
+  if (roles[orgSlug]) return roles[orgSlug];
+
+  // Priority 2: Global SuperAdmin
+  if (roles["system"] === "SuperAdmin") return "SuperAdmin";
 
   return null;
 }
 
 /**
- * Construye la ruta base de un rol específico
- * @param orgSlug - Slug de la organización
- * @param role - Rol del usuario
- * @returns Ruta base del rol
- *
- * @example
- * ```ts
- * getRoleBasePath("cpca-sports", "admin")
- * // Returns: "/cpca-sports/admin"
- * ```
+ * Get base path for a role
  */
-export function getRoleBasePath(orgSlug: string, role: UserRole): string {
-  return `/${orgSlug}/${role}`;
+export function getRoleBasePath(orgSlug: string, role: AppRole): string {
+  if (role === "SuperAdmin") {
+    return "/admin";
+  }
+  return `/${orgSlug}`;
 }
 
 /**
- * Determina la ruta de destino según el rol del usuario en la organización
- * @param orgSlug - El slug de la organización
- * @param hasRole - Función has() de Clerk auth para verificar roles
- * @returns La ruta completa hacia donde redirigir al usuario
+ * Get the route path based on user's role
  */
-export function getRouteByRole(
-  orgSlug: string,
-  hasRole: HasRoleFunction,
-): string {
-  const role = getUserRole(hasRole);
-  return role ? getRoleBasePath(orgSlug, role) : `/${orgSlug}/apply`;
+export function getRouteByRole(role: AppRole, orgSlug: string): string {
+  return getRoleBasePath(orgSlug, role);
+}
+
+/**
+ * Get user's primary organization (first one with a role)
+ */
+export function getPrimaryOrg(
+  roles: Record<string, AppRole> | null,
+): { slug: string; role: AppRole } | null {
+  if (!roles || Object.keys(roles).length === 0) return null;
+  const firstSlug = Object.keys(roles)[0];
+  return { slug: firstSlug, role: roles[firstSlug] };
+}
+
+/**
+ * Check if user is a global SuperAdmin based on claims
+ */
+export function isSuperAdmin(auth: Auth): boolean {
+  const roles = getRolesFromClaims(auth);
+  if (!roles) return false;
+  // Check for the reserved system key
+  return roles["system"] === "SuperAdmin";
 }

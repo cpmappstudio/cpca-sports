@@ -55,7 +55,7 @@ const TabsTriggerButton = React.forwardRef<
       {isActive && (
         <motion.span
           layoutId="current-indicator"
-          className="pointer-events-none absolute inset-x-2 -bottom-2.5 h-0.5 rounded-full bg-zinc-950 dark:bg-white"
+          className="pointer-events-none absolute inset-x-2 -bottom-2.5 h-0.5 rounded-full bg-sidebar-accent"
         />
       )}
     </button>

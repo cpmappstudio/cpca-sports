@@ -1,0 +1,34 @@
+{
+    "nav": {
+        "dashboard": "Dashboard",
+        "players": "Players",
+        "teams": "Teams",
+        "staff": "Staff",
+        "matches": "Matches",
+        "clubs": "Clubs",
+        "divisions": "Divisions",
+        "tournaments": "Tournaments",
+        "referees": "Referees",
+        "users": "Users",
+        "settings": "Settings",
+        "reports": "Reports",
+        "analytics": "Analytics",
+        "leagues": "Leagues",
+        "globalDashboard": "Global Dashboard",
+        "myTeam": "My Team",
+        "training": "Training",
+        "myMatches": "My Matches",
+        "profile": "Profile",
+        "assignments": "Assignments"
+    },
+    "orgSwitcher": {
+        "selectOrganization": "Select Organization",
+        "globalAdmin": "Global Admin",
+        "systemAccess": "System Access",
+        "globalDashboard": "Global Dashboard",
+        "systemAdmin": "System Admin",
+        "leagues": "LEAGUES",
+        "clubs": "CLUBS",
+        "noOrganizations": "No organizations found"
+    }
+}

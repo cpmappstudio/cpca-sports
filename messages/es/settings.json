@@ -1,0 +1,54 @@
+{
+    "nav": {
+        "general": "General",
+        "appearance": "Apariencia",
+        "notifications": "Notificaciones",
+        "security": "Seguridad",
+        "billing": "Facturación"
+    },
+    "general": {
+        "title": "Configuración General",
+        "description": "Administra la configuración general de tu organización",
+        "appearance": {
+            "title": "Apariencia",
+            "description": "Personaliza cómo se ve la aplicación",
+            "theme": "Tema",
+            "themeDescription": "Selecciona el tema de la aplicación"
+        },
+        "language": {
+            "title": "Idioma",
+            "description": "Selecciona tu idioma preferido",
+            "comingSoon": "Próximamente"
+        }
+    },
+    "appearance": {
+        "theme": {
+            "title": "Modo",
+            "description": "Elige entre modo claro y oscuro"
+        },
+        "colorScheme": {
+            "title": "Esquema de Color",
+            "description": "Elige tu paleta de colores preferida"
+        },
+        "language": {
+            "title": "Idioma",
+            "description": "Selecciona tu idioma preferido"
+        }
+    },
+    "notifications": {
+        "title": "Notificaciones",
+        "description": "Configura tus preferencias de notificación"
+    },
+    "security": {
+        "title": "Seguridad",
+        "description": "Administra la seguridad de tu cuenta"
+    },
+    "billing": {
+        "title": "Facturación",
+        "description": "Administra tu plan y métodos de pago"
+    },
+    "search": {
+        "placeholder": "Buscar configuración...",
+        "noResults": "No se encontraron ajustes"
+    }
+}

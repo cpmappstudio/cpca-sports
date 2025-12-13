@@ -1,0 +1,34 @@
+{
+    "nav": {
+        "dashboard": "Panel",
+        "players": "Jugadores",
+        "teams": "Equipos",
+        "staff": "Personal",
+        "matches": "Partidos",
+        "clubs": "Clubes",
+        "divisions": "Divisiones",
+        "tournaments": "Torneos",
+        "referees": "Árbitros",
+        "users": "Usuarios",
+        "settings": "Configuración",
+        "reports": "Reportes",
+        "analytics": "Análisis",
+        "leagues": "Ligas",
+        "globalDashboard": "Panel Global",
+        "myTeam": "Mi Equipo",
+        "training": "Entrenamiento",
+        "myMatches": "Mis Partidos",
+        "profile": "Perfil",
+        "assignments": "Asignaciones"
+    },
+    "orgSwitcher": {
+        "selectOrganization": "Seleccionar Organización",
+        "globalAdmin": "Administrador Global",
+        "systemAccess": "Acceso al Sistema",
+        "globalDashboard": "Panel Global",
+        "systemAdmin": "Admin del Sistema",
+        "leagues": "LIGAS",
+        "clubs": "CLUBES",
+        "noOrganizations": "No se encontraron organizaciones"
+    }
+}

@@ -1,0 +1,26 @@
+{
+    "dashboard": {
+        "title": "Global Dashboard",
+        "description": "Platform overview and system-wide metrics",
+        "organizations": "Organizations",
+        "activeOrganizations": "Active organizations",
+        "manageOrganizations": "Manage Organizations",
+        "users": "Users",
+        "totalUsers": "Total registered users",
+        "viewDirectory": "View Directory",
+        "analytics": "Analytics",
+        "analyticsDescription": "Platform-wide insights and reports",
+        "viewAnalytics": "View Analytics",
+        "systemHealth": "System Health",
+        "systemHealthDescription": "Platform operational status",
+        "allSystemsOperational": "All Systems Operational"
+    },
+    "organizations": {
+        "title": "Organizations",
+        "description": "Manage all organizations on the platform",
+        "create": "Create Organization",
+        "createTitle": "Create New Organization",
+        "empty": "No organizations yet",
+        "emptyDescription": "Create your first organization to get started"
+    }
+}

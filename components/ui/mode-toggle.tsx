@@ -1,57 +1,81 @@
 "use client";
 
+import { Switch as SwitchPrimitive } from "radix-ui";
 import * as React from "react";
-import { useState, useEffect } from "react";
-import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import clsx from "clsx";
+import { cn } from "@/lib/utils";
+import { MoonIcon, SunMediumIcon } from "lucide-react";
 
-export function ModeToggle({ isCollapsed = false }: { isCollapsed?: boolean }) {
-  const { setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+const Switch = React.forwardRef<
+  React.ElementRef<typeof SwitchPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof SwitchPrimitive.Root> & {
+    icon?: React.ReactNode;
+    thumbClassName?: string;
+  }
+>(({ className, icon, thumbClassName, ...props }, ref) => (
+  <SwitchPrimitive.Root
+    className={cn(
+      "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
+      className,
+    )}
+    {...props}
+    ref={ref}
+  >
+    <SwitchPrimitive.Thumb
+      className={cn(
+        "pointer-events-none flex h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0 items-center justify-center",
+        thumbClassName,
+      )}
+    >
+      {icon ? icon : null}
+    </SwitchPrimitive.Thumb>
+  </SwitchPrimitive.Root>
+));
+Switch.displayName = SwitchPrimitive.Root.displayName;
 
-  useEffect(() => {
+const ModeToggle = () => {
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+  const [isDarkMode, setIsDarkMode] = React.useState(false);
+
+  React.useEffect(() => {
     setMounted(true);
   }, []);
 
-  const label =
-    resolvedTheme === "dark"
-      ? "Dark"
-      : resolvedTheme === "light"
-        ? "Light"
-        : "System";
+  React.useEffect(() => {
+    if (mounted) {
+      setIsDarkMode(resolvedTheme === "dark");
+    }
+  }, [mounted, resolvedTheme]);
+
+  const handleChange = React.useCallback(
+    (checked: boolean) => {
+      setIsDarkMode(checked);
+      setTimeout(() => {
+        setTheme(checked ? "dark" : "light");
+      }, 150);
+    },
+    [setTheme],
+  );
+
+  if (!mounted) return null;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="w-full" asChild>
-        <div className="flex items-center gap-3 cursor-pointer">
-          <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-          <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-          <span
-            className={clsx("text-sm font-medium", isCollapsed && "hidden")}
-          >
-            {mounted ? label : ""}
-          </span>
-        </div>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          System
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Switch
+      icon={
+        isDarkMode ? (
+          <MoonIcon className="h-4 w-4" />
+        ) : (
+          <SunMediumIcon className="h-4 w-4" />
+        )
+      }
+      checked={isDarkMode}
+      onCheckedChange={handleChange}
+      className="h-7 w-12"
+      thumbClassName="h-6 w-6 data-[state=checked]:translate-x-5"
+    />
   );
-}
+};
+
+export default ModeToggle;

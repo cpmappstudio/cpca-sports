@@ -7,87 +7,227 @@ import {
   DocumentTextIcon,
   UserGroupIcon,
   TrophyIcon,
+  ShieldCheckIcon,
+  BuildingOfficeIcon,
+  ClipboardDocumentCheckIcon,
+  BuildingLibraryIcon,
 } from "@heroicons/react/20/solid";
-import type { UserRole } from "@/lib/auth/types";
-import type { RoleNavigationConfig } from "@/lib/navigation/types";
+import type { AppRole } from "@/convex/lib/auth_types";
+import type { RoleNavigationConfig } from "./types";
+import { ROUTE_SEGMENTS } from "@/lib/routes";
 
 /**
  * =============================================================================
- * CONFIGURACIÓN DE NAVEGACIÓN
+ * CONFIGURACIÓN DE NAVEGACIÓN POR ROL
  * =============================================================================
  */
-export const NAVIGATION_CONFIG: Record<UserRole, RoleNavigationConfig> = {
-  admin: [
+
+export const NAVIGATION_CONFIG: Record<AppRole, RoleNavigationConfig> = {
+  /**
+   * SuperAdmin - Acceso completo a toda la plataforma
+   */
+  SuperAdmin: [
     {
       label: "Dashboard",
       icon: HomeIcon,
-      href: "",
+      href: ROUTE_SEGMENTS.dashboard,
+    },
+    {
+      label: "Organizations",
+      icon: BuildingLibraryIcon,
+      href: ROUTE_SEGMENTS.organizations,
     },
     {
       label: "Users",
       icon: UsersIcon,
-      href: "users",
+      href: ROUTE_SEGMENTS.users,
     },
     {
       label: "Analytics",
       icon: ChartBarIcon,
-      href: "analytics",
-    },
-    {
-      label: "Events",
-      icon: CalendarIcon,
-      href: "events",
+      href: ROUTE_SEGMENTS.analytics,
     },
     {
       label: "Settings",
       icon: Cog6ToothIcon,
-      href: "settings",
+      href: ROUTE_SEGMENTS.settings,
     },
   ],
 
-  staff: [
+  /**
+   * LeagueAdmin - Gestión de liga completa
+   */
+  LeagueAdmin: [
     {
       label: "Dashboard",
       icon: HomeIcon,
-      href: "",
+      href: ROUTE_SEGMENTS.dashboard,
     },
     {
-      label: "Events",
-      icon: CalendarIcon,
-      href: "events",
+      label: "Clubs",
+      icon: BuildingOfficeIcon,
+      href: ROUTE_SEGMENTS.clubs,
     },
     {
-      label: "Members",
+      label: "Users",
+      icon: UsersIcon,
+      href: ROUTE_SEGMENTS.users,
+    },
+    {
+      label: "Categories",
       icon: UserGroupIcon,
-      href: "members",
+      href: ROUTE_SEGMENTS.categories,
+    },
+    {
+      label: "Matches",
+      icon: CalendarIcon,
+      href: ROUTE_SEGMENTS.matches,
+    },
+    {
+      label: "Analytics",
+      icon: ChartBarIcon,
+      href: ROUTE_SEGMENTS.analytics,
+    },
+    {
+      label: "Settings",
+      icon: Cog6ToothIcon,
+      href: ROUTE_SEGMENTS.settings,
+    },
+  ],
+
+  /**
+   * ClubAdmin - Gestión de club
+   */
+  ClubAdmin: [
+    {
+      label: "Categories",
+      icon: TrophyIcon,
+      href: ROUTE_SEGMENTS.categories,
+    },
+    {
+      label: "Players",
+      icon: UsersIcon,
+      href: ROUTE_SEGMENTS.players,
+    },
+    {
+      label: "Staff",
+      icon: UserGroupIcon,
+      href: ROUTE_SEGMENTS.staff,
+    },
+    {
+      label: "Settings",
+      icon: Cog6ToothIcon,
+      href: ROUTE_SEGMENTS.settings,
+    },
+  ],
+
+  /**
+   * TechnicalDirector - Vista de entrenador
+   */
+  TechnicalDirector: [
+    {
+      label: "Dashboard",
+      icon: HomeIcon,
+      href: ROUTE_SEGMENTS.dashboard,
+    },
+    {
+      label: "My Teams",
+      icon: UserGroupIcon,
+      href: ROUTE_SEGMENTS.teams,
+    },
+    {
+      label: "Players",
+      icon: UsersIcon,
+      href: ROUTE_SEGMENTS.players,
+    },
+    {
+      label: "Training",
+      icon: CalendarIcon,
+      href: ROUTE_SEGMENTS.training,
+    },
+    {
+      label: "Matches",
+      icon: TrophyIcon,
+      href: ROUTE_SEGMENTS.matches,
     },
     {
       label: "Reports",
       icon: DocumentTextIcon,
-      href: "reports",
+      href: ROUTE_SEGMENTS.reports,
     },
   ],
 
-  member: [
+  /**
+   * Player - Vista de jugador
+   */
+  Player: [
     {
       label: "Home",
       icon: HomeIcon,
-      href: "",
+      href: ROUTE_SEGMENTS.dashboard,
     },
     {
-      label: "My Events",
+      label: "My Team",
+      icon: UserGroupIcon,
+      href: ROUTE_SEGMENTS.teams,
+    },
+    {
+      label: "Schedule",
       icon: CalendarIcon,
-      href: "events",
+      href: ROUTE_SEGMENTS.schedule,
     },
     {
-      label: "Achievements",
-      icon: TrophyIcon,
-      href: "achievements",
+      label: "Stats",
+      icon: ChartBarIcon,
+      href: ROUTE_SEGMENTS.stats,
     },
     {
       label: "Profile",
       icon: Cog6ToothIcon,
-      href: "profile",
+      href: ROUTE_SEGMENTS.profile,
     },
   ],
+
+  /**
+   * Referee - Vista de árbitro
+   */
+  Referee: [
+    {
+      label: "Dashboard",
+      icon: HomeIcon,
+      href: ROUTE_SEGMENTS.dashboard,
+    },
+    {
+      label: "My Matches",
+      icon: ClipboardDocumentCheckIcon,
+      href: ROUTE_SEGMENTS.matches,
+    },
+    {
+      label: "Schedule",
+      icon: CalendarIcon,
+      href: ROUTE_SEGMENTS.schedule,
+    },
+    {
+      label: "Reports",
+      icon: DocumentTextIcon,
+      href: ROUTE_SEGMENTS.reports,
+    },
+    {
+      label: "Profile",
+      icon: Cog6ToothIcon,
+      href: ROUTE_SEGMENTS.profile,
+    },
+  ],
+};
+
+/**
+ * Mapeo de roles a sus rutas base
+ */
+export const ROLE_BASE_PATHS: Record<AppRole, string> = {
+  SuperAdmin: "admin",
+  LeagueAdmin: "",
+  ClubAdmin: "",
+  TechnicalDirector: "",
+  Player: "",
+  Referee: "",
 };
