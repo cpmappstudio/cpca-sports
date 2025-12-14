@@ -1,5 +1,5 @@
 // ################################################################################
-// # Check: 12/13/2025                                                            #
+// # Check: 12/14/2025                                                            #
 // ################################################################################
 // Component made by @catalyst
 
@@ -19,7 +19,7 @@ export function SlimLayout({ children }: { children: React.ReactNode }) {
           height={6000}
           className="absolute inset-0 h-full w-full object-cover"
           src={"/background-auth.jpg"}
-          alt=""
+          alt="Aurora Background"
           unoptimized
         />
       </div>

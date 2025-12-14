@@ -8,11 +8,7 @@ import {
 } from "@/components/sections/shell/organizations/app-sidebar";
 import { SidebarLayout } from "@/components/layouts/sidebar-layout";
 
-export default function LeagueLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function OrgLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarLayout
       fullWidth

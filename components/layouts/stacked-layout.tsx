@@ -1,7 +1,7 @@
 // ################################################################################
-// # Check: 12/13/2025                                                            #
+// # Check: 12/14/2025                                                            #
 // ################################################################################
-// Component made by @catalyst
+// Component made by @catalyst and adapted by @ulvenforst
 
 "use client";
 
@@ -67,7 +67,7 @@ export function StackedLayout({
   const [showSidebar, setShowSidebar] = useState(false);
 
   return (
-    <div className="relative isolate flex min-h-svh w-full flex-col lg:bg-sidebar">
+    <div className="relative isolate flex min-h-svh w-full flex-col lg:bg-sidebar ">
       {/* Sidebar on mobile */}
       <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>
         {sidebar}
@@ -87,7 +87,7 @@ export function StackedLayout({
       </header>
 
       {/* Content */}
-      <main className="flex flex-1 flex-col pb-2 lg:min-w-0  lg:px-2">
+      <main className="flex flex-1 flex-col pb-2 lg:min-w-0  lg:px-2 ">
         <div
           className={clsx(
             "flex flex-1 flex-col grow lg:rounded-lg lg:shadow-xs lg:ring-1 lg:ring-zinc-950/5 bg-background",
@@ -97,7 +97,7 @@ export function StackedLayout({
           <div
             className={clsx(
               "flex flex-1 flex-col",
-              fullWidth ? "mx-auto" : "mx-auto max-w-6xl w-full",
+              fullWidth ? "w-full" : "mx-auto max-w-6xl w-full",
             )}
           >
             {children}

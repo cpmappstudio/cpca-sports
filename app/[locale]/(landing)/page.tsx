@@ -1,6 +1,8 @@
 // ################################################################################
-// # Check: 12/13/2025                                                            #
+// # Check: 12/14/2025                                                            #
 // ################################################################################
+// TODO: This landing is a boilerplate for a landing page. Content must be changed and
+// integrated with shadcn variables.
 
 import { CallToAction } from "@/components/sections/landing/CallToAction";
 import { Faqs } from "@/components/sections/landing/Faqs";
@@ -12,13 +14,12 @@ import { SecondaryFeatures } from "@/components/sections/landing/SecondaryFeatur
 import { Testimonials } from "@/components/sections/landing/Testimonials";
 import { landingMetadata } from "@/lib/seo/landing";
 import { Metadata } from "next";
-
 export const metadata: Metadata = landingMetadata;
 
 export default function Home() {
   return (
     <>
-      <main className="bg-white antialiased">
+      <div className="bg-white antialiased rounded-lg">
         <Hero />
         <PrimaryFeatures />
         <SecondaryFeatures />
@@ -26,7 +27,7 @@ export default function Home() {
         <Testimonials />
         <Pricing />
         <Faqs />
-      </main>
+      </div>
       <Footer />
     </>
   );

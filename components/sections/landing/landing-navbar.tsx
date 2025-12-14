@@ -5,6 +5,7 @@
 // - [x] Place real hrefs
 // - [x] Centralize the Logo
 // - [ ] Centralize navItems
+// - [ ] Use Next-intl
 
 import Link from "next/link";
 

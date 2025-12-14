@@ -1,10 +1,10 @@
 // ################################################################################
-// # Check: 12/13/2025                                                            #
+// # Check: 12/14/2025                                                            #
 // ################################################################################
 
 import { SlimLayout } from "@/components/layouts/slim-layout";
 
-export default async function RootLayout({
+export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode;

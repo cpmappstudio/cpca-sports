@@ -7,7 +7,6 @@
 import Link from "next/link";
 import { usePathname } from "@/i18n/navigation";
 import { UserButton } from "@clerk/nextjs";
-
 import { Logo } from "@/components/ui/logo";
 import {
   Navbar,
@@ -28,6 +27,9 @@ import { getNavConfig, isItemActive } from "@/lib/navigation";
 import { ROUTES } from "@/lib/navigation/routes";
 import { useTranslations } from "next-intl";
 
+{
+  /* MOBILE VIEW */
+}
 export function SidebarAdminNavbar() {
   const t = useTranslations("Navigation.nav");
   const pathname = usePathname();
@@ -69,6 +71,9 @@ export function SidebarAdminNavbar() {
   );
 }
 
+{
+  /* DESKTOP VIEW */
+}
 export function NavbarAdminNavbar() {
   const t = useTranslations("Navigation.nav");
   const pathname = usePathname();

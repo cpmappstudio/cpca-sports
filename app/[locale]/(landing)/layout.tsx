@@ -8,7 +8,11 @@ import {
   SidebarLandingNavbar,
 } from "@/components/sections/landing/landing-navbar";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function LandingLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <StackedLayout
       fullWidth
