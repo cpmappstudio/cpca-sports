@@ -1,6 +1,41 @@
 // ################################################################################
-// # Check: 12/13/2025                                                            #
+// # Check: 12/14/2025                                                            #
 // ################################################################################
+//
+// COLOR SCHEME PROVIDER
+// =====================
+// This provider manages the active color scheme (e.g., zinc, nature, claude).
+// It works together with ThemeScript to prevent flash of unstyled content.
+//
+// HOW TO ADD A NEW THEME:
+// -----------------------
+// 1. Add the theme name to COLOR_SCHEMES array in:
+//    → lib/themes/index.ts
+//    Example: Add "my-theme" to the array
+//
+// 2. Add the theme configuration to COLOR_SCHEME_REGISTRY in:
+//    → lib/themes/index.ts
+//    Example:
+//    "my-theme": {
+//      name: "my-theme",
+//      label: "My Theme",
+//      preview: { light: "oklch(...)", dark: "oklch(...)" },
+//      font: `var(${FONT_VARIABLES.myFont})`, // optional
+//    }
+//
+// 3. Add CSS variables for the theme in:
+//    → app/globals.css
+//    Example:
+//    [data-theme="my-theme"] {
+//      --background: ...;
+//      --foreground: ...;
+//      /* etc. */
+//    }
+//
+// 4. (Optional) If using a new font, add it to:
+//    → lib/fonts/index.ts
+//    Import from next/font/google and add to fontVariables and FONT_VARIABLES
+//
 
 "use client";
 
@@ -8,6 +43,21 @@ import * as React from "react";
 import { ColorScheme, COLOR_SCHEMES, DEFAULT_COLOR_SCHEME } from "@/lib/themes";
 
 const STORAGE_KEY = "color-scheme";
+
+function getInitialColorScheme(defaultScheme: ColorScheme): ColorScheme {
+  if (typeof window === "undefined") {
+    return defaultScheme;
+  }
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY) as ColorScheme | null;
+    if (stored && COLOR_SCHEMES.includes(stored)) {
+      return stored;
+    }
+  } catch {
+    // localStorage not available
+  }
+  return defaultScheme;
+}
 
 interface ColorSchemeContextValue {
   colorScheme: ColorScheme;
@@ -35,35 +85,25 @@ export function ColorSchemeProvider({
   children,
   defaultScheme = DEFAULT_COLOR_SCHEME,
 }: ColorSchemeProviderProps) {
-  const [colorScheme, setColorSchemeState] =
-    React.useState<ColorScheme>(defaultScheme);
-  const [mounted, setMounted] = React.useState(false);
+  const [colorScheme, setColorSchemeState] = React.useState<ColorScheme>(() =>
+    getInitialColorScheme(defaultScheme),
+  );
 
+  // Sync data-theme attribute when provider re-mounts (e.g., locale change)
   React.useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as ColorScheme | null;
-    if (stored && COLOR_SCHEMES.includes(stored)) {
-      setColorSchemeState(stored);
-      document.documentElement.setAttribute("data-theme", stored);
-    } else {
-      document.documentElement.setAttribute("data-theme", defaultScheme);
-    }
-    setMounted(true);
-  }, [defaultScheme]);
+    document.documentElement.setAttribute("data-theme", colorScheme);
+  }, [colorScheme]);
 
   const setColorScheme = React.useCallback((scheme: ColorScheme) => {
     setColorSchemeState(scheme);
     localStorage.setItem(STORAGE_KEY, scheme);
-    document.documentElement.setAttribute("data-theme", scheme);
+    // Note: data-theme attribute is synced by useEffect when colorScheme changes
   }, []);
 
   const value = React.useMemo(
     () => ({ colorScheme, setColorScheme }),
     [colorScheme, setColorScheme],
   );
-
-  if (!mounted) {
-    return null;
-  }
 
   return (
     <ColorSchemeContext.Provider value={value}>

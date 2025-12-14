@@ -1,7 +1,7 @@
 // ################################################################################
-// # Check: 12/13/2025                                                            #
+// # Check: 12/14/2025                                                            #
 // ################################################################################
-// Component made by @convex. This is devided for client Component usage.
+// Component made by @Clerk.
 
 "use client";
 
@@ -9,7 +9,12 @@ import { ReactNode } from "react";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { useAuth } from "@clerk/nextjs";
-const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
+  throw new Error("Missing NEXT_PUBLIC_CONVEX_URL in your .env file");
+}
+
+const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export default function ConvexClientProvider({
   children,
