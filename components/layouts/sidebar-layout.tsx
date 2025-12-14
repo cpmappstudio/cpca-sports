@@ -1,3 +1,8 @@
+// ################################################################################
+// # Check: 12/13/2025                                                            #
+// ################################################################################
+// Component made by @catalyst
+
 "use client";
 
 import * as Headless from "@headlessui/react";
@@ -64,7 +69,9 @@ export function SidebarLayout({
   return (
     <div className="relative isolate flex min-h-svh w-full max-lg:flex-col lg:bg-sidebar ">
       {/* Sidebar on desktop */}
-      <div className="fixed inset-y-0 left-0 w-64 max-lg:hidden ">{sidebar}</div>
+      <div className="fixed inset-y-0 left-0 w-64 max-lg:hidden ">
+        {sidebar}
+      </div>
 
       {/* Sidebar on mobile */}
       <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>

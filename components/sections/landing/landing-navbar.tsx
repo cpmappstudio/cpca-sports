@@ -1,3 +1,11 @@
+// ################################################################################
+// # Check: 12/13/2025                                                            #
+// ################################################################################
+// TODO:
+// - [x] Place real hrefs
+// - [x] Centralize the Logo
+// - [ ] Centralize navItems
+
 import Link from "next/link";
 
 import {
@@ -9,7 +17,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/sections/landing/Logo";
+import { Logo } from "@/components/ui/logo";
 import {
   Navbar,
   NavbarDivider,
@@ -56,7 +64,7 @@ export function SidebarLandingNavbar() {
 export function NavbarLandingNavbar() {
   return (
     <Navbar className="flex flex-row-reverse lg:flex-row">
-      <Link href="#" aria-label="Home">
+      <Link href="/" aria-label="Home">
         <Logo className="h-10 w-auto" />
       </Link>
       <NavbarDivider className="max-lg:hidden" />

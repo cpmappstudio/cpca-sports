@@ -1,3 +1,8 @@
+// ################################################################################
+// # Check: 12/13/2025                                                            #
+// ################################################################################
+// Component made by @convex. This is devided for client Component usage.
+
 "use client";
 
 import { ReactNode } from "react";

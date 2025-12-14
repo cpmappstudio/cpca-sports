@@ -7,38 +7,42 @@ const leagueRole = v.literal("LeagueAdmin");
 const clubRole = v.union(
   v.literal("ClubAdmin"),
   v.literal("TechnicalDirector"),
-  v.literal("Player")
+  v.literal("Player"),
 );
 const officialRole = v.literal("Referee");
 const allRoles = v.union(platformRole, leagueRole, clubRole, officialRole);
 
 // === ORGANIZATION TYPES ===
-const orgType = v.union(v.literal("league"), v.literal("club"), v.literal("system"));
+const orgType = v.union(
+  v.literal("league"),
+  v.literal("club"),
+  v.literal("system"),
+);
 
 // === STATUS ENUMS ===
 const leagueStatus = v.union(v.literal("active"), v.literal("inactive"));
 const clubStatus = v.union(
   v.literal("affiliated"),
   v.literal("invited"),
-  v.literal("suspended")
+  v.literal("suspended"),
 );
 const tournamentStatus = v.union(
   v.literal("draft"),
   v.literal("upcoming"),
   v.literal("ongoing"),
   v.literal("completed"),
-  v.literal("cancelled")
+  v.literal("cancelled"),
 );
 const phaseStatus = v.union(
   v.literal("pending"),
   v.literal("active"),
-  v.literal("completed")
+  v.literal("completed"),
 );
 const playerStatus = v.union(
   v.literal("active"),
   v.literal("injured"),
   v.literal("on_loan"),
-  v.literal("inactive")
+  v.literal("inactive"),
 );
 
 export default defineSchema({
@@ -72,12 +76,12 @@ export default defineSchema({
     profileId: v.id("profiles"),
     role: allRoles,
     organizationId: v.string(), // "global" for SuperAdmin or specific ID
-    organizationType: orgType,  // Now includes "system"
+    organizationType: orgType, // Now includes "system"
     assignedAt: v.optional(v.number()),
     assignedBy: v.optional(v.id("profiles")),
   })
     .index("by_profileId", ["profileId"])
-    .index("by_profileId_and_role", ["profileId", "role"]) 
+    .index("by_profileId_and_role", ["profileId", "role"])
     .index("by_profileId_and_organizationId", ["profileId", "organizationId"])
     .index("by_organizationId", ["organizationId"]),
 
@@ -90,6 +94,7 @@ export default defineSchema({
    * Leagues are affiliated with a national federation.
    */
   leagues: defineTable({
+    clerkOrgId: v.optional(v.string()), // Clerk organization ID for multi-tenant sync
     name: v.string(),
     slug: v.string(), // URL-safe identifier
     shortName: v.optional(v.string()),
@@ -104,6 +109,7 @@ export default defineSchema({
     phoneNumber: v.optional(v.string()),
     address: v.optional(v.string()),
   })
+    .index("by_clerkOrgId", ["clerkOrgId"])
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
     .index("by_country_and_region", ["country", "region"]),
@@ -191,7 +197,7 @@ export default defineSchema({
       v.literal("group_stage"),
       v.literal("knockout"),
       v.literal("round_robin"),
-      v.literal("final")
+      v.literal("final"),
     ),
     order: v.number(), // Sequence in the tournament
     startDate: v.optional(v.string()),
@@ -279,13 +285,15 @@ export default defineSchema({
         v.literal("goalkeeper"),
         v.literal("defender"),
         v.literal("midfielder"),
-        v.literal("forward")
-      )
+        v.literal("forward"),
+      ),
     ),
     jerseyNumber: v.optional(v.number()),
     height: v.optional(v.number()), // in cm
     weight: v.optional(v.number()), // in kg
-    preferredFoot: v.optional(v.union(v.literal("left"), v.literal("right"), v.literal("both"))),
+    preferredFoot: v.optional(
+      v.union(v.literal("left"), v.literal("right"), v.literal("both")),
+    ),
     // Status
     status: playerStatus,
     joinedDate: v.optional(v.string()),
@@ -316,7 +324,7 @@ export default defineSchema({
       v.literal("promotion"), // Within same club
       v.literal("transfer"), // Between clubs
       v.literal("loan"),
-      v.literal("trial")
+      v.literal("trial"),
     ),
     fee: v.optional(v.number()), // For valorization
     approvedBy: v.optional(v.id("profiles")),
@@ -348,11 +356,18 @@ export default defineSchema({
     // Performance tracking
     matchesOfficiated: v.optional(v.number()),
     rating: v.optional(v.number()), // Average rating
-    status: v.union(v.literal("active"), v.literal("suspended"), v.literal("inactive")),
+    status: v.union(
+      v.literal("active"),
+      v.literal("suspended"),
+      v.literal("inactive"),
+    ),
   })
     .index("by_profileId", ["profileId"])
     .index("by_leagueId", ["leagueId"])
-    .index("by_leagueId_and_certificationLevel", ["leagueId", "certificationLevel"])
+    .index("by_leagueId_and_certificationLevel", [
+      "leagueId",
+      "certificationLevel",
+    ])
     .index("by_zone", ["zone"]),
 
   // ========================================

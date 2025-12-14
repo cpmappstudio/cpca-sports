@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
 /**
@@ -20,13 +20,13 @@ export const listAll = query({
         v.literal("inactive"),
         v.literal("affiliated"),
         v.literal("invited"),
-        v.literal("suspended")
+        v.literal("suspended"),
       ),
       country: v.optional(v.string()),
       region: v.optional(v.string()),
       clubCount: v.optional(v.number()),
       playerCount: v.optional(v.number()),
-    })
+    }),
   ),
   handler: async (ctx) => {
     // Get all leagues
@@ -74,7 +74,7 @@ export const listAll = query({
 
     // Combine and sort by creation time (most recent first)
     return [...leagueOrgs, ...clubOrgs].sort(
-      (a, b) => b._creationTime - a._creationTime
+      (a, b) => b._creationTime - a._creationTime,
     );
   },
 });
@@ -101,7 +101,7 @@ export const getBySlug = query({
       logoUrl: v.optional(v.string()),
       clubId: v.id("clubs"),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     // Try to find as league first
@@ -139,5 +139,104 @@ export const getBySlug = query({
     }
 
     return null;
+  },
+});
+
+/**
+ * Create a new league from a Clerk organization.
+ * Used when an organization is created in Clerk and needs to be synced to Convex.
+ */
+export const createFromClerk = mutation({
+  args: {
+    clerkOrgId: v.string(),
+    name: v.string(),
+    slug: v.string(),
+    logoUrl: v.optional(v.string()),
+    country: v.optional(v.string()),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    leagueId: v.optional(v.id("leagues")),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    // Check if organization already exists by clerkOrgId
+    const existingByClerkId = await ctx.db
+      .query("leagues")
+      .withIndex("by_clerkOrgId", (q) => q.eq("clerkOrgId", args.clerkOrgId))
+      .first();
+
+    if (existingByClerkId) {
+      return {
+        success: true,
+        leagueId: existingByClerkId._id,
+        error: undefined,
+      };
+    }
+
+    // Check if slug is already taken
+    const existingBySlug = await ctx.db
+      .query("leagues")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+
+    if (existingBySlug) {
+      return {
+        success: false,
+        leagueId: undefined,
+        error: "Slug already taken",
+      };
+    }
+
+    // Create the league
+    const leagueId = await ctx.db.insert("leagues", {
+      clerkOrgId: args.clerkOrgId,
+      name: args.name,
+      slug: args.slug,
+      logoUrl: args.logoUrl,
+      country: args.country || "CO", // Default to Colombia
+      status: "active",
+    });
+
+    return {
+      success: true,
+      leagueId,
+      error: undefined,
+    };
+  },
+});
+
+/**
+ * Get a league by its Clerk organization ID.
+ */
+export const getByClerkOrgId = query({
+  args: { clerkOrgId: v.string() },
+  returns: v.union(
+    v.object({
+      _id: v.id("leagues"),
+      name: v.string(),
+      slug: v.string(),
+      logoUrl: v.optional(v.string()),
+      status: v.union(v.literal("active"), v.literal("inactive")),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const league = await ctx.db
+      .query("leagues")
+      .withIndex("by_clerkOrgId", (q) => q.eq("clerkOrgId", args.clerkOrgId))
+      .first();
+
+    if (!league) {
+      return null;
+    }
+
+    return {
+      _id: league._id,
+      name: league.name,
+      slug: league.slug,
+      logoUrl: league.logoUrl,
+      status: league.status,
+    };
   },
 });

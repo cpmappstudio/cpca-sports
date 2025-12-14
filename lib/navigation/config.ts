@@ -8,90 +8,198 @@ import {
   DocumentDuplicateIcon,
   UsersIcon,
   CreditCardIcon,
+  Cog6ToothIcon,
+  BellIcon,
+  ShieldCheckIcon,
 } from "@heroicons/react/20/solid";
-import { ROUTE_SEGMENTS } from "@/lib/routes";
-import type { NavItem, NavConfig, NavContext } from "./types";
+import { Palette } from "lucide-react";
+import { ROUTES } from "@/lib/navigation/routes";
+import type {
+  NavItem,
+  NavConfig,
+  NavContext,
+  NavIcon,
+  SettingsNavItem,
+  SettingsNavConfig,
+} from "./types";
+
+/**
+ * Valid labelKey values for settings navigation items.
+ * Used by the settings search to look up icons.
+ */
+export type SettingsLabelKey =
+  | "general"
+  | "appearance"
+  | "notifications"
+  | "security"
+  | "billing";
+
+// =============================================================================
+// Main Navigation Configuration
+// =============================================================================
 
 const ADMIN_ITEMS: NavItem[] = [
   {
-    segment: ROUTE_SEGMENTS.dashboard,
-    labelKey: "dashboard",
-    icon: HomeIcon,
-  },
-  {
-    segment: ROUTE_SEGMENTS.organizations,
     labelKey: "organizations",
     icon: BuildingLibraryIcon,
+    href: () => ROUTES.admin.organizations.list,
+    isIndex: false,
   },
 ];
 
 const ORG_ITEMS: NavItem[] = [
   {
-    segment: ROUTE_SEGMENTS.dashboard,
     labelKey: "dashboard",
     icon: HomeIcon,
+    href: (orgSlug) => ROUTES.org.root(orgSlug!),
+    isIndex: true,
   },
-  {
-    segment: ROUTE_SEGMENTS.offerings,
-    labelKey: "offerings",
-    icon: DocumentTextIcon,
-  },
-  {
-    segment: ROUTE_SEGMENTS.applications,
-    labelKey: "applications",
-    icon: ClipboardDocumentListIcon,
-  },
-  {
-    segment: ROUTE_SEGMENTS.members,
-    labelKey: "members",
-    icon: UserGroupIcon,
-  },
-  {
-    segment: ROUTE_SEGMENTS.fees,
-    labelKey: "fees",
-    icon: CurrencyDollarIcon,
-  },
-  {
-    segment: ROUTE_SEGMENTS.forms,
-    labelKey: "forms",
-    icon: DocumentDuplicateIcon,
-  },
-  {
-    segment: ROUTE_SEGMENTS.staff,
-    labelKey: "staff",
-    icon: UsersIcon,
-  },
-  {
-    segment: ROUTE_SEGMENTS.payments,
-    labelKey: "payments",
-    icon: CreditCardIcon,
-  },
+  // {
+  //   labelKey: "offerings",
+  //   icon: DocumentTextIcon,
+  //   href: (orgSlug) => ROUTES.org.offerings.list(orgSlug!),
+  //   isIndex: false,
+  // },
+  // {
+  //   labelKey: "applications",
+  //   icon: ClipboardDocumentListIcon,
+  //   href: (orgSlug) => ROUTES.org.applications.list(orgSlug!),
+  //   isIndex: false,
+  // },
+  // {
+  //   labelKey: "members",
+  //   icon: UserGroupIcon,
+  //   href: (orgSlug) => ROUTES.org.members.list(orgSlug!),
+  //   isIndex: false,
+  // },
+  // {
+  //   labelKey: "fees",
+  //   icon: CurrencyDollarIcon,
+  //   href: (orgSlug) => ROUTES.org.fees.list(orgSlug!),
+  //   isIndex: false,
+  // },
+  // {
+  //   labelKey: "forms",
+  //   icon: DocumentDuplicateIcon,
+  //   href: (orgSlug) => ROUTES.org.forms.list(orgSlug!),
+  //   isIndex: false,
+  // },
+  // {
+  //   labelKey: "staff",
+  //   icon: UsersIcon,
+  //   href: (orgSlug) => ROUTES.org.staff.list(orgSlug!),
+  //   isIndex: false,
+  // },
+  // {
+  //   labelKey: "payments",
+  //   icon: CreditCardIcon,
+  //   href: (orgSlug) => ROUTES.org.payments(orgSlug!),
+  //   isIndex: false,
+  // },
 ];
 
 const NAV_CONFIGS: Record<NavContext, NavConfig> = {
   admin: {
     items: ADMIN_ITEMS,
-    showSettings: true,
+    settingsHref: () => ROUTES.admin.settings.root,
   },
-  league: {
+  org: {
     items: ORG_ITEMS,
-    showSettings: true,
-  },
-  club: {
-    items: ORG_ITEMS,
-    showSettings: true,
+    settingsHref: (orgSlug) => ROUTES.org.settings.root(orgSlug!),
   },
 };
+
+// =============================================================================
+// Settings Navigation Configuration
+// =============================================================================
+
+const ADMIN_SETTINGS_ITEMS: SettingsNavItem[] = [
+  {
+    labelKey: "general",
+    icon: Cog6ToothIcon,
+    href: () => ROUTES.admin.settings.root,
+    isIndex: true,
+  },
+  {
+    labelKey: "appearance",
+    icon: Palette,
+    href: () => ROUTES.admin.settings.appearance,
+    isIndex: false,
+  },
+  {
+    labelKey: "notifications",
+    icon: BellIcon,
+    href: () => ROUTES.admin.settings.notifications,
+    isIndex: false,
+  },
+  {
+    labelKey: "security",
+    icon: ShieldCheckIcon,
+    href: () => ROUTES.admin.settings.security,
+    isIndex: false,
+  },
+  {
+    labelKey: "billing",
+    icon: CreditCardIcon,
+    href: () => ROUTES.admin.settings.billing,
+    isIndex: false,
+  },
+];
+
+const ORG_SETTINGS_ITEMS: SettingsNavItem[] = [
+  {
+    labelKey: "general",
+    icon: Cog6ToothIcon,
+    href: (orgSlug) => ROUTES.org.settings.root(orgSlug!),
+    isIndex: true,
+  },
+  {
+    labelKey: "appearance",
+    icon: Palette,
+    href: (orgSlug) => ROUTES.org.settings.appearance(orgSlug!),
+    isIndex: false,
+  },
+  {
+    labelKey: "notifications",
+    icon: BellIcon,
+    href: (orgSlug) => ROUTES.org.settings.notifications(orgSlug!),
+    isIndex: false,
+  },
+  {
+    labelKey: "security",
+    icon: ShieldCheckIcon,
+    href: (orgSlug) => ROUTES.org.settings.security(orgSlug!),
+    isIndex: false,
+  },
+  {
+    labelKey: "billing",
+    icon: CreditCardIcon,
+    href: (orgSlug) => ROUTES.org.settings.billing(orgSlug!),
+    isIndex: false,
+  },
+];
+
+const SETTINGS_NAV_CONFIGS: Record<NavContext, SettingsNavConfig> = {
+  admin: {
+    items: ADMIN_SETTINGS_ITEMS,
+    basePath: () => ROUTES.admin.settings.root,
+  },
+  org: {
+    items: ORG_SETTINGS_ITEMS,
+    basePath: (orgSlug) => ROUTES.org.settings.root(orgSlug!),
+  },
+};
+
+// =============================================================================
+// Exported Functions
+// =============================================================================
 
 export function getNavConfig(context: NavContext): NavConfig {
   return NAV_CONFIGS[context];
 }
 
-export function buildNavHref(basePath: string, segment: string): string {
-  if (segment === "") {
-    return basePath || "/";
-  }
-  return `${basePath}/${segment}`;
+export function getSettingsNavConfig(context: NavContext): SettingsNavConfig {
+  return SETTINGS_NAV_CONFIGS[context];
 }
 
 export function isItemActive(
@@ -103,4 +211,29 @@ export function isItemActive(
     return pathname === href || pathname === `${href}/`;
   }
   return pathname.startsWith(href);
+}
+
+export function getNavContext(
+  pathname: string,
+  orgSlug: string | null,
+): NavContext {
+  if (pathname.startsWith("/admin")) {
+    return "admin";
+  }
+  if (orgSlug) {
+    return "org";
+  }
+  return "admin";
+}
+
+/**
+ * Get the icon component for a settings item by its labelKey.
+ * Uses admin settings as the source of truth (icons are the same for both contexts).
+ */
+export function getSettingsIcon(labelKey: SettingsLabelKey): NavIcon {
+  const item = ADMIN_SETTINGS_ITEMS.find((item) => item.labelKey === labelKey);
+  if (!item) {
+    throw new Error(`Unknown settings labelKey: ${labelKey}`);
+  }
+  return item.icon;
 }

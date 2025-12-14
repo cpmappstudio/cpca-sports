@@ -13,6 +13,51 @@ applyTo: "**/*"
 
 ---
 
+## 🥇 GOLDEN RULE: No Unused Code
+
+**NEVER create variables, exports, types, or abstractions that are not immediately consumed.**
+
+This is the highest priority rule. Unused code:
+- Causes confusion
+- Leads to over-engineering
+- Makes the codebase harder to understand
+- Creates maintenance burden
+
+### What This Means
+
+```typescript
+// ❌ WRONG: Creating exports "just in case" or "for convenience"
+export const inter = Inter({ ... });
+export const montserrat = Montserrat({ ... });
+export const fonts = { inter, montserrat }; // Not used anywhere!
+export type FontVariable = ...; // Not used anywhere!
+
+// ✅ CORRECT: Only export what is actually imported elsewhere
+const inter = Inter({ ... });
+const montserrat = Montserrat({ ... });
+
+export const fontVariables = [inter.variable, montserrat.variable].join(" ");
+export const FONT_VARIABLES = { ... }; // Only if actually used in another file
+```
+
+### Rules
+
+1. **Before creating an export** → Verify it will be imported somewhere
+2. **Before creating a type** → Verify it will be used in a signature or assertion
+3. **Before creating a utility function** → Verify it will be called
+4. **Before creating an abstraction** → Verify the pattern repeats at least twice
+
+### When Reviewing Code
+
+If you see unused exports, variables, or types:
+- **Delete them immediately**
+- Don't comment them out "for later"
+- Don't keep them "just in case"
+
+**The best code is the code you don't write.**
+
+---
+
 ## Project Structure
 
 ### Directory Responsibilities
@@ -81,9 +126,8 @@ components/
 ├── sections/           # Page-specific sections
 │   ├── landing/        # Landing page sections
 │   │   ├── hero.tsx
-│   │   ├── scoreboard.tsx
 │   │   └── footer.tsx
-│   └── match/          # Match page sections
+│   └── shell/          # Shell (dashboard) sections
 ├── forms/              # Form components
 ├── layouts/            # Layout wrappers
 ├── skeletons/          # Loading states
@@ -104,9 +148,9 @@ When a pattern repeats (e.g., data tables), abstract it:
 ```tsx
 // CORRECT: Reusable table with column definitions
 <DataTable
-  columns={playerColumns}
-  data={players}
-  onRowClick={handlePlayerClick}
+  columns={memberColumns}
+  data={members}
+  onRowClick={handleMemberClick}
   searchable
 />
 
@@ -126,15 +170,11 @@ lib/
 ├── routes.ts           # Centralized route definitions (REQUIRED)
 ├── navigation/
 │   ├── types.ts        # Type definitions
-│   ├── utils.ts        # Utility functions
-│   ├── config.ts       # Static configuration
-│   └── index.ts        # Public exports (optional)
-├── scoreboard/
-│   ├── types.ts
-│   └── utils.ts
+│   ├── config.ts       # Navigation configuration
+│   └── index.ts        # Public exports
 └── auth/
-    ├── types.ts
-    └── utils.ts
+    ├── auth.ts         # Auth helpers
+    └── types.ts        # Auth types
 ```
 
 ### Rules
@@ -153,8 +193,8 @@ lib/
 - Export single hook per file (usually)
 
 ```typescript
-// hooks/use-scoreboard-filters.ts
-export function useScoreboardFilters() {
+// hooks/use-fee-filters.ts
+export function useFeeFilters() {
   // ...
 }
 ```
@@ -169,15 +209,15 @@ export function useScoreboardFilters() {
 convex/
 ├── schema.ts           # Database schema
 ├── http.ts             # HTTP endpoints (webhooks)
-├── {feature}.ts        # Feature modules (users.ts, leagues.ts)
+├── {feature}.ts        # Feature modules (offerings.ts, applications.ts)
 └── lib/                # Shared utilities
     ├── auth.ts
-    └── permissions.ts
+    └── auth_types.ts
 ```
 
 ### Rules
 
-1. One feature per file (e.g., `players.ts`, `clubs.ts`)
+1. One feature per file (e.g., `offerings.ts`, `applications.ts`, `fees.ts`)
 2. Keep functions small and focused
 3. Shared logic goes in `lib/`
 4. See `convex.instructions.md` for function syntax
@@ -271,39 +311,34 @@ import { ROUTES } from "@/lib/routes";
 ROUTES.home                        // "/"
 ROUTES.auth.signIn                 // "/sign-in"
 ROUTES.admin.root                  // "/admin"
-ROUTES.admin.leagues.list          // "/admin/leagues"
+ROUTES.admin.organizations.list    // "/admin/organizations"
 
-// League routes (with single parameter)
-ROUTES.league.root(leagueSlug)                    // "/liga-valle"
-ROUTES.league.clubs.list(leagueSlug)              // "/liga-valle/clubs"
-ROUTES.league.divisions.list(leagueSlug)          // "/liga-valle/divisions"
+// Organization routes (with org slug parameter)
+ROUTES.org.root(orgSlug)                         // "/acme-corp"
+ROUTES.org.offerings.list(orgSlug)               // "/acme-corp/offerings"
+ROUTES.org.offerings.detail(orgSlug, id)         // "/acme-corp/offerings/abc123"
+ROUTES.org.applications.list(orgSlug)            // "/acme-corp/applications"
+ROUTES.org.members.list(orgSlug)                 // "/acme-corp/members"
+ROUTES.org.fees.list(orgSlug)                    // "/acme-corp/fees"
+ROUTES.org.payments(orgSlug)                     // "/acme-corp/payments"
 
-// Club routes (with two parameters: league + club)
-ROUTES.club.root(leagueSlug, clubSlug)                      // "/liga-valle/club-name"
-ROUTES.club.players.list(leagueSlug, clubSlug)              // "/liga-valle/club-name/players"
-ROUTES.club.players.detail(leagueSlug, clubSlug, playerId)  // "/liga-valle/club-name/players/abc123"
-
-// For navigation config segments
-import { ROUTE_SEGMENTS } from "@/lib/routes";
-ROUTE_SEGMENTS.players             // "players"
-ROUTE_SEGMENTS.categories          // "categories"
 ```
 
 ### Rules
 
 1. **All `href` props** must use `ROUTES.*`
 2. **All `router.push()` calls** must use `ROUTES.*`
-3. **Navigation config** uses `ROUTE_SEGMENTS` for relative paths
-4. When adding new pages, **add the route to `lib/routes.ts` first**
+3. **Navigation config** in `lib/navigation/config.ts` uses `ROUTES` directly via `href` functions
+4. When adding new pages, **add the route to `lib/navigation/routes.ts` first**
 
 ```tsx
 // CORRECT
-<Link href={ROUTES.club.players.list(leagueSlug, clubSlug)}>Players</Link>
-router.push(ROUTES.club.categories.detail(leagueSlug, clubSlug, categoryId));
+<Link href={ROUTES.org.members.list(orgSlug)}>Members</Link>
+router.push(ROUTES.org.offerings.detail(orgSlug, offeringId));
 
 // WRONG - hardcoded strings
-<Link href={`/${leagueSlug}/${clubSlug}/players`}>Players</Link>
-router.push(`/${leagueSlug}/${clubSlug}/categories/${categoryId}`);
+<Link href={`/${orgSlug}/members`}>Members</Link>
+router.push(`/${orgSlug}/offerings/${offeringId}`);
 ```
 
 ---
@@ -312,8 +347,8 @@ router.push(`/${leagueSlug}/${clubSlug}/categories/${categoryId}`);
 
 ### Creating New Features
 
-1. **Page**: `app/(group)/feature/page.tsx` - Server component, compose sections
-2. **Sections**: `components/sections/feature/` - Feature-specific components
+1. **Page**: `app/[locale]/(shell)/[organization]/feature/page.tsx` - Server component, compose sections
+2. **Sections**: `components/sections/shell/feature/` - Feature-specific components
 3. **Logic**: `lib/feature/` - Types in `types.ts`, functions in `utils.ts`
 4. **Hooks**: `hooks/use-feature.ts` - Client-side state logic
 5. **Backend**: `convex/feature.ts` - Queries and mutations
@@ -326,3 +361,4 @@ router.push(`/${leagueSlug}/${clubSlug}/categories/${categoryId}`);
 - [ ] Files are reasonably sized
 - [ ] Components are in correct location
 - [ ] Server components where possible
+- [ ] Routes use `ROUTES.*` from `lib/routes.ts`

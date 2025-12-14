@@ -1,10 +1,12 @@
+// ################################################################################
+// # Check: 01/13/2025                                                            #
+// ################################################################################
+
+import { adminOrganizationsMetadata } from "@/lib/seo/admin";
+import { OrganizationList } from "@/components/sections/shell/admin/organizations";
+
+export const metadata = adminOrganizationsMetadata;
+
 export default function OrganizationsPage() {
-  return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Organizations</h1>
-      <p className="text-muted-foreground">
-        Manage all organizations in the platform.
-      </p>
-    </div>
-  );
+  return <OrganizationList />;
 }

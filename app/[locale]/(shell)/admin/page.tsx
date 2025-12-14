@@ -1,15 +1,6 @@
-import { Heading } from "@/components/ui/heading";
-import { Text } from "@/components/ui/text";
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/lib/navigation/routes";
 
-export default function AdminDashboardPage() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <Heading>Admin Dashboard</Heading>
-        <Text className="mt-1">
-          Manage organizations and platform settings.
-        </Text>
-      </div>
-    </div>
-  );
+export default function AdminPage() {
+  redirect(ROUTES.admin.organizations.list);
 }

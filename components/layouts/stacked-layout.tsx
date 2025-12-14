@@ -1,3 +1,8 @@
+// ################################################################################
+// # Check: 12/13/2025                                                            #
+// ################################################################################
+// Component made by @catalyst
+
 "use client";
 
 import * as Headless from "@headlessui/react";
@@ -36,7 +41,7 @@ function MobileSidebar({
         transition
         className="fixed inset-y-0 w-full max-w-80 p-2 transition duration-300 ease-in-out data-closed:-translate-x-full"
       >
-        <div className="flex h-full flex-col rounded-lg bg-white shadow-xs ring-1 ring-zinc-950/5 dark:bg-zinc-900 dark:ring-white/10">
+        <div className="flex h-full flex-col rounded-lg bg-background shadow-xs ring-1 ring-zinc-950/5 dark:ring-white/10">
           <div className="-mb-3 px-4 pt-3">
             <Headless.CloseButton as={NavbarItem} aria-label="Close navigation">
               <CloseMenuIcon />
@@ -50,27 +55,27 @@ function MobileSidebar({
 }
 
 export function StackedLayout({
-  fullWidth,
+  fullWidth = false,
   navbar,
   sidebar,
   children,
 }: React.PropsWithChildren<{
-  fullWidth: boolean;
+  fullWidth?: boolean;
   navbar: React.ReactNode;
   sidebar: React.ReactNode;
 }>) {
   const [showSidebar, setShowSidebar] = useState(false);
 
   return (
-    <div className="relative isolate flex min-h-svh w-full flex-col bg-white dark:bg-zinc-900">
+    <div className="relative isolate flex min-h-svh w-full flex-col lg:bg-sidebar">
       {/* Sidebar on mobile */}
       <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>
         {sidebar}
       </MobileSidebar>
 
       {/* Navbar */}
-      <header className="flex items-center w-full max-w-7xl px-4  mx-auto  ">
-        <div className="py-2.5 lg:hidden">
+      <header className="flex items-center w-full max-w-7xl px-4 mx-auto">
+        <div className="lg:hidden">
           <NavbarItem
             onClick={() => setShowSidebar(true)}
             aria-label="Open navigation"
@@ -82,13 +87,23 @@ export function StackedLayout({
       </header>
 
       {/* Content */}
-      <div
-        className={`overflow-hidden grow lg:rounded-lg lg:bg-zinc-100 lg:shadow-xs lg:ring-1 lg:ring-zinc-950/5 dark:lg:bg-zinc-900 dark:lg:ring-white/10 ${clsx(fullWidth ? "" : "p-6 lg:p-10")}`}
-      >
-        <div className={clsx(fullWidth ? "mx-auto " : "mx-auto max-w-6xl")}>
-          {children}
+      <main className="flex flex-1 flex-col pb-2 lg:min-w-0  lg:px-2">
+        <div
+          className={clsx(
+            "flex flex-1 flex-col grow lg:rounded-lg lg:shadow-xs lg:ring-1 lg:ring-zinc-950/5 bg-background",
+            fullWidth ? "" : "p-6 lg:p-10",
+          )}
+        >
+          <div
+            className={clsx(
+              "flex flex-1 flex-col",
+              fullWidth ? "mx-auto" : "mx-auto max-w-6xl w-full",
+            )}
+          >
+            {children}
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

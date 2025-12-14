@@ -1,54 +1,55 @@
 {
-    "nav": {
-        "general": "General",
-        "appearance": "Appearance",
-        "notifications": "Notifications",
-        "security": "Security",
-        "billing": "Billing"
-    },
-    "general": {
-        "title": "General Settings",
-        "description": "Manage your organization's general settings",
-        "appearance": {
-            "title": "Appearance",
-            "description": "Customize how the app looks",
-            "theme": "Theme",
-            "themeDescription": "Select the application theme"
-        },
-        "language": {
-            "title": "Language",
-            "description": "Select your preferred language",
-            "comingSoon": "Coming soon"
-        }
-    },
+  "nav": {
+    "general": "General",
+    "appearance": "Appearance",
+    "notifications": "Notifications",
+    "security": "Security",
+    "billing": "Billing"
+  },
+  "general": {
+    "title": "General Settings",
+    "description": "Manage your organization's general settings",
+    "placeholder": "General settings content coming soon.",
     "appearance": {
-        "theme": {
-            "title": "Mode",
-            "description": "Choose between light and dark mode"
-        },
-        "colorScheme": {
-            "title": "Color Scheme",
-            "description": "Choose your preferred color palette"
-        },
-        "language": {
-            "title": "Language",
-            "description": "Select your preferred language"
-        }
+      "title": "Appearance",
+      "description": "Customize how the app looks",
+      "theme": "Theme",
+      "themeDescription": "Select the application theme"
     },
-    "notifications": {
-        "title": "Notifications",
-        "description": "Configure your notification preferences"
-    },
-    "security": {
-        "title": "Security",
-        "description": "Manage your account security"
-    },
-    "billing": {
-        "title": "Billing",
-        "description": "Manage your plan and payment methods"
-    },
-    "search": {
-        "placeholder": "Search settings...",
-        "noResults": "No settings found"
+    "language": {
+      "title": "Language",
+      "description": "Select your preferred language",
+      "comingSoon": "Coming soon"
     }
+  },
+  "appearance": {
+    "theme": {
+      "title": "Mode",
+      "description": "Choose between light and dark mode"
+    },
+    "colorScheme": {
+      "title": "Color Scheme",
+      "description": "Choose your preferred color palette"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Select your preferred language"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Configure your notification preferences"
+  },
+  "security": {
+    "title": "Security",
+    "description": "Manage your account security"
+  },
+  "billing": {
+    "title": "Billing",
+    "description": "Manage your plan and payment methods"
+  },
+  "search": {
+    "placeholder": "Search settings...",
+    "noResults": "No settings found"
+  }
 }

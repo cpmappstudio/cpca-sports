@@ -67,9 +67,9 @@ export const NavbarItem = forwardRef(function NavbarItem(
   }: { current?: boolean; className?: string; children: React.ReactNode } & (
     | ({ href?: never } & Omit<Headless.ButtonProps, "as" | "className">)
     | ({ href: string } & Omit<
-      React.ComponentPropsWithoutRef<typeof Link>,
-      "className"
-    >)
+        React.ComponentPropsWithoutRef<typeof Link>,
+        "className"
+      >)
   ),
   ref: React.ForwardedRef<HTMLAnchorElement | HTMLButtonElement>,
 ) {
@@ -97,7 +97,7 @@ export const NavbarItem = forwardRef(function NavbarItem(
       {current && (
         <motion.span
           layoutId="current-indicator"
-          className="absolute inset-x-2 -bottom-2.5 h-0.5 rounded-full bg-sidebar-accent"
+          className="absolute inset-x-2 -bottom-2.5 h-0.5 rounded-full bg-primary"
         />
       )}
       {typeof props.href === "string" ? (
