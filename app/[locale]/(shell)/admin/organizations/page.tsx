@@ -6,7 +6,8 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { OrganizationList } from "@/components/sections/shell/admin/organizations";
 
 import { adminOrganizationsMetadata } from "@/lib/seo/admin";
-export const metadata = adminOrganizationsMetadata;
+import { Metadata } from "next";
+export const metadata: Metadata = adminOrganizationsMetadata;
 
 export default async function OrganizationsPage() {
   const { data: organizations } = await (
