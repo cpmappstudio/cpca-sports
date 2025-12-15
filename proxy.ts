@@ -6,12 +6,15 @@
 
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import createMiddleware from "next-intl/middleware";
-import { routing } from "./i18n/routing";
+import { routing, locales } from "./i18n/routing";
 import { NextResponse, type NextRequest } from "next/server";
 
 const intlMiddleware = createMiddleware(routing);
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3000";
+
+// Build locale pattern dynamically from routing config
+const localePattern = `^/(${locales.join("|")})(\/|$)`;
 
 /**
  * Extracts subdomain from the request URL.
@@ -64,9 +67,32 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
-    // Rewrite root path to tenant page
-    if (pathname === "/") {
-      return NextResponse.rewrite(new URL(`/s/${subdomain}`, req.url));
+    // Check if pathname already has a locale prefix
+    const localeRegex = new RegExp(localePattern);
+    const localeMatch = pathname.match(localeRegex);
+    const hasLocalePrefix = localeMatch !== null;
+
+    // For subdomain requests, rewrite to tenant path
+    // The path structure is: /[locale]/(shell)/s/[subdomain]/...
+    const isRootPath =
+      pathname === "/" ||
+      (hasLocalePrefix &&
+        pathname.match(new RegExp(`^/(${locales.join("|")})/?$`)));
+
+    if (isRootPath) {
+      // Root path: rewrite to /s/subdomain (intlMiddleware will add locale)
+      req.nextUrl.pathname = `/s/${subdomain}`;
+      return intlMiddleware(req);
+    }
+
+    // For other paths on subdomain, prepend /s/subdomain
+    // e.g., /settings -> /s/acme/settings
+    if (!pathname.startsWith("/s/")) {
+      const pathWithoutLocale = hasLocalePrefix
+        ? pathname.replace(new RegExp(`^/(${locales.join("|")})`), "")
+        : pathname;
+      req.nextUrl.pathname = `/s/${subdomain}${pathWithoutLocale || ""}`;
+      return intlMiddleware(req);
     }
   }
 
