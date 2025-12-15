@@ -22,6 +22,7 @@ import { Cog6ToothIcon } from "@heroicons/react/20/solid";
 // import { InboxIcon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import { getNavConfig, getNavContext, isItemActive } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
+import { ROUTES } from "@/lib/navigation/routes";
 
 export function NavbarAppSidebar() {
   return (
@@ -58,6 +59,7 @@ export function SidebarAppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <OrganizationSwitcher
+          afterLeaveOrganizationUrl={ROUTES.admin.organizations.list}
           afterSelectOrganizationUrl="/:slug"
           appearance={{
             elements: {

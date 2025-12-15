@@ -8,6 +8,7 @@ import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { CreateOrganization } from "@clerk/nextjs";
 import { Card } from "@/components/ui/card";
+import { ROUTES } from "@/lib/navigation/routes";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +37,7 @@ export function CreateOrganizationCard() {
           <DialogTitle>{t("createTitle")}</DialogTitle>
         </DialogHeader>
         <CreateOrganization
-          afterCreateOrganizationUrl="/admin/organizations"
+          afterCreateOrganizationUrl={ROUTES.admin.organizations.list}
           appearance={{
             elements: {
               rootBox: "w-full",

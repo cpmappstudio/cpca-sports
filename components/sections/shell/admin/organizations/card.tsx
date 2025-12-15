@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useRouter } from "@/i18n/navigation";
 import { useClerk } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GridPattern } from "@/components/ui/grid-pattern";
 import { ROUTES } from "@/lib/navigation/routes";
 
 interface OrganizationCardProps {
@@ -34,8 +35,9 @@ export function OrganizationCard({
 
   return (
     <button type="button" onClick={handleClick} className="w-full text-left">
-      <Card className="p-3 h-full hover:border-primary/50 border-2 transition-colors cursor-pointer">
-        <CardHeader className="px-1">
+      <Card className="group p-3 h-full hover:border-primary/50 border transition-colors cursor-pointer relative overflow-hidden">
+        <GridPattern />
+        <CardHeader className="px-1 relative z-10">
           <div className="flex items-center justify-between">
             {imageUrl && (
               <Image
@@ -43,13 +45,13 @@ export function OrganizationCard({
                 alt={name}
                 width={0}
                 height={0}
-                className="size-8 rounded-full object-cover"
+                className="size-10 rounded-full object-cover"
               />
             )}
             <div className="text-xs text-muted-foreground">/{slug}</div>
           </div>
         </CardHeader>
-        <CardContent className="px-1">
+        <CardContent className="px-1 relative z-10">
           <CardTitle>{name}</CardTitle>
         </CardContent>
       </Card>
