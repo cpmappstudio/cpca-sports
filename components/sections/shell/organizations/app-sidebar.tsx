@@ -49,7 +49,7 @@ export function SidebarAppSidebar() {
   const pathname = usePathname();
   const t = useTranslations("Navigation.nav");
 
-  const orgSlug = (params.organization as string) || null;
+  const orgSlug = (params.tenant as string) || null;
 
   const context = getNavContext(pathname, orgSlug);
   const { items, settingsHref } = getNavConfig(context);
@@ -59,7 +59,6 @@ export function SidebarAppSidebar() {
       <SidebarHeader>
         <OrganizationSwitcher
           afterSelectOrganizationUrl="/:slug"
-          hidePersonal={true}
           appearance={{
             elements: {
               rootBox: "w-full",

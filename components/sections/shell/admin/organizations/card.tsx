@@ -1,53 +1,58 @@
 // ################################################################################
-// # Check: 01/14/2025                                                            #
+// # Check: 01/15/2025                                                            #
 // ################################################################################
 
+"use client";
+
 import Image from "next/image";
+import { useRouter } from "@/i18n/navigation";
+import { useClerk } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { protocol, rootDomain } from "@/lib/utils";
+import { ROUTES } from "@/lib/navigation/routes";
 
 interface OrganizationCardProps {
+  id: string;
   name: string;
   slug: string;
   imageUrl?: string;
 }
 
 export function OrganizationCard({
+  id,
   name,
   slug,
   imageUrl,
 }: OrganizationCardProps) {
+  const router = useRouter();
+  const { setActive } = useClerk();
+
+  const handleClick = () => {
+    setActive({ organization: id }).then(() => {
+      router.push(ROUTES.org.root(slug));
+    });
+  };
+
   return (
-    <Card className="p-3">
-      <CardHeader className="px-1">
-        <div className="flex items-center justify-between">
-          {imageUrl && (
-            <Image
-              src={imageUrl}
-              alt={name}
-              width={0}
-              height={0}
-              className="size-8 rounded-full object-cover"
-            />
-          )}
-          <div className="text-xs text-muted-foreground">
-            {slug}.{rootDomain}
+    <button type="button" onClick={handleClick} className="w-full text-left">
+      <Card className="p-3 h-full hover:border-primary/50 border-2 transition-colors cursor-pointer">
+        <CardHeader className="px-1">
+          <div className="flex items-center justify-between">
+            {imageUrl && (
+              <Image
+                src={imageUrl}
+                alt={name}
+                width={0}
+                height={0}
+                className="size-8 rounded-full object-cover"
+              />
+            )}
+            <div className="text-xs text-muted-foreground">/{slug}</div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="px-1">
-        <CardTitle>{name}</CardTitle>
-        <div className="mt-4">
-          <a
-            href={`${protocol}://${slug}.${rootDomain}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline text-sm"
-          >
-            Visit subdomain →
-          </a>
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="px-1">
+          <CardTitle>{name}</CardTitle>
+        </CardContent>
+      </Card>
+    </button>
   );
 }

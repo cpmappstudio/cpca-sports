@@ -43,11 +43,12 @@ export async function OrganizationList({
           </EmptyContent>
         </Empty>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-4 items-stretch">
           <CreateOrganizationCard />
           {organizations.map((org) => (
             <OrganizationCard
               key={org.id}
+              id={org.id}
               name={org.name}
               slug={org.slug || org.id}
               imageUrl={org.imageUrl}
