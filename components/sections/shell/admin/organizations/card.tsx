@@ -45,7 +45,7 @@ export function OrganizationCard({
                 alt={name}
                 width={0}
                 height={0}
-                className="size-10 rounded-full object-cover"
+                className="size-10 object-cover"
               />
             )}
             <div className="text-xs text-muted-foreground">/{slug}</div>
