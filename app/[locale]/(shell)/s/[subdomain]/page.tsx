@@ -3,7 +3,7 @@ import { Text } from "@/components/ui/text";
 
 type Params = Promise<{
   locale: string;
-  organization: string;
+  subdomain: string;
 }>;
 
 export default async function OrganizationDashboardPage({
@@ -11,13 +11,13 @@ export default async function OrganizationDashboardPage({
 }: {
   params: Params;
 }) {
-  const { organization } = await params;
+  const { subdomain } = await params;
 
   return (
     <div className="space-y-6">
       <div>
         <Heading>Dashboard</Heading>
-        <Text className="mt-1">Overview for {organization}</Text>
+        <Text className="mt-1">Overview for {subdomain}</Text>
       </div>
     </div>
   );

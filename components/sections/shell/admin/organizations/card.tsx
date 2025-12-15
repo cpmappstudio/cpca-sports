@@ -1,9 +1,10 @@
-"use client";
+// ################################################################################
+// # Check: 01/14/2025                                                            #
+// ################################################################################
 
-import { Card } from "@/components/ui/card";
-import { Building2 } from "lucide-react";
-import { rootDomain } from "@/lib/utils";
-import { goToOrganizationAction } from "@/lib/tenant";
+import Image from "next/image";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { protocol, rootDomain } from "@/lib/utils";
 
 interface OrganizationCardProps {
   name: string;
@@ -17,48 +18,36 @@ export function OrganizationCard({
   imageUrl,
 }: OrganizationCardProps) {
   return (
-    <form action={goToOrganizationAction} className="h-full">
-      <input type="hidden" name="slug" value={slug} />
-      <button type="submit" className="w-full h-full text-left">
-        <Card className="group h-full hover:border-primary/50 p-0 transition-colors cursor-pointer overflow-hidden">
-          {/* Header with subdomain */}
-          <div className="flex items-center justify-between p-4 border-b group-hover:border-primary/50 transition-colors">
-            <OrganizationAvatar name={name} imageUrl={imageUrl} />
-            <span className="text-xs text-muted-foreground font-mono truncate max-w-[150px]">
-              {slug}.{rootDomain}
-            </span>
+    <Card className="p-3">
+      <CardHeader className="px-1">
+        <div className="flex items-center justify-between">
+          {imageUrl && (
+            <Image
+              src={imageUrl}
+              alt={name}
+              width={0}
+              height={0}
+              className="size-8 rounded-full object-cover"
+            />
+          )}
+          <div className="text-xs text-muted-foreground">
+            {slug}.{rootDomain}
           </div>
-
-          {/* Content */}
-          <div className="p-4 space-y-1">
-            <h3 className="font-semibold truncate">{name}</h3>
-          </div>
-        </Card>
-      </button>
-    </form>
-  );
-}
-
-function OrganizationAvatar({
-  name,
-  imageUrl,
-}: {
-  name: string;
-  imageUrl?: string;
-}) {
-  if (imageUrl) {
-    return (
-      <img
-        src={imageUrl}
-        alt={name}
-        className="size-8 rounded-full object-cover"
-      />
-    );
-  }
-
-  return (
-    <div className="size-8 rounded-full bg-muted flex items-center justify-center">
-      <Building2 className="size-4 text-muted-foreground" />
-    </div>
+        </div>
+      </CardHeader>
+      <CardContent className="px-1">
+        <CardTitle>{name}</CardTitle>
+        <div className="mt-4">
+          <a
+            href={`${protocol}://${slug}.${rootDomain}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline text-sm"
+          >
+            Visit subdomain →
+          </a>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

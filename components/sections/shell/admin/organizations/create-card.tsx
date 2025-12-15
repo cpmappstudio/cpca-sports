@@ -1,3 +1,7 @@
+// ################################################################################
+// # Check: 01/14/2025                                                            #
+// ################################################################################
+
 "use client";
 
 import { Plus } from "lucide-react";
@@ -27,7 +31,7 @@ export function CreateOrganizationCard() {
           </Card>
         </button>
       </DialogTrigger>
-      <DialogContent className=" p-0">
+      <DialogContent className="bg-none border-none p-0">
         <DialogHeader className="hidden">
           <DialogTitle>{t("createTitle")}</DialogTitle>
         </DialogHeader>

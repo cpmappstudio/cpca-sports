@@ -1,7 +1,13 @@
+// ################################################################################
+// # Check: 01/13/2025                                                            #
+// ################################################################################
+// Check from intl and multitenancy
+// TODO: protected routes
+
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import createMiddleware from "next-intl/middleware";
-import { NextRequest, NextResponse } from "next/server";
-import { routing } from "@/i18n/routing";
+import { routing } from "./i18n/routing";
+import { NextResponse, type NextRequest } from "next/server";
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -48,101 +54,30 @@ function extractSubdomain(request: NextRequest): string | null {
   return isSubdomain ? hostname.replace(`.${rootDomainFormatted}`, "") : null;
 }
 
-/**
- * Extracts locale from pathname (e.g., /en/page -> "en")
- */
-function getLocaleFromPath(pathname: string): string | null {
-  const segments = pathname.split("/").filter(Boolean);
-  if (
-    segments.length > 0 &&
-    routing.locales.includes(segments[0] as (typeof routing.locales)[number])
-  ) {
-    return segments[0];
-  }
-  return null;
-}
-
-/**
- * Gets preferred locale from Accept-Language header
- */
-function getLocaleFromHeaders(request: NextRequest): string {
-  const acceptLanguage = request.headers.get("accept-language") || "";
-  const preferredLocale = acceptLanguage.split(",")[0]?.split("-")[0];
-
-  if (
-    preferredLocale &&
-    routing.locales.includes(
-      preferredLocale as (typeof routing.locales)[number],
-    )
-  ) {
-    return preferredLocale;
-  }
-
-  return routing.defaultLocale;
-}
-
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
   const subdomain = extractSubdomain(req);
 
   if (subdomain) {
-    // Check if on auth pages - let them through without auth check
-    const isAuthPage =
-      pathname.includes("/sign-in") || pathname.includes("/sign-up");
-
-    if (!isAuthPage) {
-      // Check authentication for non-auth pages on subdomains
-      const { userId } = await auth();
-
-      if (!userId) {
-        // Redirect to subdomain's own sign-in
-        const locale = getLocaleFromHeaders(req);
-        const localePath = locale === routing.defaultLocale ? "" : `/${locale}`;
-        return NextResponse.redirect(new URL(`${localePath}/sign-in`, req.url));
-      }
-    }
-
     // Block access to admin pages from subdomains
-    if (pathname.startsWith("/admin") || pathname.match(/^\/[a-z]{2}\/admin/)) {
+    if (pathname.startsWith("/admin")) {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
     // Rewrite root path to tenant page
     if (pathname === "/") {
-      const locale = getLocaleFromHeaders(req);
-      const localePath = locale === routing.defaultLocale ? "" : `/${locale}`;
-      return NextResponse.rewrite(
-        new URL(`${localePath}/s/${subdomain}`, req.url),
-      );
+      return NextResponse.rewrite(new URL(`/s/${subdomain}`, req.url));
     }
-
-    // Handle locale-only paths (e.g., /en or /en/ on subdomain)
-    const pathLocale = getLocaleFromPath(pathname);
-    if (
-      pathLocale &&
-      (pathname === `/${pathLocale}` || pathname === `/${pathLocale}/`)
-    ) {
-      return NextResponse.rewrite(
-        new URL(`/${pathLocale}/s/${subdomain}`, req.url),
-      );
-    }
-
-    // All other subdomain paths pass through
-    return NextResponse.next();
   }
 
-  // Primary domain: use next-intl middleware
   return intlMiddleware(req);
 });
 
 export const config = {
   matcher: [
-    /*
-     * Match all paths except:
-     * - /api routes
-     * - /_next (Next.js internals)
-     * - Static files in /public
-     */
-    "/((?!api|_next|[\\w-]+\\.\\w+).*)",
+    // Skip Next.js internals and all static files, unless found in search params
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Always run for API routes
+    "/(api|trpc)(.*)",
   ],
 };

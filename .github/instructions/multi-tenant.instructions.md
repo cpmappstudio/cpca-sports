@@ -1,581 +1,448 @@
-# Domain management for multi-tenant
-
-Learn how to programmatically manage domains for your multi-tenant application using Vercel for Platforms.
-
-## [Using wildcard domains](#using-wildcard-domains)
-
-If you plan on offering subdomains like `*.acme.com`, add a wildcard domain to your Vercel project. This requires using [Vercel's nameservers](https://vercel.com/docs/projects/domains/working-with-nameservers) so that Vercel can manage the DNS challenges necessary for generating wildcard SSL certificates.
-
-1.  Point your domain to Vercel's nameservers (`ns1.vercel-dns.com` and `ns2.vercel-dns.com`).
-2.  In your Vercel project settings, add the apex domain (e.g., `acme.com`).
-3.  Add a wildcard domain: `.acme.com`.
-
-Now, any `tenant.acme.com` you create—whether it's `tenant1.acme.com` or `docs.tenant1.acme.com`—automatically resolves to your Vercel deployment. Vercel issues individual certificates for each subdomain on the fly.
-
-## [Offering custom domains](#offering-custom-domains)
-
-You can also give tenants the option to bring their own domain. In that case, you'll want your code to:
-
-1.  Provision and assign the tenant's domain to your Vercel project.
-2.  Verify the domain (to ensure the tenant truly owns it).
-3.  Automatically generate an SSL certificate.
-
-## [Adding a domain programmatically](#adding-a-domain-programmatically)
-
-You can add a new domain through the [Vercel SDK](https://vercel.com/docs/sdk). For example:
-
-```
-import { VercelCore as Vercel } from '@vercel/sdk/core.js';
-import { projectsAddProjectDomain } from '@vercel/sdk/funcs/projectsAddProjectDomain.js';
- 
-const vercel = new Vercel({
-  bearerToken: process.env.VERCEL_TOKEN,
-});
- 
-// The 'idOrName' is your project name in Vercel, for example: 'multi-tenant-app'
-await projectsAddProjectDomain(vercel, {
-  idOrName: 'my-multi-tenant-app',
-  teamId: 'team_1234',
-  requestBody: {
-    // The tenant's custom domain
-    name: 'customacmesite.com',
-  },
-});
-```
-
-Once the domain is added, Vercel attempts to issue an SSL certificate automatically.
-
-## [Verifying domain ownership](#verifying-domain-ownership)
-
-If the domain is already in use on Vercel, the user needs to set a TXT record to prove ownership of it.
-
-You can check the verification status and trigger manual verification:
-
-```
-import { VercelCore as Vercel } from '@vercel/sdk/core.js';
-import { projectsGetProjectDomain } from '@vercel/sdk/funcs/projectsGetProjectDomain.js';
-import { projectsVerifyProjectDomain } from '@vercel/sdk/funcs/projectsVerifyProjectDomain.js';
- 
-const vercel = new Vercel({
-  bearerToken: process.env.VERCEL_TOKEN,
-});
- 
-const domain = 'customacmesite.com';
- 
-const [domainResponse, verifyResponse] = await Promise.all([
-  projectsGetProjectDomain(vercel, {
-    idOrName: 'my-multi-tenant-app',
-    teamId: 'team_1234',
-    domain,
-  }),
-  projectsVerifyProjectDomain(vercel, {
-    idOrName: 'my-multi-tenant-app',
-    teamId: 'team_1234',
-    domain,
-  }),
-]);
- 
-const { value: result } = verifyResponse;
- 
-if (!result?.verified) {
-  console.log(`Domain verification required for ${domain}.`);
-  // You can prompt the tenant to add a TXT record or switch nameservers.
-}
-```
-
-## [Handling redirects and apex domains](#handling-redirects-and-apex-domains)
-
-### [Redirecting between apex and "www"](#redirecting-between-apex-and-www)
-
-Some tenants might want `www.customacmesite.com` to redirect automatically to their apex domain `customacmesite.com`, or the other way around.
-
-1.  Add both `customacmesite.com` and `www.customacmesite.com` to your Vercel project.
-2.  Configure a redirect for `www.customacmesite.com` to the apex domain by setting `redirect: customacmesite.com` through the API or your Vercel dashboard.
-
-This ensures a consistent user experience and prevents issues with duplicate content.
-
-### [Avoiding duplicate content across subdomains](#avoiding-duplicate-content-across-subdomains)
-
-If you offer both `tenant.acme.com` and `customacmesite.com` for the same tenant, you may want to redirect the subdomain to the custom domain (or vice versa) to avoid search engine duplicate content. Alternatively, set a canonical URL in your HTML `<head>` to indicate which domain is the "official" one.
-
-## [Deleting or removing domains](#deleting-or-removing-domains)
-
-If a tenant cancels or no longer needs their custom domain, you can remove it from your Vercel account using the SDK:
-
-```
-import { VercelCore as Vercel } from '@vercel/sdk/core.js';
-import { projectsRemoveProjectDomain } from '@vercel/sdk/funcs/projectsRemoveProjectDomain.js';
-import { domainsDeleteDomain } from '@vercel/sdk/funcs/domainsDeleteDomain.js';
- 
-const vercel = new Vercel({
-  bearerToken: process.env.VERCEL_TOKEN,
-});
- 
-await Promise.all([
-  projectsRemoveProjectDomain(vercel, {
-    idOrName: 'my-multi-tenant-app',
-    teamId: 'team_1234',
-    domain: 'customacmesite.com',
-  }),
-  domainsDeleteDomain(vercel, {
-    domain: 'customacmesite.com',
-  }),
-]);
-```
-
-The first call disassociates the domain from your project, and the second removes it from your account entirely.
-
-## [Troubleshooting common issues](#troubleshooting-common-issues)
-
-Here are a few common issues you might run into and how to solve them:
-
-DNS propagation delays
-
-After pointing your nameservers to Vercel or adding CNAME records, changes can take 24–48 hours to propagate. Use [WhatsMyDNS](https://www.whatsmydns.net/) to confirm updates worldwide.
-
-Forgetting to verify domain ownership
-
-If you add a tenant's domain but never verify it (e.g., by adding a `TXT` record or using Vercel nameservers), SSL certificates won't be issued. Always check the domain's status in your Vercel project or with the SDK.
-
-Wildcard domain requires Vercel nameservers
-
-If you try to add `.acme.com` without pointing to `ns1.vercel-dns.com` and `ns2.vercel-dns.com`, wildcard SSL won't work. Make sure the apex domain's nameservers are correctly set.
-
-Exceeding subdomain length for preview URLs
-
-Each DNS label has a [63-character limit](/kb/guide/why-is-my-vercel-deployment-url-being-shortened#rfc-1035). If you have a very long branch name plus a tenant subdomain, the fully generated preview URL might fail to resolve. Keep branch names concise.
-
-Duplicate content SEO issues
-
-If the same site is served from both subdomain and custom domain, consider using [canonical](https://nextjs.org/docs/app/api-reference/functions/generate-metadata#alternates) tags or auto-redirecting to the primary domain.
-
-Misspelled domain
-
-A small typo can block domain verification or routing, so double-check your domain spelling.
-
-
-Ahora necesito obtener más detalles sobre los archivos clave del repositorio para completar la documentación:````markdown name=multi-tenant. instructions. md
 ---
-applyTo: "**/*. ts,**/*.tsx,**/*.js,**/*.jsx"
+title: Authentication across different domains
+description: Learn how to share sessions across different domains by adding
+  satellite domains to your application.
+lastUpdated: 2025-12-11T21:01:08.000Z
+sdkScoped: "false"
+canonical: /docs/guides/dashboard/dns-domains/satellite-domains
+sourceFile: /docs/guides/dashboard/dns-domains/satellite-domains.mdx
 ---
 
-# Multi-Tenant Architecture Instructions for Next.js
-
-This document defines the architectural patterns, conventions, and implementation rules for building multi-tenant applications in Next.js, based on the reference implementation at `vercel/platforms`.
-
-## 1. Architecture Overview
-
-### 1.1 Multi-Tenant Model
-
-This architecture implements a subdomain-based multi-tenant system where:
-
-- Each tenant is identified by a unique subdomain (`{tenant}. yourdomain.com`)
-- The root domain hosts the main application (landing page, admin interface)
-- Tenant data is stored in Redis using a namespaced key pattern
-- Routing is handled at the Edge via Next.js middleware
-
-### 1.2 Directory Structure
-
-```
-/
-├── app/
-│   ├── page.tsx              # Root domain landing page
-│   ├── layout.tsx            # Global layout
-│   ├── actions.ts            # Server Actions for tenant CRUD
-│   ├── subdomain-form.tsx    # Tenant creation form component
-│   ├── admin/
-│   │   ├── page.tsx          # Admin dashboard
-│   │   └── dashboard.tsx     # Admin UI component
-│   └── s/
-│       └── [subdomain]/
-│           └── page.tsx      # Tenant-specific page (rewrite target)
-├── lib/
-│   ├── redis.ts              # Redis client configuration
-│   ├── subdomains.ts         # Tenant data access layer
-│   └── utils. ts              # Shared utilities and constants
-├── middleware.ts             # Subdomain detection and routing
-└── components/               # Shared UI components
-```
-
-## 2.  Middleware Implementation
-
-### 2.1 Core Middleware Logic
-
-The middleware file MUST be placed at the project root (`middleware.ts`).  Its responsibilities are:
-
-1. Extract subdomain from incoming requests
-2. Rewrite subdomain requests to the internal tenant route
-3. Block restricted routes from subdomain access
-4. Allow normal routing on the root domain
-
-### 2.2 Subdomain Extraction Rules
-
-```typescript
-// REQUIRED: Import configuration
-import { type NextRequest, NextResponse } from 'next/server';
-import { rootDomain } from '@/lib/utils';
-```
-
-Subdomain extraction MUST handle three environments:
-
-#### Local Development
-```typescript
-// Match pattern: http://{subdomain}.localhost:3000
-if (url.includes('localhost') || url.includes('127.0. 0.1')) {
-  const fullUrlMatch = url.match(/http:\/\/([^.]+)\.localhost/);
-  if (fullUrlMatch && fullUrlMatch[1]) {
-    return fullUrlMatch[1];
+<TutorialHero
+  exampleRepo={[
+  {
+    title: "Satellite Domain demo using Turborepo with Clerk, Next.js, and React",
+    link: "https://github.com/clerk/clerk-multidomain-demo"
   }
-  if (hostname.includes('.localhost')) {
-    return hostname.split('.')[0];
-  }
-  return null;
-}
-```
-
-#### Vercel Preview Deployments
-```typescript
-// Match pattern: {tenant}---{branch-name}.vercel.app
-if (hostname.includes('---') && hostname.endsWith('.vercel. app')) {
-  const parts = hostname.split('---');
-  return parts.length > 0 ? parts[0] : null;
-}
-```
-
-#### Production
-```typescript
-// Match pattern: {subdomain}.yourdomain.com
-const isSubdomain =
-  hostname !== rootDomainFormatted &&
-  hostname !== `www.${rootDomainFormatted}` &&
-  hostname.endsWith(`.${rootDomainFormatted}`);
-
-return isSubdomain ? hostname. replace(`.${rootDomainFormatted}`, '') : null;
-```
-
-### 2. 3 Request Handling Rules
-
-```typescript
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const subdomain = extractSubdomain(request);
-
-  if (subdomain) {
-    // RULE: Block admin access from subdomains
-    if (pathname.startsWith('/admin')) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-
-    // RULE: Rewrite root path to tenant page
-    if (pathname === '/') {
-      return NextResponse.rewrite(new URL(`/s/${subdomain}`, request.url));
-    }
-  }
-
-  // RULE: Root domain uses standard routing
-  return NextResponse.next();
-}
-```
-
-### 2.4 Middleware Matcher Configuration
-
-```typescript
-export const config = {
-  matcher: [
-    // Exclude: /api routes, /_next internals, static files
-    '/((?!api|_next|[\\w-]+\\.\\w+).*)'
-  ]
-};
-```
-
-## 3. Tenant Data Layer
-
-### 3.1 Redis Key Pattern
-
-All tenant data MUST use the following key pattern:
-
-```
-subdomain:{tenant-name}
-```
-
-Example: `subdomain:acme` for tenant "acme"
-
-### 3.2 Redis Client Configuration
-
-```typescript
-// lib/redis.ts
-import { Redis } from '@upstash/redis';
-
-export const redis = new Redis({
-  url: process.env.KV_REST_API_URL,
-  token: process. env.KV_REST_API_TOKEN
-});
-```
-
-### 3.3 Tenant Data Schema
-
-```typescript
-type SubdomainData = {
-  emoji: string;      // Tenant branding identifier
-  createdAt: number;  // Unix timestamp
-};
-```
-
-### 3.4 Data Access Functions
-
-#### Retrieve Single Tenant
-```typescript
-export async function getSubdomainData(subdomain: string) {
-  // RULE: Always sanitize subdomain input
-  const sanitizedSubdomain = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '');
-  const data = await redis.get<SubdomainData>(`subdomain:${sanitizedSubdomain}`);
-  return data;
-}
-```
-
-#### Retrieve All Tenants
-```typescript
-export async function getAllSubdomains() {
-  const keys = await redis.keys('subdomain:*');
-  
-  if (! keys.length) {
-    return [];
-  }
-
-  const values = await redis.mget<SubdomainData[]>(...keys);
-
-  return keys.map((key, index) => {
-    const subdomain = key.replace('subdomain:', '');
-    const data = values[index];
-    return {
-      subdomain,
-      emoji: data?.emoji || '? ',
-      createdAt: data?.createdAt || Date.now()
-    };
-  });
-}
-```
-
-## 4. Server Actions
-
-### 4.1 Tenant Creation
-
-```typescript
-'use server';
-
-import { redis } from '@/lib/redis';
-import { redirect } from 'next/navigation';
-import { rootDomain, protocol } from '@/lib/utils';
-
-export async function createSubdomainAction(prevState: any, formData: FormData) {
-  const subdomain = formData.get('subdomain') as string;
-  const icon = formData.get('icon') as string;
-
-  // RULE: Validate required fields
-  if (!subdomain || !icon) {
-    return { success: false, error: 'Subdomain and icon are required' };
-  }
-
-  // RULE: Sanitize subdomain - only lowercase alphanumeric and hyphens
-  const sanitizedSubdomain = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '');
-
-  // RULE: Reject if sanitization modified the input
-  if (sanitizedSubdomain !== subdomain) {
-    return {
-      subdomain,
-      icon,
-      success: false,
-      error: 'Subdomain can only have lowercase letters, numbers, and hyphens.'
-    };
-  }
-
-  // RULE: Check for existing tenant
-  const subdomainAlreadyExists = await redis.get(`subdomain:${sanitizedSubdomain}`);
-  if (subdomainAlreadyExists) {
-    return {
-      subdomain,
-      icon,
-      success: false,
-      error: 'This subdomain is already taken'
-    };
-  }
-
-  // RULE: Store tenant data
-  await redis.set(`subdomain:${sanitizedSubdomain}`, {
-    emoji: icon,
-    createdAt: Date.now()
-  });
-
-  // RULE: Redirect to new tenant subdomain
-  redirect(`${protocol}://${sanitizedSubdomain}.${rootDomain}`);
-}
-```
-
-### 4.2 Tenant Deletion
-
-```typescript
-export async function deleteSubdomainAction(prevState: any, formData: FormData) {
-  const subdomain = formData.get('subdomain') as string;
-  
-  if (!subdomain) {
-    return { error: 'Subdomain is required' };
-  }
-
-  await redis.del(`subdomain:${subdomain}`);
-  revalidatePath('/admin');
-  
-  return { success: `Subdomain "${subdomain}" has been deleted` };
-}
-```
-
-## 5. Routing Architecture
-
-### 5.1 App Router Structure
-
-| Route | Purpose | Access |
-|-------|---------|--------|
-| `/` | Landing page / Tenant creation | Root domain only |
-| `/admin` | Tenant management dashboard | Root domain only |
-| `/s/[subdomain]` | Tenant-specific content | Internal (rewrite target) |
-
-### 5.2 Tenant Page Implementation
-
-```typescript
-// app/s/[subdomain]/page.tsx
-import { getSubdomainData } from '@/lib/subdomains';
-import { notFound } from 'next/navigation';
-
-export default async function SubdomainPage({
-  params
-}: {
-  params: Promise<{ subdomain: string }>;
-}) {
-  const { subdomain } = await params;
-  const data = await getSubdomainData(subdomain);
-
-  // RULE: Return 404 for non-existent tenants
-  if (!data) {
-    notFound();
-  }
-
-  return (
-    // Tenant-specific UI
-  );
-}
-```
-
-### 5.3 Dynamic Metadata
-
-```typescript
-export async function generateMetadata({
-  params
-}: {
-  params: Promise<{ subdomain: string }>;
-}) {
-  const { subdomain } = await params;
-  const data = await getSubdomainData(subdomain);
-
-  if (!data) {
-    return { title: 'Not Found' };
-  }
-
-  return {
-    title: `${data.emoji} ${subdomain}`,
-    description: `Welcome to ${subdomain}`
-  };
-}
-```
-
-## 6. Configuration Constants
-
-### 6.1 Environment-Aware Settings
-
-```typescript
-// lib/utils.ts
-export const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-export const rootDomain = process. env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000';
-```
-
-### 6.2 Required Environment Variables
-
-```
-KV_REST_API_URL=<upstash-redis-url>
-KV_REST_API_TOKEN=<upstash-redis-token>
-NEXT_PUBLIC_ROOT_DOMAIN=<your-production-domain>
-```
-
-## 7. Validation Rules
-
-### 7.1 Subdomain Validation
-
-- MUST be lowercase
-- MUST contain only alphanumeric characters and hyphens
-- MUST be unique across all tenants
-- MUST NOT be empty
-
-```typescript
-const sanitizedSubdomain = subdomain. toLowerCase().replace(/[^a-z0-9-]/g, '');
-```
-
-### 7.2 Input Sanitization
-
-All user input for subdomain names MUST be sanitized before:
-- Storage in database
-- URL construction
-- Display in UI
-
-## 8. Security Considerations
-
-### 8.1 Route Protection
-
-- Admin routes MUST be blocked from subdomain access
-- Implement authentication for admin routes (marked as TODO in reference)
-- Validate tenant ownership before mutations
-
-### 8.2 Data Isolation
-
-- Each tenant's data MUST be namespaced by subdomain key
-- Cross-tenant data access MUST be prevented
-- Use server-side validation for all tenant operations
-
-## 9. URL Construction
-
-### 9.1 Tenant URL Format
-
-```typescript
-const tenantUrl = `${protocol}://${subdomain}.${rootDomain}`;
-```
-
-### 9.2 Internal Rewrite Path
-
-```typescript
-const internalPath = `/s/${subdomain}`;
-```
-
-## 10. Development Workflow
-
-### 10.1 Local Testing
-
-Access patterns for local development:
-- Root domain: `http://localhost:3000`
-- Admin: `http://localhost:3000/admin`
-- Tenant: `http://{tenant-name}.localhost:3000`
-
-### 10.2 Vercel Preview Deployments
-
-Tenant access pattern: `{tenant}---{branch-name}.vercel.app`
-
-## 11. Implementation Checklist
-
-When implementing multi-tenant features:
-
-1. Place middleware at project root
-2.  Implement subdomain extraction for all environments
-3. Use namespaced Redis keys for tenant data
-4. Sanitize all subdomain inputs
-5. Block admin routes from subdomain access
-6. Use Server Actions for tenant mutations
-7. Implement proper error handling and validation
-8. Generate dynamic metadata per tenant
-9. Handle 404 for non-existent tenants
-10. Use environment-aware protocol and domain constants
+]}
+/>
+
+> \[!IMPORTANT]
+> This feature or workflow is considered **advanced** - it may not be part of an official Clerk SDK or fall within typical usage patterns. The Clerk support team will do their best to assist you, but cannot guarantee a resolution for this type of advanced usage.
+
+> \[!WARNING]
+> This guide addresses authentication across different domains with shared sessions. For example, `example-site.com` and `example-site-admin.com`.
+>
+> It is not recommended to use **passkeys** as a form of authentication. [Learn more about domain restrictions for passkeys](/docs/guides/development/custom-flows/authentication/passkeys#domain-restrictions-for-passkeys).
+>
+> [Authentication across subdomains](/docs/guides/development/deployment/production#authentication-across-subdomains) with shared sessions works by default with Clerk.
+
+Clerk supports sharing sessions across different domains by adding one or many satellite domains to an application.
+
+Your "primary" domain is where the authentication state lives, and satellite domains are able to securely read that state from the primary domain, enabling a seamless authentication flow across domains.
+
+Users must complete both the sign-in and sign-up flows on the primary domain by using the <SDKLink href="/docs/:sdk:/reference/components/authentication/sign-in" sdks={["astro","chrome-extension","expo","nextjs","nuxt","react","react-router","remix","tanstack-react-start","vue","js-frontend"]} code={true}>\<SignIn /></SDKLink> component or <SDKLink href="/docs/:sdk:/reference/hooks/use-sign-in" sdks={["chrome-extension","expo","nextjs","react","react-router","tanstack-react-start"]} code={true}>useSignIn()</SDKLink> hook for sign-in and <SDKLink href="/docs/:sdk:/reference/components/authentication/sign-up" sdks={["astro","chrome-extension","expo","nextjs","nuxt","react","react-router","remix","tanstack-react-start","vue","js-frontend"]} code={true}>\<SignUp /></SDKLink> component or <SDKLink href="/docs/:sdk:/reference/hooks/use-sign-up" sdks={["chrome-extension","expo","nextjs","react","react-router","tanstack-react-start"]} code={true}>useSignUp()</SDKLink> hook for sign-up.
+
+To access authentication state from a satellite domain, users will be transparently redirected to the primary domain. If users need to sign in, they must be redirected to a sign in flow hosted on the primary domain, then redirected back to the originating satellite domain. The same redirection process applies to sign-up flows.
+
+## How to add satellite domains
+
+> \[!WARNING]
+> This feature requires a [paid plan](/pricing){{ target: '_blank' }} for production use, but all features are free to use in development mode so that you can try out what works for you. See the [pricing](/pricing){{ target: '_blank' }} page for more information.
+
+<Steps>
+  ### Create your application and install Clerk
+
+  > \[!WARNING]
+  > Currently, multi-domain can be added to any Next.js or Remix application. For other React frameworks, multi-domain is still supported as long as you do not use server rendering or hydration.
+
+  To get started, you need to create an application from the [Clerk Dashboard](https://dashboard.clerk.com/). Once you create an instance via the Clerk Dashboard, you will be prompted to choose a domain. This is your primary domain. For the purposes of this guide:
+
+  * In production, the primary domain will be `primary.dev`
+  * In development, the primary domain will be `localhost:3000`.
+
+  When building your sign-in flow, you must configure it to run within your primary application, e.g. on `/sign-in`.
+
+  > \[!NOTE]
+  > For more information about creating your application, see the [setup guide](/docs/getting-started/quickstart/setup-clerk).
+
+  ### Add your first satellite domain
+
+  To add a satellite domain:
+
+  1. In the Clerk Dashboard, navigate to the [**Domains**](https://dashboard.clerk.com/~/domains) page.
+  2. Select the **Satellites** tab.
+  3. Select the **Add satellite domain** button and follow the instructions provided.
+
+  For the purposes of this guide:
+
+  * In production, the satellite domain will be `satellite.dev`.
+  * In development, the satellite domain will be `localhost:3001`.
+
+  ### Complete DNS setup for your satellite domain
+
+  To use a satellite domain **in production**, you will need to add a CNAME record for the `clerk` subdomain. For development instances, you can skip this step.
+
+  1. In the Clerk Dashboard, navigate to the [**Domains**](https://dashboard.clerk.com/~/domains) page.
+  2. Select the **Satellites** tab.
+  3. Select the satellite domain you just added.
+  4. Under **DNS Configuration**, follow the instructions to add a CNAME record in your DNS provider's settings.
+
+  Once your CNAME record is set up correctly, you should see a **Verified** label next to your satellite domain.
+
+  > \[!NOTE]
+  > It can take up to 48hrs for DNS records to fully propagate.
+
+  ### Configure your satellite app
+
+  There are two ways that you can configure your Clerk satellite application to work with the primary domain:
+
+  * Using environment variables
+  * Using properties
+
+  Use the following tabs to select your preferred method. Clerk recommends using environment variables.
+
+  <Tabs items={["Environment variables", "Properties"]}>
+    <Tab>
+      You can configure your satellite application by setting the following environment variables:
+
+      > \[!NOTE]
+      > In development, your Publishable and Secret Keys will start with `pk_test_` and `sk_test` respectively. In production, they will start with `pk_live_` and `sk_live` respectively.
+
+      * In the `.env` file associated with your primary domain:
+
+        <CodeBlockTabs options={["Next.js", "Remix"]}>
+          ```env {{ filename: '.env' }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY={{pub_key}}
+          CLERK_SECRET_KEY={{secret}}
+          NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+          NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+          ```
+
+          ```env {{ filename: '.env' }}
+          CLERK_PUBLISHABLE_KEY={{pub_key}}
+          CLERK_SECRET_KEY={{secret}}
+          CLERK_SIGN_IN_URL=/sign-in
+          ```
+        </CodeBlockTabs>
+      * In the `.env` file associated with your other (satellite) domain:
+
+        <CodeBlockTabs options={["Next.js", "Remix"]}>
+          ```env {{ filename: '.env' }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY={{pub_key}}
+          CLERK_SECRET_KEY={{secret}}
+          NEXT_PUBLIC_CLERK_IS_SATELLITE=true
+          # Production example:
+          NEXT_PUBLIC_CLERK_DOMAIN=satellite.dev
+          NEXT_PUBLIC_CLERK_SIGN_IN_URL=https://primary.dev/sign-in
+          NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://primary.dev/sign-up
+
+          # Development example:
+          # NEXT_PUBLIC_CLERK_DOMAIN=http://localhost:3001
+          # NEXT_PUBLIC_CLERK_SIGN_IN_URL=http://localhost:3000/sign-in
+          # NEXT_PUBLIC_CLERK_SIGN_UP_URL=http://localhost:3000/sign-up
+          ```
+
+          ```env {{ filename: '.env' }}
+          CLERK_PUBLISHABLE_KEY={{pub_key}}
+          CLERK_SECRET_KEY={{secret}}
+          CLERK_IS_SATELLITE=true
+          # Production example:
+          CLERK_DOMAIN=satellite.dev
+          CLERK_SIGN_IN_URL=https://primary.dev/sign-in
+          CLERK_SIGN_UP_URL=https://primary.dev/sign-up
+
+          # Development example:
+          # CLERK_DOMAIN=http://localhost:3001
+          # CLERK_SIGN_IN_URL=http://localhost:3000/sign-in
+          # CLERK_SIGN_UP_URL=http://localhost:3000/sign-up
+          ```
+        </CodeBlockTabs>
+      * You will also need to add the `allowedRedirectOrigins` property to `<ClerkProvider>` on your *primary domain app* to ensure that the redirect back from primary to satellite domain works correctly. For example:
+
+        <CodeBlockTabs options={["Development", "Production"]}>
+          ```tsx {{ filename: 'app/layout.tsx' }}
+          import { ClerkProvider } from '@clerk/nextjs'
+
+          export default function RootLayout({ children }: { children: React.ReactNode }) {
+            return (
+              <html lang="en">
+                <body>
+                  <ClerkProvider allowedRedirectOrigins={['http://localhost:3001']}>{children}</ClerkProvider>
+                </body>
+              </html>
+            )
+          }
+          ```
+
+          ```tsx {{ filename: 'app/layout.tsx' }}
+          import { ClerkProvider } from '@clerk/nextjs'
+
+          export default function RootLayout({ children }: { children: React.ReactNode }) {
+            return (
+              <html lang="en">
+                <body>
+                  <ClerkProvider allowedRedirectOrigins={['https://satellite.dev']}>{children}</ClerkProvider>
+                </body>
+              </html>
+            )
+          }
+          ```
+        </CodeBlockTabs>
+    </Tab>
+
+    <Tab>
+      You can configure your satellite application by setting the following properties:
+
+      * `isSatellite` - Defines the app as a satellite app when `true`.
+      * `domain` - Sets the domain of the satellite application. This is required since we cannot figure this out by your Publishable Key, since it is the same for all of your multi-domain apps.
+      * `signInUrl` - This url will be used when signing in on your satellite application and needs to point to your primary application. This option is optional for production instances and required for development instances.
+      * `signUpUrl` - This url will be used for signing up on your satellite application and needs to point to your primary application. This option is optional for production instances and required for development instances.
+      * `allowedRedirectOrigins` - This is a list of origins that are allowed to redirect back to from the primary domain.
+
+      > \[!TIP]
+      > The `URL` parameter that can be passed to `isSatellite` and `domain` is the request url for server-side usage or the current location for client usage.
+
+      <Tabs items={["Next.js", "Remix"]}>
+        <Tab>
+          In a Next.js application, you must set the properties in the <SDKLink href="/docs/:sdk:/reference/components/clerk-provider" sdks={["chrome-extension","expo","nextjs","react","react-router","tanstack-react-start"]} code={true}>\<ClerkProvider></SDKLink> component *and* in your <SDKLink href="/docs/reference/nextjs/clerk-middleware" sdks={["nextjs"]} code={true}>clerkMiddleware()</SDKLink>.
+
+          * In the Next project associated with your primary domain, only the `signInUrl` prop needs to be configured as shown in the following example:
+
+            > \[!IMPORTANT]
+            > You should set your `CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` in your environment variables even if you're using props to configure satellite domains.
+
+            <CodeBlockTabs options={["App Router", "Pages Router"]}>
+              ```tsx {{ filename: 'app/layout.tsx' }}
+              import { ClerkProvider } from '@clerk/nextjs'
+
+              export default function RootLayout({ children }: { children: React.ReactNode }) {
+                const primarySignInUrl = '/sign-in'
+                const primarySignUpUrl = '/sign-up'
+                const satelliteUrl = 'https://satellite.dev'
+
+                return (
+                  <html lang="en">
+                    <body>
+                      <ClerkProvider
+                        signInUrl={primarySignInUrl}
+                        signUpUrl={primarySignUpUrl}
+                        allowedRedirectOrigins={[satelliteUrl]}
+                      >
+                        <p>Satellite Next.js app</p>
+                        {children}
+                      </ClerkProvider>
+                    </body>
+                  </html>
+                )
+              }
+              ```
+
+              ```jsx {{ filename: '_app.tsx' }}
+              import { ClerkProvider } from '@clerk/nextjs'
+              import Head from 'next/head'
+
+              export default function App({ Component, pageProps }) {
+                const primarySignInUrl = '/sign-in'
+                const primarySignUpUrl = '/sign-up'
+                const satelliteUrl = 'https://satellite.dev'
+
+                return (
+                  <ClerkProvider
+                    signInUrl={primarySignInUrl}
+                    signUpUrl={primarySignUpUrl}
+                    allowedRedirectOrigins={[satelliteUrl]}
+                    {...pageProps}
+                  >
+                    <Head>
+                      <title>Satellite Next.js app</title>
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    </Head>
+                    <Component {...pageProps} />
+                  </ClerkProvider>
+                )
+              }
+              ```
+            </CodeBlockTabs>
+
+          * In the Next project associated with your satellite domain, configure your `<ClerkProvider>` as shown in the following example:
+
+            <CodeBlockTabs options={["App Router", "Pages Router"]}>
+              ```tsx {{ filename: 'app/layout.tsx' }}
+              import { ClerkProvider } from '@clerk/nextjs'
+
+              export default function RootLayout({ children }: { children: React.ReactNode }) {
+                const primarySignInUrl = 'https://primary.dev/sign-in'
+                const primarySignUpUrl = 'https://primary.dev/sign-up'
+                // Or, in development:
+                // const primarySignInUrl = 'http:localhost:3000/sign-in';
+                // const primarySignUpUrl = 'http:localhost:3000/sign-up';
+
+                return (
+                  <html lang="en">
+                    <body>
+                      <ClerkProvider
+                        isSatellite
+                        domain={(url) => url.host}
+                        signInUrl={primarySignInUrl}
+                        signUpUrl={primarySignUpUrl}
+                      >
+                        <title>Satellite Next.js app</title>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                        {children}
+                      </ClerkProvider>
+                    </body>
+                  </html>
+                )
+              }
+              ```
+
+              ```jsx {{ filename: '_app.tsx' }}
+              import { ClerkProvider } from '@clerk/nextjs'
+              import Head from 'next/head'
+
+              export default function App({ Component, pageProps }) {
+                const primarySignInUrl = 'https://primary.dev/sign-in'
+                const primarySignUpUrl = 'https://primary.dev/sign-up'
+                // Or, in development:
+                // const primarySignInUrl = 'http:localhost:3000/sign-in';
+                // const primarySignUpUrl = 'http:localhost:3000/sign-up';
+
+                return (
+                  <ClerkProvider
+                    isSatellite
+                    domain={(url) => url.host}
+                    signInUrl={primarySignInUrl}
+                    signUpUrl={primarySignUpUrl}
+                    {...pageProps}
+                  >
+                    <Head>
+                      <title>Satellite Next.js app</title>
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    </Head>
+                    <Component {...pageProps} />
+                  </ClerkProvider>
+                )
+              }
+              ```
+            </CodeBlockTabs>
+
+          And the middleware associated with your satellite domain should look like this:
+
+                    <If sdk="nextjs">
+                      > \[!IMPORTANT]
+                      >
+                      > If you're using Next.js ≤15, name your file `middleware.ts` instead of `proxy.ts`. The code itself remains the same; only the filename changes.
+                    </If>
+
+          ```ts {{ filename: 'proxy.ts' }}
+          import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+
+          // Set the homepage as a public route
+          const isPublicRoute = createRouteMatcher(['/'])
+
+          // Set the necessary options for a satellite application
+          const options = {
+            isSatellite: true,
+            signInUrl: 'https://primary.dev/sign-in',
+            signUpUrl: 'https://primary.dev/sign-up',
+            // Or, in development:
+            // signInUrl: 'http://localhost:3000/sign-in',
+            // signUpUrl: 'http://localhost:3000/sign-up',
+            domain: 'https://satellite.dev',
+            // Or, in development:
+            // domain: 'http://localhost:3001',
+          }
+
+          export default clerkMiddleware(async (auth, req) => {
+            if (isPublicRoute(req)) return // if it's a public route, do nothing
+            await auth.protect() // for any other route, require auth
+          }, options)
+
+          export const config = {
+            matcher: [
+              // Skip Next.js internals and all static files, unless found in search params
+              '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+              // Always run for API routes
+              '/(api|trpc)(.*)',
+            ],
+          }
+          ```
+        </Tab>
+
+        <Tab>
+          In a Remix application, you must set the properties in the <SDKLink href="/docs/reference/remix/clerk-app" sdks={["remix"]} code={true}>ClerkApp</SDKLink> wrapper.
+
+          * In the root file associated with your primary domain, you only need to configure the `signInUrl` prop:
+
+            ```ts {{ filename: 'root.tsx' }}
+            export const loader = (args) => {
+              return rootAuthLoader(
+                args,
+                ({ req }) => {
+                  const { userId, sessionId, getToken } = req.auth
+                  return json({
+                    message: `Hello from the root loader :)`,
+                    ENV: getBrowserEnvironment(),
+                  })
+                },
+                {
+                  loadUser: true,
+                  signInUrl: '/sign-in',
+                  signUpUrl: '/sign-up',
+                  allowedRedirectOrigins: ['https://satellite.dev'],
+                } as const,
+              )
+            }
+
+            export default ClerkApp(App, {
+              signInUrl: '/sign-in',
+              signUpUrl: '/sign-up',
+            })
+            ```
+
+          * In the root file associated with your satellite domain, configure `ClerkApp` as shown in the following example:
+
+            ```ts {{ filename: 'root.tsx' }}
+            export const loader = (args) => {
+              return rootAuthLoader(
+                args,
+                ({ req }) => {
+                  const { userId, sessionId, getToken } = req.auth
+                  return json({
+                    message: `Hello from the root loader :)`,
+                    ENV: getBrowserEnvironment(),
+                  })
+                },
+                {
+                  loadUser: true,
+                  signInUrl: 'https://primary.dev/sign-in',
+                  signUpUrl: 'https://primary.dev/sign-up',
+                  // Or, in development:
+                  // signInUrl: 'http:localhost:3000/sign-in',
+                  // signUpUrl: 'http:localhost:3000/sign-up',
+                  isSatellite: true,
+                  domain: (url) => url.host,
+                } as const,
+              )
+            }
+
+            export default ClerkApp(App, {
+              isSatellite: true,
+              domain: (url) => url.host,
+              signInUrl: 'https://primary.dev/sign-in',
+              signUpUrl: 'https://primary.dev/sign-up',
+              // Or, in development:
+              // signInUrl: 'http:localhost:3000/sign-in',
+              // signUpUrl: 'http:localhost:3000/sign-up',
+            })
+            ```
+        </Tab>
+      </Tabs>
+    </Tab>
+  </Tabs>
+
+  ### Ready to go 🎉
+
+  Your satellite application should now be able to access the authentication state from your satellite domain!
+
+  You can see it in action by:
+
+  1. Visiting the primary domain and signing in.
+  2. Visiting the satellite domain.
+  3. You now have an active session in the satellite domain, so you can see the <SDKLink href="/docs/:sdk:/reference/components/user/user-profile" sdks={["astro","chrome-extension","expo","nextjs","nuxt","react","react-router","remix","tanstack-react-start","vue","js-frontend"]} code={true}>\<UserProfile /></SDKLink> component and update your information.
+
+  You can repeat this process and create as many satellite applications as you need.
+</Steps>
+
+If you have any questions about satellite domains, or you're having any trouble setting this up, contact [support@clerk.com](mailto:support@clerk.com)

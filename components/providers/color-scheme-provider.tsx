@@ -44,9 +44,9 @@ import { ColorScheme, COLOR_SCHEMES, DEFAULT_COLOR_SCHEME } from "@/lib/themes";
 
 const STORAGE_KEY = "color-scheme";
 
-function getInitialColorScheme(defaultScheme: ColorScheme): ColorScheme {
+function getStoredColorScheme(): ColorScheme | null {
   if (typeof window === "undefined") {
-    return defaultScheme;
+    return null;
   }
   try {
     const stored = localStorage.getItem(STORAGE_KEY) as ColorScheme | null;
@@ -56,7 +56,7 @@ function getInitialColorScheme(defaultScheme: ColorScheme): ColorScheme {
   } catch {
     // localStorage not available
   }
-  return defaultScheme;
+  return null;
 }
 
 interface ColorSchemeContextValue {
@@ -85,9 +85,19 @@ export function ColorSchemeProvider({
   children,
   defaultScheme = DEFAULT_COLOR_SCHEME,
 }: ColorSchemeProviderProps) {
-  const [colorScheme, setColorSchemeState] = React.useState<ColorScheme>(() =>
-    getInitialColorScheme(defaultScheme),
-  );
+  // Always use defaultScheme for initial render to avoid hydration mismatch
+  const [colorScheme, setColorSchemeState] =
+    React.useState<ColorScheme>(defaultScheme);
+
+  // Sync with localStorage after hydration to avoid mismatch
+  React.useEffect(() => {
+    const stored = getStoredColorScheme();
+    if (stored && stored !== colorScheme) {
+      setColorSchemeState(stored);
+    }
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync data-theme attribute when provider re-mounts (e.g., locale change)
   React.useEffect(() => {

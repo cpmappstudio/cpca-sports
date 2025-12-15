@@ -1,50 +1,60 @@
-"use client";
+// ################################################################################
+// # Check: 01/14/2025                                                            #
+// ################################################################################
 
-import { useOrganizationList } from "@clerk/nextjs";
-import { useTranslations } from "next-intl";
-import { Loader2 } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { Building2 } from "lucide-react";
+import { OrganizationCard } from "./card";
+import { CreateOrganizationCard } from "./create-card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import type { Organization } from "@clerk/nextjs/server";
 
-import { OrganizationGrid } from "./grid";
-import { OrganizationEmptyState } from "./empty-state";
-import { LoadMoreButton } from "./load-more-button";
-
-function OrganizationListLoading() {
-  return (
-    <div className="flex justify-center py-12">
-      <Loader2 className="size-8 animate-spin text-muted-foreground" />
-    </div>
-  );
+interface OrganizationListProps {
+  organizations: Organization[];
 }
 
-export function OrganizationList() {
-  const t = useTranslations("Admin.organizations");
-  const { isLoaded, userMemberships } = useOrganizationList({
-    userMemberships: {
-      infinite: true,
-    },
-  });
-
-  if (!isLoaded) {
-    return <OrganizationListLoading />;
-  }
-
-  const organizations = userMemberships.data?.map((m) => m.organization) || [];
+export async function OrganizationList({
+  organizations,
+}: OrganizationListProps) {
+  const t = await getTranslations("Admin.organizations");
 
   return (
-    <div className="flex gap-8 flex-col">
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
 
       {organizations.length === 0 ? (
-        <OrganizationEmptyState />
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Building2 />
+            </EmptyMedia>
+            <EmptyTitle>{t("empty")}</EmptyTitle>
+            <EmptyDescription>{t("emptyDescription")}</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <CreateOrganizationCard />
+          </EmptyContent>
+        </Empty>
       ) : (
-        <OrganizationGrid organizations={organizations} />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <CreateOrganizationCard />
+          {organizations.map((org) => (
+            <OrganizationCard
+              key={org.id}
+              name={org.name}
+              slug={org.slug || org.id}
+              imageUrl={org.imageUrl}
+            />
+          ))}
+        </div>
       )}
-
-      <LoadMoreButton
-        hasNextPage={userMemberships.hasNextPage ?? false}
-        isFetching={userMemberships.isFetching ?? false}
-        onLoadMore={() => userMemberships.fetchNext?.()}
-      />
     </div>
   );
 }
