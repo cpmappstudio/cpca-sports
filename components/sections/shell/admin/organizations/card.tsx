@@ -8,7 +8,7 @@ import Image from "next/image";
 import { useRouter } from "@/i18n/navigation";
 import { useClerk } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GridPattern } from "@/components/ui/grid-pattern";
+import { GridPattern } from "@/components/patterns/grid-pattern";
 import { ROUTES } from "@/lib/navigation/routes";
 
 interface OrganizationCardProps {
@@ -45,7 +45,7 @@ export function OrganizationCard({
                 alt={name}
                 width={0}
                 height={0}
-                className="size-10 object-cover"
+                className="size-10 object-cover rounded-lg"
               />
             )}
             <div className="text-xs text-muted-foreground">/{slug}</div>

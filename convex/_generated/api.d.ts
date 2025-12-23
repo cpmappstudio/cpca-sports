@@ -9,6 +9,7 @@
  */
 
 import type * as clerk from "../clerk.js";
+import type * as clubs from "../clubs.js";
 import type * as dashboard from "../dashboard.js";
 import type * as divisions from "../divisions.js";
 import type * as http from "../http.js";
@@ -36,6 +37,7 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   clerk: typeof clerk;
+  clubs: typeof clubs;
   dashboard: typeof dashboard;
   divisions: typeof divisions;
   http: typeof http;

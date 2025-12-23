@@ -103,6 +103,7 @@ export default defineSchema({
     region: v.optional(v.string()),
     country: v.string(),
     status: leagueStatus,
+    sportType: v.union(v.literal("soccer"), v.literal("basketball")),
     foundedYear: v.optional(v.number()),
     website: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -112,6 +113,7 @@ export default defineSchema({
     .index("by_clerkOrgId", ["clerkOrgId"])
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
+    .index("by_sportType", ["sportType"])
     .index("by_country_and_region", ["country", "region"]),
 
   /**
@@ -240,23 +242,26 @@ export default defineSchema({
   /**
    * Rankings/Standings for each team in a division.
    * Updated after each match.
+   * Sport-specific stats stored as JSON string.
    */
   standings: defineTable({
     divisionId: v.id("divisions"),
     categoryId: v.id("categories"),
-    // Match statistics
+
+    // Common fields (all sports)
     matchesPlayed: v.number(),
     wins: v.number(),
-    draws: v.number(),
     losses: v.number(),
-    goalsFor: v.number(),
-    goalsAgainst: v.number(),
-    goalDifference: v.number(),
     points: v.number(),
+    position: v.number(),
+
+    // Sport-specific stats (JSON serialized)
+    // Soccer: { goalsFor, goalsAgainst, goalDifference, draws }
+    // Basketball: { pointsFor, pointsAgainst, pointsDifference, overtimeWins }
+    sportStats: v.string(),
+
     // Additional metrics
-    position: v.number(), // Current rank
-    form: v.optional(v.array(v.string())), // Last 5 results: ["W", "L", "D", "W", "W"]
-    // Promotion/Relegation indicators
+    form: v.optional(v.array(v.string())),
     promotionEligible: v.optional(v.boolean()),
     relegationZone: v.optional(v.boolean()),
   })
@@ -271,16 +276,33 @@ export default defineSchema({
   /**
    * Player records linked to profiles and categories.
    * Stores athlete-specific data and career history.
+   * Sport-specific fields are discriminated by sportType.
    */
   players: defineTable({
     profileId: v.id("profiles"),
     currentCategoryId: v.optional(v.id("categories")),
-    // Personal details
+
+    // Common fields (all sports)
     nationality: v.optional(v.string()),
     secondNationality: v.optional(v.string()),
     placeOfBirth: v.optional(v.string()),
-    // Player info
-    position: v.optional(
+    jerseyNumber: v.optional(v.number()),
+    height: v.optional(v.number()),
+    weight: v.optional(v.number()),
+    status: playerStatus,
+    joinedDate: v.optional(v.string()),
+    trainingHours: v.optional(v.number()),
+
+    // Medical
+    bloodType: v.optional(v.string()),
+    allergies: v.optional(v.array(v.string())),
+    medicalNotes: v.optional(v.string()),
+
+    // Sport discriminator
+    sportType: v.union(v.literal("soccer"), v.literal("basketball")),
+
+    // Soccer-specific fields
+    soccerPosition: v.optional(
       v.union(
         v.literal("goalkeeper"),
         v.literal("defender"),
@@ -288,27 +310,43 @@ export default defineSchema({
         v.literal("forward"),
       ),
     ),
-    jerseyNumber: v.optional(v.number()),
-    height: v.optional(v.number()), // in cm
-    weight: v.optional(v.number()), // in kg
     preferredFoot: v.optional(
       v.union(v.literal("left"), v.literal("right"), v.literal("both")),
     ),
-    // Status
-    status: playerStatus,
-    joinedDate: v.optional(v.string()),
-    // Career tracking for valorization
-    trainingHours: v.optional(v.number()),
-    matchesPlayed: v.optional(v.number()),
-    goals: v.optional(v.number()),
-    assists: v.optional(v.number()),
-    // Medical
-    bloodType: v.optional(v.string()),
-    allergies: v.optional(v.array(v.string())),
-    medicalNotes: v.optional(v.string()),
+    soccerStats: v.optional(
+      v.object({
+        goals: v.number(),
+        assists: v.number(),
+        yellowCards: v.number(),
+        redCards: v.number(),
+        matchesPlayed: v.number(),
+      }),
+    ),
+
+    // Basketball-specific fields
+    basketballPosition: v.optional(
+      v.union(
+        v.literal("point_guard"),
+        v.literal("shooting_guard"),
+        v.literal("small_forward"),
+        v.literal("power_forward"),
+        v.literal("center"),
+      ),
+    ),
+    basketballStats: v.optional(
+      v.object({
+        points: v.number(),
+        rebounds: v.number(),
+        assists: v.number(),
+        steals: v.number(),
+        blocks: v.number(),
+        gamesPlayed: v.number(),
+      }),
+    ),
   })
     .index("by_profileId", ["profileId"])
     .index("by_currentCategoryId", ["currentCategoryId"])
+    .index("by_sportType", ["sportType"])
     .index("by_status", ["status"]),
 
   /**

@@ -11,6 +11,8 @@ import {
   Cog6ToothIcon,
   BellIcon,
   ShieldCheckIcon,
+  TrophyIcon,
+  CalendarIcon,
 } from "@heroicons/react/20/solid";
 import { Palette } from "lucide-react";
 import { ROUTES } from "@/lib/navigation/routes";
@@ -53,6 +55,24 @@ const ORG_ITEMS: NavItem[] = [
     icon: HomeIcon,
     href: (orgSlug) => ROUTES.org.root(orgSlug!),
     isIndex: true,
+  },
+  {
+    labelKey: "teams",
+    icon: UsersIcon,
+    href: (orgSlug) => ROUTES.org.teams.list(orgSlug!),
+    isIndex: false,
+  },
+  {
+    labelKey: "divisions",
+    icon: TrophyIcon,
+    href: (orgSlug) => ROUTES.org.divisions.list(orgSlug!),
+    isIndex: false,
+  },
+  {
+    labelKey: "tournaments",
+    icon: CalendarIcon,
+    href: (orgSlug) => ROUTES.org.tournaments.list(orgSlug!),
+    isIndex: false,
   },
   // {
   //   labelKey: "offerings",

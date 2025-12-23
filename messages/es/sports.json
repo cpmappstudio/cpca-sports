@@ -1,0 +1,77 @@
+{
+  "soccer": {
+    "name": "Fútbol",
+    "positions": {
+      "goalkeeper": "Portero",
+      "defender": "Defensa",
+      "midfielder": "Mediocampista",
+      "forward": "Delantero"
+    },
+    "stats": {
+      "goals": "Goles",
+      "assists": "Asistencias",
+      "yellowCards": "Tarjetas Amarillas",
+      "redCards": "Tarjetas Rojas",
+      "matchesPlayed": "Partidos Jugados",
+      "goalsFor": "Goles a Favor",
+      "goalsAgainst": "Goles en Contra",
+      "goalDifference": "Diferencia de Goles",
+      "draws": "Empates"
+    },
+    "terminology": {
+      "team": "Equipo",
+      "teams": "Equipos",
+      "match": "Partido",
+      "matches": "Partidos",
+      "score": "Goles",
+      "division": "División",
+      "divisions": "Divisiones",
+      "club": "Club",
+      "clubs": "Clubes",
+      "tournament": "Torneo",
+      "tournaments": "Torneos",
+      "player": "Jugador",
+      "players": "Jugadores",
+      "group": "División",
+      "groups": "Divisiones"
+    }
+  },
+  "basketball": {
+    "name": "Baloncesto",
+    "positions": {
+      "point_guard": "Base",
+      "shooting_guard": "Escolta",
+      "small_forward": "Alero",
+      "power_forward": "Ala-Pívot",
+      "center": "Pívot"
+    },
+    "stats": {
+      "points": "Puntos",
+      "rebounds": "Rebotes",
+      "assists": "Asistencias",
+      "steals": "Robos",
+      "blocks": "Bloqueos",
+      "gamesPlayed": "Juegos Jugados",
+      "pointsFor": "Puntos a Favor",
+      "pointsAgainst": "Puntos en Contra",
+      "pointsDifference": "Diferencia de Puntos"
+    },
+    "terminology": {
+      "team": "Equipo",
+      "teams": "Equipos",
+      "match": "Juego",
+      "matches": "Juegos",
+      "score": "Puntos",
+      "division": "Conferencia",
+      "divisions": "Conferencias",
+      "club": "Franquicia",
+      "clubs": "Franquicias",
+      "tournament": "Temporada",
+      "tournaments": "Temporadas",
+      "player": "Jugador",
+      "players": "Jugadores",
+      "group": "División",
+      "groups": "Divisiones"
+    }
+  }
+}

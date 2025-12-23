@@ -5,6 +5,9 @@
     "users": "Usuarios",
     "settings": "Configuración",
     "profile": "Perfil",
-    "payments": "Pagos"
+    "payments": "Pagos",
+    "teams": "Equipos",
+    "divisions": "Divisiones",
+    "tournaments": "Torneos"
   }
 }

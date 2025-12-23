@@ -1,14 +1,21 @@
 // ################################################################################
-// # Check: 12/14/2025                                                            #
+// # Check: 12/15/2025                                                            #
 // ################################################################################
-// TODO: SettingsLayout needs to be refactored to follow the same pattern as the other layouts.
 
 import { SettingsLayout } from "@/components/layouts/settings-layout";
 
-export default function TenantSettingsLayout({
+export default async function TenantSettingsLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ tenant: string }>;
 }) {
-  return <SettingsLayout context="org">{children}</SettingsLayout>;
+  const { tenant } = await params;
+
+  return (
+    <SettingsLayout context="org" orgSlug={tenant}>
+      {children}
+    </SettingsLayout>
+  );
 }

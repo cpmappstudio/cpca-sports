@@ -41,6 +41,13 @@ export const ROUTES = {
   org: {
     root: (orgSlug: string) => `/${orgSlug}`,
 
+    teams: {
+      list: (orgSlug: string) => `/${orgSlug}/teams`,
+      detail: (orgSlug: string, teamId: string) =>
+        `/${orgSlug}/teams/${teamId}`,
+      create: (orgSlug: string) => `/${orgSlug}/teams/create`,
+    },
+
     offerings: {
       list: (orgSlug: string) => `/${orgSlug}/offerings`,
       detail: (orgSlug: string, offeringId: string) =>
@@ -79,6 +86,20 @@ export const ROUTES = {
     },
 
     payments: (orgSlug: string) => `/${orgSlug}/payments`,
+
+    divisions: {
+      list: (orgSlug: string) => `/${orgSlug}/divisions`,
+      detail: (orgSlug: string, divisionId: string) =>
+        `/${orgSlug}/divisions/${divisionId}`,
+      create: (orgSlug: string) => `/${orgSlug}/divisions/create`,
+    },
+
+    tournaments: {
+      list: (orgSlug: string) => `/${orgSlug}/tournaments`,
+      detail: (orgSlug: string, tournamentId: string) =>
+        `/${orgSlug}/tournaments/${tournamentId}`,
+      create: (orgSlug: string) => `/${orgSlug}/tournaments/create`,
+    },
 
     settings: {
       root: (orgSlug: string) => `/${orgSlug}/settings`,

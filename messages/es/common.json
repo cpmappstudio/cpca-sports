@@ -1,134 +1,169 @@
 {
-    "actions": {
-        "save": "Guardar",
-        "saving": "Guardando...",
-        "cancel": "Cancelar",
-        "delete": "Eliminar",
-        "edit": "Editar",
-        "create": "Crear",
-        "add": "Agregar",
-        "remove": "Quitar",
-        "search": "Buscar",
-        "filter": "Filtrar",
-        "clear": "Limpiar",
-        "confirm": "Confirmar",
-        "back": "Volver",
-        "next": "Siguiente",
-        "previous": "Anterior",
-        "submit": "Enviar",
-        "reset": "Reiniciar",
-        "close": "Cerrar",
-        "open": "Abrir",
-        "loading": "Cargando...",
-        "view": "Ver",
-        "download": "Descargar",
-        "upload": "Subir",
-        "export": "Exportar"
-    },
-    "table": {
-        "columns": "Columnas",
-        "filters": "Filtros",
-        "pageInfo": "Página {current} de {total}",
-        "clearFilters": "Limpiar filtros",
-        "noResults": "Sin resultados",
-        "selectedRows": "{selected} de {total} fila(s) seleccionada(s)"
-    },
-    "gender": {
-        "male": "Masculino",
-        "female": "Femenino",
-        "mixed": "Mixto"
-    },
-    "organizations": {
-        "searchPlaceholder": "Buscar por nombre, slug, ubicación...",
-        "emptyMessage": "No se encontraron organizaciones. Crea tu primera liga para comenzar.",
-        "name": "Nombre",
-        "type": "Tipo",
-        "location": "Ubicación",
-        "clubs": "Clubes",
-        "status": "Estado"
-    },
-    "organizationType": {
-        "league": "Liga",
-        "club": "Club"
-    },
-    "organizationStatus": {
-        "active": "Activo",
-        "inactive": "Inactivo",
-        "affiliated": "Afiliado",
-        "invited": "Invitado",
-        "suspended": "Suspendido"
-    },
-    "teams": {
-        "searchPlaceholder": "Buscar por nombre, grupo de edad...",
-        "emptyMessage": "No se encontraron equipos. Crea tu primer equipo para organizar jugadores por grupo de edad.",
-        "name": "Nombre",
-        "ageGroup": "Grupo de Edad",
-        "gender": "Género",
-        "technicalDirector": "Director Técnico",
-        "players": "Jugadores",
-        "status": "Estado",
-        "notAssigned": "Sin asignar"
-    },
-    "players": {
-        "searchPlaceholder": "Buscar por nombre...",
-        "emptyMessage": "No se encontraron jugadores. Agrega tu primer jugador para comenzar.",
-        "name": "Jugador",
-        "team": "Equipo",
-        "position": "Posición",
-        "status": "Estado",
-        "notAssigned": "Sin asignar"
-    },
-    "position": {
-        "goalkeeper": "Portero",
-        "defender": "Defensa",
-        "midfielder": "Mediocampista",
-        "forward": "Delantero"
-    },
-    "foot": {
-        "left": "Izquierdo",
-        "right": "Derecho",
-        "both": "Ambos"
-    },
-    "playerStatus": {
-        "active": "Activo",
-        "injured": "Lesionado",
-        "on_loan": "Prestado",
-        "inactive": "Inactivo"
-    },
-    "staff": {
-        "searchPlaceholder": "Buscar por nombre...",
-        "emptyMessage": "No se encontraron miembros del staff. Agrega tu primer director técnico para comenzar.",
-        "name": "Nombre",
-        "role": "Rol",
-        "team": "Equipo",
-        "notAssigned": "Sin asignar"
-    },
-    "staffRole": {
-        "technical_director": "Director Técnico",
-        "assistant_coach": "Asistente Técnico"
-    },
-    "status": {
-        "active": "Activo",
-        "inactive": "Inactivo",
-        "pending": "Pendiente",
-        "approved": "Aprobado",
-        "rejected": "Rechazado",
-        "completed": "Completado"
-    },
-    "validation": {
-        "required": "Este campo es requerido",
-        "email": "Ingresa un correo electrónico válido",
-        "minLength": "Mínimo {min} caracteres",
-        "maxLength": "Máximo {max} caracteres"
-    },
-    "errors": {
-        "generic": "Ha ocurrido un error",
-        "notFound": "No encontrado",
-        "unauthorized": "No autorizado",
-        "forbidden": "Acceso denegado"
-    },
-    "languages": {
-        "en": "Inglés",
-        "es": "Español"
+  "actions": {
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "add": "Agregar",
+    "remove": "Quitar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "clear": "Limpiar",
+    "confirm": "Confirmar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "reset": "Reiniciar",
+    "close": "Cerrar",
+    "open": "Abrir",
+    "loading": "Cargando...",
+    "view": "Ver",
+    "download": "Descargar",
+    "upload": "Subir",
+    "export": "Exportar"
+  },
+  "table": {
+    "columns": "Columnas",
+    "filters": "Filtros",
+    "pageInfo": "Página {current} de {total}",
+    "clearFilters": "Limpiar filtros",
+    "noResults": "Sin resultados",
+    "selectedRows": "{selected} de {total} fila(s) seleccionada(s)"
+  },
+  "gender": {
+    "male": "Masculino",
+    "female": "Femenino",
+    "mixed": "Mixto"
+  },
+  "organizations": {
+    "searchPlaceholder": "Buscar por nombre, slug, ubicación...",
+    "emptyMessage": "No se encontraron organizaciones. Crea tu primera liga para comenzar.",
+    "name": "Nombre",
+    "type": "Tipo",
+    "location": "Ubicación",
+    "clubs": "Clubes",
+    "status": "Estado"
+  },
+  "organizationType": {
+    "league": "Liga",
+    "club": "Club"
+  },
+  "organizationStatus": {
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "affiliated": "Afiliado",
+    "invited": "Invitado",
+    "suspended": "Suspendido"
+  },
+  "teams": {
+    "searchPlaceholder": "Buscar por nombre, ubicación...",
+    "emptyMessage": "No se encontraron equipos. Crea tu primer equipo para comenzar.",
+    "description": "Administra todos los equipos de tu liga",
+    "name": "Nombre",
+    "headquarters": "Sede",
+    "foundedYear": "Fundado",
+    "status": "Estado",
+    "statusOptions": {
+      "affiliated": "Afiliado",
+      "invited": "Invitado",
+      "suspended": "Suspendido"
     }
+  },
+  "players": {
+    "searchPlaceholder": "Buscar por nombre...",
+    "emptyMessage": "No se encontraron jugadores. Agrega tu primer jugador para comenzar.",
+    "name": "Jugador",
+    "team": "Equipo",
+    "position": "Posición",
+    "status": "Estado",
+    "notAssigned": "Sin asignar"
+  },
+  "position": {
+    "goalkeeper": "Portero",
+    "defender": "Defensa",
+    "midfielder": "Mediocampista",
+    "forward": "Delantero"
+  },
+  "foot": {
+    "left": "Izquierdo",
+    "right": "Derecho",
+    "both": "Ambos"
+  },
+  "playerStatus": {
+    "active": "Activo",
+    "injured": "Lesionado",
+    "on_loan": "Prestado",
+    "inactive": "Inactivo"
+  },
+  "staff": {
+    "searchPlaceholder": "Buscar por nombre...",
+    "emptyMessage": "No se encontraron miembros del staff. Agrega tu primer director técnico para comenzar.",
+    "name": "Nombre",
+    "role": "Rol",
+    "team": "Equipo",
+    "notAssigned": "Sin asignar"
+  },
+  "staffRole": {
+    "technical_director": "Director Técnico",
+    "assistant_coach": "Asistente Técnico"
+  },
+  "status": {
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "pending": "Pendiente",
+    "approved": "Aprobado",
+    "rejected": "Rechazado",
+    "completed": "Completado"
+  },
+  "validation": {
+    "required": "Este campo es requerido",
+    "email": "Ingresa un correo electrónico válido",
+    "minLength": "Mínimo {min} caracteres",
+    "maxLength": "Máximo {max} caracteres"
+  },
+  "errors": {
+    "generic": "Ha ocurrido un error",
+    "notFound": "No encontrado",
+    "unauthorized": "No autorizado",
+    "forbidden": "Acceso denegado"
+  },
+  "divisions": {
+    "searchPlaceholder": "Buscar por nombre, nivel...",
+    "emptyMessage": "No se encontraron divisiones. Crea tu primera división para organizar jugadores por nivel de habilidad.",
+    "name": "Nombre",
+    "displayName": "Nombre para Mostrar",
+    "level": "Nivel",
+    "description": "Descripción",
+    "image": "Imagen",
+    "minWinPercentage": "% Victorias Mín.",
+    "minGamesPlayed": "Juegos Mín.",
+    "teamsCount": "Equipos"
+  },
+  "tournaments": {
+    "searchPlaceholder": "Buscar por nombre, temporada, estado...",
+    "emptyMessage": "No se encontraron torneos. Crea tu primer torneo para comenzar a organizar competiciones.",
+    "name": "Nombre",
+    "season": "Temporada",
+    "status": "Estado",
+    "ageGroup": "Grupo de Edad",
+    "gender": "Género",
+    "startDate": "Fecha de Inicio",
+    "endDate": "Fecha de Fin",
+    "enableDivisions": "Divisiones",
+    "teamsCount": "Equipos"
+  },
+  "tournamentStatus": {
+    "draft": "Borrador",
+    "upcoming": "Próximo",
+    "ongoing": "En Curso",
+    "completed": "Completado",
+    "cancelled": "Cancelado"
+  },
+  "languages": {
+    "en": "Inglés",
+    "es": "Español"
+  }
 }

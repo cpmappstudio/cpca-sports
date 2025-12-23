@@ -5,6 +5,9 @@
     "users": "Users",
     "settings": "Settings",
     "profile": "Profile",
-    "payments": "Payments"
+    "payments": "Payments",
+    "teams": "Teams",
+    "divisions": "Divisions",
+    "tournaments": "Tournaments"
   }
 }
