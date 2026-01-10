@@ -1,4 +1,4 @@
-import { TeamSettingsClient } from "@/components/sections/shell/sports/basketball/team-settings-client";
+import { TeamSettingsClient } from "@/components/sections/shell/sports/basketball/team-settings/team-settings-client";
 import { preloadQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 

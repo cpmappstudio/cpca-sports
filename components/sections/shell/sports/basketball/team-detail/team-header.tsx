@@ -32,6 +32,7 @@ export function TeamHeader({ team, orgSlug }: TeamHeaderProps) {
   const primaryColor = team.colors?.[0] ?? null;
   const hasColoredBg = !!primaryColor;
 
+  // Isn't this redundant?
   const colorDisplay =
     team.colorNames && team.colorNames.length > 0
       ? team.colorNames.join(" & ").toUpperCase()
@@ -47,8 +48,8 @@ export function TeamHeader({ team, orgSlug }: TeamHeaderProps) {
   ].filter((stat) => stat.value);
 
   return (
-    <div
-      className={cn("w-full ", hasColoredBg && "text-white")}
+    <section
+      className={cn("w-full", hasColoredBg && "text-white")}
       style={{
         backgroundColor: hasColoredBg ? primaryColor : undefined,
         borderTopLeftRadius: "8px",
@@ -79,20 +80,28 @@ export function TeamHeader({ team, orgSlug }: TeamHeaderProps) {
             size="sm"
           >
             <Link href={ROUTES.org.teams.settings(orgSlug, team.slug)}>
-              <Settings className="size-4 mr-2" />
-              {t("actions.settings")}
+              <Settings className="size-4" />
+              <span className="hidden md:block">{t("actions.settings")}</span>
             </Link>
           </Button>
         </div>
 
         {team.logoUrl && (
-          <div className="flex justify-center my-8 mb-8">
+          <div className="flex justify-center ">
             <Image
               src={team.logoUrl}
               alt={team.name}
-              width={140}
-              height={140}
-              className="object-contain"
+              width={180}
+              height={0}
+              className="object-contain select-none"
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+              onContextMenu={(e) => e.preventDefault()}
+              style={{
+                userSelect: "none",
+                WebkitUserSelect: "none",
+                msUserSelect: "none",
+              }}
             />
           </div>
         )}
@@ -137,6 +146,6 @@ export function TeamHeader({ team, orgSlug }: TeamHeaderProps) {
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }

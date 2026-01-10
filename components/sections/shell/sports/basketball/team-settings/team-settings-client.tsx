@@ -11,9 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/components/ui/link";
 import { ArrowLeft } from "lucide-react";
 import { ROUTES } from "@/lib/navigation/routes";
-import { TeamGeneralForm } from "./team-settings/team-general-form";
-import { TeamPlayersTable } from "./team-settings/team-players-table";
-import { TeamStaffTable } from "./team-settings/team-staff-table";
+import { TeamGeneralForm } from "./team-general-form";
+import { TeamPlayersTable } from "./team-players-table";
+import { TeamStaffTable } from "./team-staff-table";
 
 interface TeamSettingsClientProps {
   preloadedTeam: Preloaded<typeof api.clubs.getBySlug>;
