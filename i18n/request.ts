@@ -15,6 +15,7 @@ async function loadMessages(locale: string) {
     import(`../messages/${locale}/settings.json`),
     import(`../messages/${locale}/forms.json`),
     import(`../messages/${locale}/admin.json`),
+    import(`../messages/${locale}/sports.json`),
   ]);
 
   return deepmerge.all([
@@ -23,6 +24,7 @@ async function loadMessages(locale: string) {
     { Settings: modules[2].default },
     { Forms: modules[3].default },
     { Admin: modules[4].default },
+    { Sports: modules[5].default },
   ]) as Record<string, unknown>;
 }
 

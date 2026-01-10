@@ -1,6 +1,22 @@
-import type { Doc } from "@/convex/_generated/dataModel";
-
 export type SportType = "soccer" | "basketball";
+
+export interface SportTerminology {
+  team: string;
+  teams: string;
+  match: string;
+  matches: string;
+  score: string;
+  division: string;
+  divisions: string;
+  club: string;
+  clubs: string;
+  tournament: string;
+  tournaments: string;
+  player: string;
+  players: string;
+  group: string;
+  groups: string;
+}
 
 export interface SportConfig {
   id: SportType;
@@ -15,28 +31,5 @@ export interface SportConfig {
     hasConferences: boolean;
     hasPromotionRelegation: boolean;
   };
-}
-
-export function isSoccerPlayer(
-  player: Doc<"players">,
-): player is Doc<"players"> & { sportType: "soccer" } {
-  return player.sportType === "soccer";
-}
-
-export function isBasketballPlayer(
-  player: Doc<"players">,
-): player is Doc<"players"> & { sportType: "basketball" } {
-  return player.sportType === "basketball";
-}
-
-export function isSoccerLeague(
-  league: Doc<"leagues">,
-): league is Doc<"leagues"> & { sportType: "soccer" } {
-  return league.sportType === "soccer";
-}
-
-export function isBasketballLeague(
-  league: Doc<"leagues">,
-): league is Doc<"leagues"> & { sportType: "basketball" } {
-  return league.sportType === "basketball";
+  terminologyKey: string;
 }

@@ -1,0 +1,142 @@
+"use client";
+
+import { Fragment } from "react";
+import Image from "next/image";
+import { useTranslations } from "next-intl";
+import { Settings } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Heading } from "@/components/ui/heading";
+import { Text } from "@/components/ui/text";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
+import { ROUTES } from "@/lib/navigation/routes";
+
+interface TeamHeaderProps {
+  team: {
+    name: string;
+    slug: string;
+    logoUrl?: string | null;
+    conferenceName?: string | null;
+    status: string;
+    nickname?: string | null;
+    colors?: string[] | null;
+    colorNames?: string[] | null;
+  };
+  orgSlug: string;
+}
+
+export function TeamHeader({ team, orgSlug }: TeamHeaderProps) {
+  const t = useTranslations("Common");
+
+  const primaryColor = team.colors?.[0] ?? null;
+  const hasColoredBg = !!primaryColor;
+
+  const colorDisplay =
+    team.colorNames && team.colorNames.length > 0
+      ? team.colorNames.join(" & ").toUpperCase()
+      : team.colors?.join(" & ").toUpperCase();
+
+  const stats = [
+    { label: t("teams.conference"), value: team.conferenceName },
+    { label: t("teams.nickname"), value: team.nickname },
+    {
+      label: t("teams.colors"),
+      value: colorDisplay,
+    },
+  ].filter((stat) => stat.value);
+
+  return (
+    <div
+      className={cn("w-full ", hasColoredBg && "text-white")}
+      style={{
+        backgroundColor: hasColoredBg ? primaryColor : undefined,
+        borderTopLeftRadius: "8px",
+        borderTopRightRadius: "8px",
+      }}
+    >
+      <div className="mx-auto p-2">
+        <div className="flex justify-between items-start">
+          <div>
+            <Text
+              className="text-xs uppercase tracking-wide"
+              style={{
+                color: hasColoredBg ? "rgba(255,255,255,0.7)" : undefined,
+              }}
+            >
+              {t(`teams.statusOptions.${team.status}`)}
+            </Text>
+            <Heading
+              level={1}
+              style={{ color: hasColoredBg ? "white" : undefined }}
+            >
+              {team.name}
+            </Heading>
+          </div>
+          <Button
+            asChild
+            className="rounded-full ring-1 bg-transparent hover:bg-transparent"
+            size="sm"
+          >
+            <Link href={ROUTES.org.teams.settings(orgSlug, team.slug)}>
+              <Settings className="size-4 mr-2" />
+              {t("actions.settings")}
+            </Link>
+          </Button>
+        </div>
+
+        {team.logoUrl && (
+          <div className="flex justify-center my-8 mb-8">
+            <Image
+              src={team.logoUrl}
+              alt={team.name}
+              width={140}
+              height={140}
+              className="object-contain"
+            />
+          </div>
+        )}
+
+        {stats.length > 0 && (
+          <div className="flex w-full items-center justify-between">
+            {stats.map((stat, index) => (
+              <Fragment key={stat.label}>
+                {index > 0 && (
+                  <Separator
+                    orientation="vertical"
+                    style={{
+                      height: "48px",
+                      backgroundColor: hasColoredBg
+                        ? "rgba(255,255,255,0.3)"
+                        : undefined,
+                    }}
+                  />
+                )}
+                <div className="flex-1 text-center">
+                  <Text
+                    className="uppercase tracking-widest"
+                    style={{
+                      fontSize: "10px",
+                      color: hasColoredBg ? "rgba(255,255,255,0.6)" : undefined,
+                    }}
+                  >
+                    {stat.label}
+                  </Text>
+                  <Text
+                    className="font-bold tracking-wide"
+                    style={{
+                      fontSize: "18px",
+                      color: hasColoredBg ? "white" : undefined,
+                    }}
+                  >
+                    {stat.value}
+                  </Text>
+                </div>
+              </Fragment>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -117,6 +117,14 @@ export default defineSchema({
     .index("by_country_and_region", ["country", "region"]),
 
   /**
+   * Conferences for sports like Basketball.
+   */
+  conferences: defineTable({
+    name: v.string(),
+    leagueId: v.id("leagues"),
+  }).index("by_leagueId_and_name", ["leagueId", "name"]),
+
+  /**
    * Second-level tenant: A club affiliated with a league.
    * Clubs can be "affiliated" (permanent) or "invited" (temporary).
    */
@@ -126,19 +134,22 @@ export default defineSchema({
     shortName: v.optional(v.string()),
     logoUrl: v.optional(v.string()),
     leagueId: v.id("leagues"),
+    conferenceId: v.optional(v.id("conferences")),
     fifaId: v.optional(v.string()),
     headquarters: v.optional(v.string()),
     status: clubStatus,
     taxId: v.optional(v.string()), // NIT in Colombia
     foundedYear: v.optional(v.number()),
     colors: v.optional(v.array(v.string())),
+    colorNames: v.optional(v.array(v.string())),
     website: v.optional(v.string()),
     email: v.optional(v.string()),
     phoneNumber: v.optional(v.string()),
   })
     .index("by_slug", ["slug"])
     .index("by_leagueId", ["leagueId"])
-    .index("by_leagueId_and_status", ["leagueId", "status"]),
+    .index("by_leagueId_and_status", ["leagueId", "status"])
+    .index("by_leagueId_and_conferenceId", ["leagueId", "conferenceId"]),
 
   /**
    * Club categories (age divisions) represent teams within a club.

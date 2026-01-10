@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
+import { Preloaded, usePreloadedQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { DataTable } from "@/components/table/data-table";
 import {
   createSoccerTeamColumns,
@@ -12,7 +13,7 @@ import {
 import { ROUTES } from "@/lib/navigation/routes";
 
 interface SoccerTeamsTableProps {
-  preloadedData: any; // TODO: Type this properly when Convex is implemented
+  preloadedData: Preloaded<typeof api.clubs.listByLeague>;
   orgSlug: string;
 }
 
@@ -22,8 +23,7 @@ export function SoccerTeamsTable({
 }: SoccerTeamsTableProps) {
   const router = useRouter();
   const t = useTranslations("Common");
-  const data: SoccerTeamRow[] = preloadedData; // TODO: Use usePreloadedQuery when Convex is ready
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const data = usePreloadedQuery(preloadedData);
 
   const handleRowClick = (team: SoccerTeamRow) => {
     router.push(ROUTES.org.teams.detail(orgSlug, team._id));
@@ -33,23 +33,18 @@ export function SoccerTeamsTable({
   const teamFilterConfigs = createSoccerTeamFilterConfigs(t);
 
   return (
-    <>
-      <DataTable
-        columns={teamColumns}
-        data={data}
-        filterColumn="search"
-        filterPlaceholder={t("teams.searchPlaceholder")}
-        filterConfigs={teamFilterConfigs}
-        emptyMessage={t("teams.emptyMessage")}
-        columnsMenuLabel={t("table.columns")}
-        filtersMenuLabel={t("table.filters")}
-        previousLabel={t("actions.previous")}
-        nextLabel={t("actions.next")}
-        onCreate={() => setIsCreateOpen(true)}
-        onRowClick={handleRowClick}
-      />
-
-      {/* TODO: Add TeamForm component when ready */}
-    </>
+    <DataTable
+      columns={teamColumns}
+      data={data ?? []}
+      filterColumn="search"
+      filterPlaceholder={t("teams.searchPlaceholder")}
+      filterConfigs={teamFilterConfigs}
+      emptyMessage={t("teams.emptyMessage")}
+      columnsMenuLabel={t("table.columns")}
+      filtersMenuLabel={t("table.filters")}
+      previousLabel={t("actions.previous")}
+      nextLabel={t("actions.next")}
+      onRowClick={handleRowClick}
+    />
   );
 }

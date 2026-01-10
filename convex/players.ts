@@ -15,14 +15,17 @@ export const createPlayer = mutation({
     phoneNumber: v.optional(v.string()),
     dateOfBirth: v.optional(v.string()),
     categoryId: v.id("categories"),
-    // Player-specific fields
-    position: v.optional(
+    // Player-specific fields (soccer)
+    soccerPosition: v.optional(
       v.union(
         v.literal("goalkeeper"),
         v.literal("defender"),
         v.literal("midfielder"),
-        v.literal("forward")
-      )
+        v.literal("forward"),
+      ),
+    ),
+    sportType: v.optional(
+      v.union(v.literal("soccer"), v.literal("basketball")),
     ),
     jerseyNumber: v.optional(v.number()),
     nationality: v.optional(v.string()),
@@ -72,7 +75,8 @@ export const createPlayer = mutation({
     const playerId = await ctx.db.insert("players", {
       profileId,
       currentCategoryId: args.categoryId,
-      position: args.position,
+      soccerPosition: args.soccerPosition,
+      sportType: args.sportType ?? "soccer",
       jerseyNumber: args.jerseyNumber,
       nationality: args.nationality,
       status: "active",
@@ -90,12 +94,16 @@ export const createPlayer = mutation({
 
     // If email was provided, create Clerk account
     if (args.email && args.firstName && args.lastName) {
-      await ctx.scheduler.runAfter(0, internal.players.createClerkAccountForPlayer, {
-        profileId,
-        email: args.email,
-        firstName: args.firstName,
-        lastName: args.lastName,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.players.createClerkAccountForPlayer,
+        {
+          profileId,
+          email: args.email,
+          firstName: args.firstName,
+          lastName: args.lastName,
+        },
+      );
     }
 
     return { profileId, playerId };
@@ -140,12 +148,16 @@ export const updatePlayerEmail = mutation({
 
     // If profile doesn't have Clerk account yet, create it
     if (!profile.clerkId && profile.firstName && profile.lastName) {
-      await ctx.scheduler.runAfter(0, internal.players.createClerkAccountForPlayer, {
-        profileId: player.profileId,
-        email: args.email,
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.players.createClerkAccountForPlayer,
+        {
+          profileId: player.profileId,
+          email: args.email,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+        },
+      );
     }
 
     return null;
@@ -158,25 +170,27 @@ export const updatePlayerEmail = mutation({
 export const updatePlayer = mutation({
   args: {
     playerId: v.id("players"),
-    position: v.optional(
+    soccerPosition: v.optional(
       v.union(
         v.literal("goalkeeper"),
         v.literal("defender"),
         v.literal("midfielder"),
-        v.literal("forward")
-      )
+        v.literal("forward"),
+      ),
     ),
     jerseyNumber: v.optional(v.number()),
     height: v.optional(v.number()),
     weight: v.optional(v.number()),
-    preferredFoot: v.optional(v.union(v.literal("left"), v.literal("right"), v.literal("both"))),
+    preferredFoot: v.optional(
+      v.union(v.literal("left"), v.literal("right"), v.literal("both")),
+    ),
     status: v.optional(
       v.union(
         v.literal("active"),
         v.literal("injured"),
         v.literal("on_loan"),
-        v.literal("inactive")
-      )
+        v.literal("inactive"),
+      ),
     ),
   },
   returns: v.null(),
@@ -205,7 +219,7 @@ export const transferPlayer = mutation({
       v.literal("promotion"),
       v.literal("transfer"),
       v.literal("loan"),
-      v.literal("trial")
+      v.literal("trial"),
     ),
     fee: v.optional(v.number()),
     notes: v.optional(v.string()),
@@ -270,22 +284,22 @@ export const listByClubSlug = query({
               v.literal("goalkeeper"),
               v.literal("defender"),
               v.literal("midfielder"),
-              v.literal("forward")
-            )
+              v.literal("forward"),
+            ),
           ),
           jerseyNumber: v.optional(v.number()),
           status: v.union(
             v.literal("active"),
             v.literal("injured"),
             v.literal("on_loan"),
-            v.literal("inactive")
+            v.literal("inactive"),
           ),
           currentCategoryId: v.optional(v.id("categories")),
           categoryName: v.optional(v.string()),
-        })
+        }),
       ),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     const club = await ctx.db
@@ -310,18 +324,18 @@ export const listByClubSlug = query({
     }
 
     // Create category map for O(1) lookup
-    const categoryMap = new Map(categories.map(c => [c._id, c]));
+    const categoryMap = new Map(categories.map((c) => [c._id, c]));
 
     // Fetch all players for all categories in parallel
     const playersPerCategory = await Promise.all(
-      categories.map(category =>
+      categories.map((category) =>
         ctx.db
           .query("players")
           .withIndex("by_currentCategoryId", (q) =>
-            q.eq("currentCategoryId", category._id)
+            q.eq("currentCategoryId", category._id),
           )
-          .collect()
-      )
+          .collect(),
+      ),
     );
 
     // Flatten all players
@@ -335,11 +349,9 @@ export const listByClubSlug = query({
     }
 
     // Batch fetch all profiles
-    const profileIds = [...new Set(allPlayers.map(p => p.profileId))];
-    const profiles = await Promise.all(profileIds.map(id => ctx.db.get(id)));
-    const profileMap = new Map(
-      profileIds.map((id, i) => [id, profiles[i]])
-    );
+    const profileIds = [...new Set(allPlayers.map((p) => p.profileId))];
+    const profiles = await Promise.all(profileIds.map((id) => ctx.db.get(id)));
+    const profileMap = new Map(profileIds.map((id, i) => [id, profiles[i]]));
 
     // Map to result format
     const players = allPlayers.map((player) => {
@@ -355,7 +367,7 @@ export const listByClubSlug = query({
         fullName: profile?.displayName || profile?.email || "Unknown",
         avatarUrl: profile?.avatarUrl,
         dateOfBirth: profile?.dateOfBirth,
-        position: player.position,
+        position: player.soccerPosition,
         jerseyNumber: player.jerseyNumber,
         status: player.status,
         currentCategoryId: player.currentCategoryId,
@@ -389,7 +401,7 @@ export const listByLeagueSlug = query({
       clubName: v.string(),
       clubLogoUrl: v.optional(v.string()),
       categoryName: v.optional(v.string()),
-    })
+    }),
   ),
   handler: async (ctx, args) => {
     const league = await ctx.db
@@ -406,7 +418,7 @@ export const listByLeagueSlug = query({
 
     const results = [];
 
-    // Note: In a high-scale production app, we would denormalize "leagueId" onto the player 
+    // Note: In a high-scale production app, we would denormalize "leagueId" onto the player
     // or use a dedicated search index. For now, this iteration is acceptable.
     for (const club of clubs) {
       const categories = await ctx.db
@@ -417,7 +429,9 @@ export const listByLeagueSlug = query({
       for (const category of categories) {
         const players = await ctx.db
           .query("players")
-          .withIndex("by_currentCategoryId", (q) => q.eq("currentCategoryId", category._id))
+          .withIndex("by_currentCategoryId", (q) =>
+            q.eq("currentCategoryId", category._id),
+          )
           .collect();
 
         for (const player of players) {
@@ -430,7 +444,7 @@ export const listByLeagueSlug = query({
               fullName: profile.displayName || profile.email || "Unknown",
               avatarUrl: profile.avatarUrl,
               dateOfBirth: profile.dateOfBirth,
-              position: player.position,
+              position: player.soccerPosition,
               status: player.status,
               clubName: club.name,
               clubLogoUrl: club.logoUrl,
@@ -442,8 +456,10 @@ export const listByLeagueSlug = query({
     }
 
     // Sort by Club Name then Player Name
-    return results.sort((a, b) =>
-      a.clubName.localeCompare(b.clubName) || a.fullName.localeCompare(b.fullName)
+    return results.sort(
+      (a, b) =>
+        a.clubName.localeCompare(b.clubName) ||
+        a.fullName.localeCompare(b.fullName),
     );
   },
 });
@@ -464,18 +480,20 @@ export const getById = query({
           v.literal("goalkeeper"),
           v.literal("defender"),
           v.literal("midfielder"),
-          v.literal("forward")
-        )
+          v.literal("forward"),
+        ),
       ),
       jerseyNumber: v.optional(v.number()),
       height: v.optional(v.number()),
       weight: v.optional(v.number()),
-      preferredFoot: v.optional(v.union(v.literal("left"), v.literal("right"), v.literal("both"))),
+      preferredFoot: v.optional(
+        v.union(v.literal("left"), v.literal("right"), v.literal("both")),
+      ),
       status: v.union(
         v.literal("active"),
         v.literal("injured"),
         v.literal("on_loan"),
-        v.literal("inactive")
+        v.literal("inactive"),
       ),
       nationality: v.optional(v.string()),
       secondNationality: v.optional(v.string()),
@@ -487,16 +505,16 @@ export const getById = query({
           avatarUrl: v.optional(v.string()),
           dateOfBirth: v.optional(v.string()),
           phoneNumber: v.optional(v.string()),
-        })
+        }),
       ),
       categoryData: v.optional(
         v.object({
           name: v.string(),
           clubName: v.string(),
-        })
+        }),
       ),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     const player = await ctx.db.get(args.playerId);
@@ -522,12 +540,12 @@ export const getById = query({
       ...player,
       profileData: profile
         ? {
-          displayName: profile.displayName,
-          email: profile.email,
-          avatarUrl: profile.avatarUrl,
-          dateOfBirth: profile.dateOfBirth,
-          phoneNumber: profile.phoneNumber,
-        }
+            displayName: profile.displayName,
+            email: profile.email,
+            avatarUrl: profile.avatarUrl,
+            dateOfBirth: profile.dateOfBirth,
+            phoneNumber: profile.phoneNumber,
+          }
         : undefined,
       categoryData,
     };
@@ -552,23 +570,23 @@ export const listByCategoryId = query({
           v.literal("goalkeeper"),
           v.literal("defender"),
           v.literal("midfielder"),
-          v.literal("forward")
-        )
+          v.literal("forward"),
+        ),
       ),
       jerseyNumber: v.optional(v.number()),
       status: v.union(
         v.literal("active"),
         v.literal("injured"),
         v.literal("on_loan"),
-        v.literal("inactive")
+        v.literal("inactive"),
       ),
-    })
+    }),
   ),
   handler: async (ctx, args) => {
     const players = await ctx.db
       .query("players")
       .withIndex("by_currentCategoryId", (q) =>
-        q.eq("currentCategoryId", args.categoryId)
+        q.eq("currentCategoryId", args.categoryId),
       )
       .collect();
 
@@ -579,7 +597,12 @@ export const listByCategoryId = query({
       fullName: string;
       avatarUrl: string | undefined;
       dateOfBirth: string | undefined;
-      position: "goalkeeper" | "defender" | "midfielder" | "forward" | undefined;
+      position:
+        | "goalkeeper"
+        | "defender"
+        | "midfielder"
+        | "forward"
+        | undefined;
       jerseyNumber: number | undefined;
       status: "active" | "injured" | "on_loan" | "inactive";
     }> = await Promise.all(
@@ -593,11 +616,11 @@ export const listByCategoryId = query({
           fullName: profile?.displayName || profile?.email || "Unknown",
           avatarUrl: profile?.avatarUrl,
           dateOfBirth: profile?.dateOfBirth,
-          position: player.position,
+          position: player.soccerPosition,
           jerseyNumber: player.jerseyNumber,
           status: player.status,
         };
-      })
+      }),
     );
 
     return enrichedPlayers;
@@ -699,16 +722,15 @@ export const getStatistics = query({
       .withIndex("by_playerId", (q) => q.eq("playerId", args.playerId))
       .collect();
 
-    // Return stored statistics from player record
-    // (Match statistics will come from match tables when implemented)
+    const soccerStats = player.soccerStats;
+
     return {
       transfersCount: transfers.length,
-      matchesPlayed: player.matchesPlayed || 0,
-      goalsScored: player.goals || 0,
-      assists: player.assists || 0,
-      // Cards will be tracked when match events are implemented
-      yellowCards: 0,
-      redCards: 0,
+      matchesPlayed: soccerStats?.matchesPlayed ?? 0,
+      goalsScored: soccerStats?.goals ?? 0,
+      assists: soccerStats?.assists ?? 0,
+      yellowCards: soccerStats?.yellowCards ?? 0,
+      redCards: soccerStats?.redCards ?? 0,
     };
   },
 });
@@ -729,11 +751,11 @@ export const listTransfers = query({
         v.literal("promotion"),
         v.literal("transfer"),
         v.literal("loan"),
-        v.literal("trial")
+        v.literal("trial"),
       ),
       fee: v.optional(v.number()),
       notes: v.optional(v.string()),
-    })
+    }),
   ),
   handler: async (ctx, args) => {
     const transfers = await ctx.db
@@ -772,5 +794,395 @@ export const listTransfers = query({
     }
 
     return enrichedTransfers;
+  },
+});
+
+/**
+ * List basketball players by club slug with basketball-specific fields
+ * Returns player data optimized for basketball player cards
+ */
+export const listBasketballPlayersByClubSlug = query({
+  args: { clubSlug: v.string() },
+  returns: v.union(
+    v.object({
+      club: v.object({
+        _id: v.id("clubs"),
+        name: v.string(),
+        slug: v.string(),
+      }),
+      players: v.array(
+        v.object({
+          _id: v.id("players"),
+          profileId: v.id("profiles"),
+          fullName: v.string(),
+          firstName: v.optional(v.string()),
+          lastName: v.optional(v.string()),
+          avatarUrl: v.optional(v.string()),
+          dateOfBirth: v.optional(v.string()),
+          jerseyNumber: v.optional(v.number()),
+          position: v.optional(
+            v.union(
+              v.literal("point_guard"),
+              v.literal("shooting_guard"),
+              v.literal("small_forward"),
+              v.literal("power_forward"),
+              v.literal("center"),
+            ),
+          ),
+          status: v.union(
+            v.literal("active"),
+            v.literal("injured"),
+            v.literal("on_loan"),
+            v.literal("inactive"),
+          ),
+          height: v.optional(v.number()),
+          weight: v.optional(v.number()),
+          nationality: v.optional(v.string()),
+          yearsExperience: v.optional(v.number()),
+          stats: v.optional(
+            v.object({
+              gamesPlayed: v.number(),
+              pointsPerGame: v.number(),
+              assistsPerGame: v.number(),
+              reboundsPerGame: v.number(),
+            }),
+          ),
+        }),
+      ),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const club = await ctx.db
+      .query("clubs")
+      .withIndex("by_slug", (q) => q.eq("slug", args.clubSlug))
+      .unique();
+
+    if (!club) {
+      return null;
+    }
+
+    const categories = await ctx.db
+      .query("categories")
+      .withIndex("by_clubId", (q) => q.eq("clubId", club._id))
+      .collect();
+
+    if (categories.length === 0) {
+      return {
+        club: { _id: club._id, name: club.name, slug: club.slug },
+        players: [],
+      };
+    }
+
+    const categoryMap = new Map(categories.map((c) => [c._id, c]));
+
+    const playersPerCategory = await Promise.all(
+      categories.map((category) =>
+        ctx.db
+          .query("players")
+          .withIndex("by_currentCategoryId", (q) =>
+            q.eq("currentCategoryId", category._id),
+          )
+          .filter((q) => q.eq(q.field("sportType"), "basketball"))
+          .collect(),
+      ),
+    );
+
+    const allPlayers = playersPerCategory.flat();
+
+    if (allPlayers.length === 0) {
+      return {
+        club: { _id: club._id, name: club.name, slug: club.slug },
+        players: [],
+      };
+    }
+
+    const profileIds = [...new Set(allPlayers.map((p) => p.profileId))];
+    const profiles = await Promise.all(profileIds.map((id) => ctx.db.get(id)));
+    const profileMap = new Map(profileIds.map((id, i) => [id, profiles[i]]));
+
+    const players = allPlayers.map((player) => {
+      const profile = profileMap.get(player.profileId);
+      const firstName = profile?.firstName;
+      const lastName = profile?.lastName;
+      const fullName =
+        profile?.displayName ||
+        [firstName, lastName].filter(Boolean).join(" ") ||
+        profile?.email ||
+        "Unknown";
+
+      const joinedDate = player.joinedDate
+        ? new Date(player.joinedDate)
+        : undefined;
+      const yearsExperience = joinedDate
+        ? Math.floor(
+            (Date.now() - joinedDate.getTime()) / (1000 * 60 * 60 * 24 * 365),
+          )
+        : undefined;
+
+      const basketballStats = player.basketballStats;
+      const stats = basketballStats
+        ? {
+            gamesPlayed: basketballStats.gamesPlayed,
+            pointsPerGame:
+              basketballStats.gamesPlayed > 0
+                ? Math.round(
+                    (basketballStats.points / basketballStats.gamesPlayed) * 10,
+                  ) / 10
+                : 0,
+            assistsPerGame:
+              basketballStats.gamesPlayed > 0
+                ? Math.round(
+                    (basketballStats.assists / basketballStats.gamesPlayed) *
+                      10,
+                  ) / 10
+                : 0,
+            reboundsPerGame:
+              basketballStats.gamesPlayed > 0
+                ? Math.round(
+                    (basketballStats.rebounds / basketballStats.gamesPlayed) *
+                      10,
+                  ) / 10
+                : 0,
+          }
+        : undefined;
+
+      return {
+        _id: player._id,
+        profileId: player.profileId,
+        fullName,
+        firstName,
+        lastName,
+        avatarUrl: profile?.avatarUrl,
+        dateOfBirth: profile?.dateOfBirth,
+        jerseyNumber: player.jerseyNumber,
+        position: player.basketballPosition,
+        status: player.status,
+        height: player.height,
+        weight: player.weight,
+        nationality: player.nationality,
+        yearsExperience,
+        stats,
+      };
+    });
+
+    return {
+      club: { _id: club._id, name: club.name, slug: club.slug },
+      players,
+    };
+  },
+});
+
+/**
+ * Seed mutation to create test basketball players for development
+ * This should only be used in development environments
+ * Creates full structure: league -> club -> category -> players
+ */
+export const seedBasketballPlayers = mutation({
+  args: {
+    clubSlug: v.optional(v.string()),
+  },
+  returns: v.object({
+    created: v.number(),
+    playerIds: v.array(v.id("players")),
+    clubSlug: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const targetSlug = args.clubSlug ?? "test-bulls";
+
+    let club = await ctx.db
+      .query("clubs")
+      .withIndex("by_slug", (q) => q.eq("slug", targetSlug))
+      .unique();
+
+    if (!club) {
+      let league = await ctx.db
+        .query("leagues")
+        .withIndex("by_slug", (q) => q.eq("slug", "test-league"))
+        .unique();
+
+      if (!league) {
+        const leagueId = await ctx.db.insert("leagues", {
+          name: "Test Basketball League",
+          slug: "test-league",
+          country: "USA",
+          sportType: "basketball",
+          status: "active",
+        });
+        league = await ctx.db.get(leagueId);
+      }
+
+      if (!league) {
+        throw new Error("Failed to create league");
+      }
+
+      const clubId = await ctx.db.insert("clubs", {
+        name: "Chicago Test Bulls",
+        slug: targetSlug,
+        shortName: "Bulls",
+        leagueId: league._id,
+        status: "affiliated",
+      });
+
+      club = await ctx.db.get(clubId);
+    }
+
+    if (!club) {
+      throw new Error("Failed to create or find club");
+    }
+
+    const categories = await ctx.db
+      .query("categories")
+      .withIndex("by_clubId", (q) => q.eq("clubId", club._id))
+      .collect();
+
+    let categoryId: Id<"categories">;
+
+    if (categories.length === 0) {
+      categoryId = await ctx.db.insert("categories", {
+        clubId: club._id,
+        name: "Senior Team",
+        ageGroup: "Senior",
+        gender: "male",
+        status: "active",
+      });
+    } else {
+      categoryId = categories[0]._id;
+    }
+
+    const testPlayers = [
+      {
+        firstName: "Trentyn",
+        lastName: "Flowers",
+        dateOfBirth: "2004-03-15",
+        jerseyNumber: 0,
+        position: "small_forward" as const,
+        height: 206,
+        weight: 84,
+        nationality: "USA",
+        stats: {
+          points: 4,
+          rebounds: 1,
+          assists: 1,
+          steals: 0,
+          blocks: 0,
+          gamesPlayed: 2,
+        },
+      },
+      {
+        firstName: "Marcus",
+        lastName: "Thompson",
+        dateOfBirth: "2001-07-22",
+        jerseyNumber: 23,
+        position: "point_guard" as const,
+        height: 188,
+        weight: 82,
+        nationality: "USA",
+        stats: {
+          points: 45,
+          rebounds: 8,
+          assists: 24,
+          steals: 5,
+          blocks: 1,
+          gamesPlayed: 5,
+        },
+      },
+    ];
+
+    const playerIds: Id<"players">[] = [];
+
+    for (const testPlayer of testPlayers) {
+      const profileId = await ctx.db.insert("profiles", {
+        clerkId: "",
+        email: `${testPlayer.firstName.toLowerCase()}.${testPlayer.lastName.toLowerCase()}@test.local`,
+        firstName: testPlayer.firstName,
+        lastName: testPlayer.lastName,
+        displayName: `${testPlayer.firstName} ${testPlayer.lastName}`,
+        dateOfBirth: testPlayer.dateOfBirth,
+      });
+
+      const playerId = await ctx.db.insert("players", {
+        profileId,
+        currentCategoryId: categoryId,
+        sportType: "basketball",
+        basketballPosition: testPlayer.position,
+        jerseyNumber: testPlayer.jerseyNumber,
+        height: testPlayer.height,
+        weight: testPlayer.weight,
+        nationality: testPlayer.nationality,
+        status: "active",
+        joinedDate: new Date().toISOString(),
+        basketballStats: testPlayer.stats,
+      });
+
+      playerIds.push(playerId);
+    }
+
+    return {
+      created: playerIds.length,
+      playerIds,
+      clubSlug: club.slug,
+    };
+  },
+});
+
+/**
+ * Update test players with avatar URLs for development testing
+ */
+export const updateTestPlayersWithAvatars = mutation({
+  args: {
+    clubSlug: v.string(),
+  },
+  returns: v.object({
+    updated: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const club = await ctx.db
+      .query("clubs")
+      .withIndex("by_slug", (q) => q.eq("slug", args.clubSlug))
+      .unique();
+
+    if (!club) {
+      throw new Error(`Club with slug "${args.clubSlug}" not found`);
+    }
+
+    const categories = await ctx.db
+      .query("categories")
+      .withIndex("by_clubId", (q) => q.eq("clubId", club._id))
+      .collect();
+
+    if (categories.length === 0) {
+      return { updated: 0 };
+    }
+
+    const testAvatars = [
+      "https://cdn.nba.com/headshots/nba/latest/1040x760/1642280.png",
+      "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
+    ];
+
+    let updated = 0;
+
+    for (const category of categories) {
+      const players = await ctx.db
+        .query("players")
+        .withIndex("by_currentCategoryId", (q) =>
+          q.eq("currentCategoryId", category._id),
+        )
+        .filter((q) => q.eq(q.field("sportType"), "basketball"))
+        .collect();
+
+      for (let i = 0; i < players.length; i++) {
+        const player = players[i];
+        const avatarUrl = testAvatars[i % testAvatars.length];
+
+        await ctx.db.patch(player.profileId, {
+          avatarUrl,
+        });
+
+        updated++;
+      }
+    }
+
+    return { updated };
   },
 });

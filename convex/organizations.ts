@@ -194,8 +194,9 @@ export const createFromClerk = mutation({
       name: args.name,
       slug: args.slug,
       logoUrl: args.logoUrl,
-      country: args.country || "CO", // Default to Colombia
+      country: args.country || "CO",
       status: "active",
+      sportType: "basketball",
     });
 
     return {

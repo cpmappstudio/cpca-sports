@@ -25,6 +25,7 @@ export const soccerConfig: SportConfig = {
     hasConferences: false,
     hasPromotionRelegation: true,
   },
+  terminologyKey: "soccer",
 };
 
 export const SOCCER_POSITIONS: readonly SoccerPosition[] = [

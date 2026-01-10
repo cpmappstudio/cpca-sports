@@ -45,6 +45,8 @@ export const ROUTES = {
       list: (orgSlug: string) => `/${orgSlug}/teams`,
       detail: (orgSlug: string, teamId: string) =>
         `/${orgSlug}/teams/${teamId}`,
+      settings: (orgSlug: string, teamId: string) =>
+        `/${orgSlug}/teams/${teamId}/settings`,
       create: (orgSlug: string) => `/${orgSlug}/teams/create`,
     },
 

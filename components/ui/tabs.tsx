@@ -26,16 +26,13 @@ function TabsList({
 }: React.ComponentProps<typeof TabsPrimitive.List>) {
   const groupId = React.useId();
   return (
-    <>
-      <LayoutGroup id={groupId}>
-        <TabsPrimitive.List
-          data-slot="tabs-list"
-          className={cn("", className)}
-          {...props}
-        />
-      </LayoutGroup>
-      <Divider className="mb-8 mt-0.5" />
-    </>
+    <LayoutGroup id={groupId}>
+      <TabsPrimitive.List
+        data-slot="tabs-list"
+        className={cn("", className)}
+        {...props}
+      />
+    </LayoutGroup>
   );
 }
 

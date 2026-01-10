@@ -5,6 +5,9 @@ const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
   images: {
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
       {
         protocol: "https",
@@ -13,6 +16,14 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "img.clerk.com",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.nba.com",
+      },
+      {
+        protocol: "https",
+        hostname: "giddy-dog-863.convex.cloud",
       },
     ],
   },

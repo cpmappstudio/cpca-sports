@@ -1,32 +1,100 @@
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 
-/**
- * List clubs by league slug
- */
-export const listByLeagueSlug = query({
-  args: { leagueSlug: v.string() },
+const clubStatusValidator = v.union(
+  v.literal("affiliated"),
+  v.literal("invited"),
+  v.literal("suspended"),
+);
+
+export const create = mutation({
+  args: {
+    name: v.string(),
+    nickname: v.string(),
+    conferenceName: v.string(),
+    orgSlug: v.string(),
+    status: clubStatusValidator,
+    logoStorageId: v.optional(v.id("_storage")),
+    colors: v.optional(v.array(v.string())),
+    colorNames: v.optional(v.array(v.string())),
+  },
+  returns: v.id("clubs"),
+  handler: async (ctx, args): Promise<Id<"clubs">> => {
+    let league = await ctx.db
+      .query("leagues")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .unique();
+
+    if (!league) {
+      const newLeagueId = await ctx.db.insert("leagues", {
+        name: args.orgSlug,
+        slug: args.orgSlug,
+        country: "Unknown",
+        sportType: "basketball",
+        status: "active",
+      });
+      league = await ctx.db.get(newLeagueId);
+      if (!league) {
+        throw new Error("Failed to create and retrieve league.");
+      }
+    }
+
+    const conferenceId: Id<"conferences"> = await ctx.runMutation(
+      internal.conferences.getOrCreate,
+      {
+        leagueId: league._id,
+        name: args.conferenceName,
+      },
+    );
+
+    let logoUrl: string | undefined;
+    if (args.logoStorageId) {
+      const url = await ctx.storage.getUrl(args.logoStorageId);
+      logoUrl = url ?? undefined;
+    }
+
+    const clubId: Id<"clubs"> = await ctx.db.insert("clubs", {
+      name: args.name,
+      slug: args.nickname,
+      shortName: args.nickname,
+      leagueId: league._id,
+      conferenceId: conferenceId,
+      status: args.status,
+      logoUrl,
+      colors: args.colors,
+      colorNames: args.colorNames,
+    });
+
+    return clubId;
+  },
+});
+
+export const listByLeague = query({
+  args: { orgSlug: v.string() },
   returns: v.array(
     v.object({
-      _id: v.id("clubs"),
-      _creationTime: v.number(),
+      _id: v.string(),
       name: v.string(),
-      slug: v.string(),
-      shortName: v.optional(v.string()),
+      nickname: v.string(),
       logoUrl: v.optional(v.string()),
+      conference: v.string(),
+      delegate: v.object({
+        name: v.string(),
+        avatarUrl: v.string(),
+      }),
       status: v.union(
         v.literal("affiliated"),
         v.literal("invited"),
-        v.literal("suspended")
+        v.literal("suspended"),
       ),
-      foundedYear: v.optional(v.number()),
-      headquarters: v.optional(v.string()),
-    })
+    }),
   ),
   handler: async (ctx, args) => {
     const league = await ctx.db
       .query("leagues")
-      .withIndex("by_slug", (q) => q.eq("slug", args.leagueSlug))
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
       .unique();
 
     if (!league) {
@@ -38,15 +106,35 @@ export const listByLeagueSlug = query({
       .withIndex("by_leagueId", (q) => q.eq("leagueId", league._id))
       .collect();
 
-    return clubs;
+    const clubsWithDetails = await Promise.all(
+      clubs.map(async (club) => {
+        let conferenceName = "N/A";
+        if (club.conferenceId) {
+          const conference = await ctx.db.get(club.conferenceId);
+          conferenceName = conference?.name ?? "N/A";
+        }
+
+        return {
+          _id: club._id.toString(),
+          name: club.name,
+          nickname: club.slug,
+          logoUrl: club.logoUrl,
+          conference: conferenceName,
+          delegate: {
+            name: "Delegate TBD",
+            avatarUrl: "",
+          },
+          status: club.status,
+        };
+      }),
+    );
+
+    return clubsWithDetails;
   },
 });
 
-/**
- * Get club by ID
- */
-export const getById = query({
-  args: { clubId: v.id("clubs") },
+export const getBySlug = query({
+  args: { slug: v.string() },
   returns: v.union(
     v.object({
       _id: v.id("clubs"),
@@ -54,215 +142,122 @@ export const getById = query({
       name: v.string(),
       slug: v.string(),
       shortName: v.optional(v.string()),
+      nickname: v.optional(v.string()),
       logoUrl: v.optional(v.string()),
       leagueId: v.id("leagues"),
+      conferenceId: v.optional(v.id("conferences")),
       fifaId: v.optional(v.string()),
       headquarters: v.optional(v.string()),
       status: v.union(
         v.literal("affiliated"),
         v.literal("invited"),
-        v.literal("suspended")
+        v.literal("suspended"),
       ),
       taxId: v.optional(v.string()),
       foundedYear: v.optional(v.number()),
       colors: v.optional(v.array(v.string())),
+      colorNames: v.optional(v.array(v.string())),
       website: v.optional(v.string()),
       email: v.optional(v.string()),
       phoneNumber: v.optional(v.string()),
+      conferenceName: v.string(),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.clubId);
-  },
-});
-
-/**
- * List all clubs for a league by league ID
- */
-export const listByLeagueId = query({
-  args: { leagueId: v.id("leagues") },
-  returns: v.array(
-    v.object({
-      _id: v.id("clubs"),
-      _creationTime: v.number(),
-      name: v.string(),
-      slug: v.string(),
-      shortName: v.optional(v.string()),
-      logoUrl: v.optional(v.string()),
-      status: v.union(
-        v.literal("affiliated"),
-        v.literal("invited"),
-        v.literal("suspended")
-      ),
-      foundedYear: v.optional(v.number()),
-    })
-  ),
-  handler: async (ctx, args) => {
-    const clubs = await ctx.db
-      .query("clubs")
-      .withIndex("by_leagueId", (q) => q.eq("leagueId", args.leagueId))
-      .collect();
-
-    return clubs;
-  },
-});
-
-/**
- * Create a new club
- */
-export const create = mutation({
-  args: {
-    leagueId: v.id("leagues"),
-    name: v.string(),
-    slug: v.string(),
-    shortName: v.optional(v.string()),
-    logoUrl: v.optional(v.string()),
-    headquarters: v.optional(v.string()),
-    foundedYear: v.optional(v.number()),
-    colors: v.optional(v.array(v.string())),
-    website: v.optional(v.string()),
-    email: v.optional(v.string()),
-    phoneNumber: v.optional(v.string()),
-  },
-  returns: v.id("clubs"),
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-
-    const league = await ctx.db.get(args.leagueId);
-    if (!league) {
-      throw new Error("League not found");
-    }
-
-    const existingBySlug = await ctx.db
+    const club = await ctx.db
       .query("clubs")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .unique();
 
-    if (existingBySlug) {
-      throw new Error("A club with this slug already exists");
-    }
-
-    return await ctx.db.insert("clubs", {
-      leagueId: args.leagueId,
-      name: args.name,
-      slug: args.slug,
-      shortName: args.shortName,
-      logoUrl: args.logoUrl,
-      headquarters: args.headquarters,
-      status: "affiliated",
-      foundedYear: args.foundedYear,
-      colors: args.colors,
-      website: args.website,
-      email: args.email,
-      phoneNumber: args.phoneNumber,
-    });
-  },
-});
-
-/**
- * Update a club
- */
-export const update = mutation({
-  args: {
-    clubId: v.id("clubs"),
-    name: v.string(),
-    shortName: v.optional(v.string()),
-    logoUrl: v.optional(v.string()),
-    headquarters: v.optional(v.string()),
-    foundedYear: v.optional(v.number()),
-    colors: v.optional(v.array(v.string())),
-    website: v.optional(v.string()),
-    email: v.optional(v.string()),
-    phoneNumber: v.optional(v.string()),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-
-    const club = await ctx.db.get(args.clubId);
     if (!club) {
-      throw new Error("Club not found");
+      return null;
     }
 
-    await ctx.db.patch(args.clubId, {
-      name: args.name,
-      shortName: args.shortName,
-      logoUrl: args.logoUrl,
-      headquarters: args.headquarters,
-      foundedYear: args.foundedYear,
-      colors: args.colors,
-      website: args.website,
-      email: args.email,
-      phoneNumber: args.phoneNumber,
-    });
-
-    return null;
-  },
-});
-
-/**
- * Delete a club
- */
-export const deleteClub = mutation({
-  args: { clubId: v.id("clubs") },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-
-    const club = await ctx.db.get(args.clubId);
-    if (!club) {
-      throw new Error("Club not found");
-    }
-
-    await ctx.db.delete(args.clubId);
-    return null;
-  },
-});
-
-/**
- * Get club statistics
- */
-export const getStatistics = query({
-  args: { clubId: v.id("clubs") },
-  returns: v.object({
-    categoriesCount: v.number(),
-    playersCount: v.number(),
-  }),
-  handler: async (ctx, args) => {
-    const club = await ctx.db.get(args.clubId);
-    if (!club) {
-      throw new Error("Club not found");
-    }
-
-    const categories = await ctx.db
-      .query("categories")
-      .withIndex("by_clubId", (q) => q.eq("clubId", args.clubId))
-      .collect();
-
-    let playersCount = 0;
-    for (const category of categories) {
-      const categoryPlayers = await ctx.db
-        .query("players")
-        .withIndex("by_currentCategoryId", (q) =>
-          q.eq("currentCategoryId", category._id)
-        )
-        .collect();
-      playersCount += categoryPlayers.length;
+    let conferenceName = "N/A";
+    if (club.conferenceId) {
+      const conference = await ctx.db.get(club.conferenceId);
+      conferenceName = conference?.name ?? "N/A";
     }
 
     return {
-      categoriesCount: categories.length,
-      playersCount,
+      ...club,
+      nickname: club.shortName,
+      conferenceName,
     };
+  },
+});
+
+export const update = mutation({
+  args: {
+    clubId: v.id("clubs"),
+    name: v.optional(v.string()),
+    nickname: v.optional(v.string()),
+    conferenceName: v.optional(v.string()),
+    status: v.optional(clubStatusValidator),
+    logoStorageId: v.optional(v.id("_storage")),
+    colors: v.optional(v.array(v.string())),
+    colorNames: v.optional(v.array(v.string())),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const club = await ctx.db.get(args.clubId);
+    if (!club) {
+      throw new Error("Club not found");
+    }
+
+    const updates: Partial<{
+      name: string;
+      shortName: string;
+      slug: string;
+      conferenceId: Id<"conferences">;
+      status: "affiliated" | "invited" | "suspended";
+      logoUrl: string;
+      colors: string[];
+      colorNames: string[];
+    }> = {};
+
+    if (args.name !== undefined) {
+      updates.name = args.name;
+    }
+
+    if (args.nickname !== undefined) {
+      updates.shortName = args.nickname;
+      updates.slug = args.nickname;
+    }
+
+    if (args.conferenceName !== undefined && args.conferenceName !== "") {
+      const conferenceId = await ctx.runMutation(
+        internal.conferences.getOrCreate,
+        {
+          leagueId: club.leagueId,
+          name: args.conferenceName,
+        },
+      );
+      updates.conferenceId = conferenceId;
+    }
+
+    if (args.status !== undefined) {
+      updates.status = args.status;
+    }
+
+    if (args.logoStorageId !== undefined) {
+      const url = await ctx.storage.getUrl(args.logoStorageId);
+      if (url) {
+        updates.logoUrl = url;
+      }
+    }
+
+    if (args.colors !== undefined) {
+      updates.colors = args.colors;
+    }
+
+    if (args.colorNames !== undefined) {
+      updates.colorNames = args.colorNames;
+    }
+
+    await ctx.db.patch(args.clubId, updates);
+
+    return null;
   },
 });

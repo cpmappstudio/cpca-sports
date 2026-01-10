@@ -3,30 +3,35 @@
 import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
+import { Preloaded, usePreloadedQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { DataTable } from "@/components/table/data-table";
 import {
   createBasketballTeamColumns,
   createBasketballTeamFilterConfigs,
   type BasketballTeamRow,
 } from "./teams-columns";
+import { CreateTeamDialog } from "./create-team-dialog";
 import { ROUTES } from "@/lib/navigation/routes";
 
 interface BasketballTeamsTableProps {
-  preloadedData: any; // TODO: Type this properly when Convex is implemented
+  preloadedTeams: Preloaded<typeof api.clubs.listByLeague>;
   orgSlug: string;
 }
 
 export function BasketballTeamsTable({
-  preloadedData,
+  preloadedTeams,
   orgSlug,
 }: BasketballTeamsTableProps) {
   const router = useRouter();
   const t = useTranslations("Common");
-  const data: BasketballTeamRow[] = preloadedData; // TODO: Use usePreloadedQuery when Convex is ready
+  const data = usePreloadedQuery(preloadedTeams);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const handleRowClick = (team: BasketballTeamRow) => {
-    router.push(ROUTES.org.teams.detail(orgSlug, team._id));
+    if (team.nickname) {
+      router.push(ROUTES.org.teams.detail(orgSlug, team.nickname));
+    }
   };
 
   const teamColumns = createBasketballTeamColumns(t);
@@ -36,7 +41,7 @@ export function BasketballTeamsTable({
     <>
       <DataTable
         columns={teamColumns}
-        data={data}
+        data={data ?? []}
         filterColumn="search"
         filterPlaceholder={t("teams.searchPlaceholder")}
         filterConfigs={teamFilterConfigs}
@@ -49,7 +54,11 @@ export function BasketballTeamsTable({
         onRowClick={handleRowClick}
       />
 
-      {/* TODO: Add TeamForm component when ready */}
+      <CreateTeamDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        orgSlug={orgSlug}
+      />
     </>
   );
 }

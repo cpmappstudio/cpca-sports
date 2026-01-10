@@ -1,5 +1,4 @@
 import type { SportConfig } from "../types";
-import type { BasketballPosition } from "./types";
 
 export const basketballConfig: SportConfig = {
   id: "basketball",
@@ -31,12 +30,5 @@ export const basketballConfig: SportConfig = {
     hasConferences: true,
     hasPromotionRelegation: false,
   },
+  terminologyKey: "basketball",
 };
-
-export const BASKETBALL_POSITIONS: readonly BasketballPosition[] = [
-  "point_guard",
-  "shooting_guard",
-  "small_forward",
-  "power_forward",
-  "center",
-] as const;

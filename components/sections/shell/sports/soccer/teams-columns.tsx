@@ -1,27 +1,27 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { Id } from "@/convex/_generated/dataModel";
 import {
   createSearchColumn,
   createSortableHeader,
 } from "@/components/table/column-helpers";
 import type { FilterConfig } from "@/lib/table/types";
-import { BuildingLibraryIcon } from "@heroicons/react/20/solid";
+import { Avatar } from "@/components/ui/avatar";
 
 export interface SoccerTeamRow {
-  _id: Id<"clubs">;
-  _creationTime: number;
+  _id: string;
   name: string;
-  slug: string;
-  shortName?: string;
+  nickname: string;
   logoUrl?: string;
+  conference: string;
+  delegate: {
+    name: string;
+    avatarUrl: string;
+  };
   status: "affiliated" | "invited" | "suspended";
-  foundedYear?: number;
-  headquarters?: string;
 }
 
 type Translator = (key: string) => string;
 
-const STATUS_STYLES: Record<string, string> = {
+const STATUS_STYLES: Record<SoccerTeamRow["status"], string> = {
   affiliated:
     "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950",
   invited: "text-blue-700 bg-blue-50 dark:text-blue-400 dark:bg-blue-950",
@@ -29,54 +29,58 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export function createSoccerTeamColumns(
-  t: Translator
+  t: Translator,
 ): ColumnDef<SoccerTeamRow>[] {
   return [
-    createSearchColumn<SoccerTeamRow>(["name", "shortName", "headquarters"]),
+    createSearchColumn<SoccerTeamRow>(["name", "nickname", "conference"]),
 
     {
       accessorKey: "name",
       header: createSortableHeader(t("teams.name")),
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          {row.original.logoUrl ? (
-            <img
-              src={row.original.logoUrl}
+      cell: ({ row }) => {
+        const initials = row.original.name.slice(0, 2).toUpperCase();
+        const logoUrl = row.original.logoUrl;
+
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar
+              src={logoUrl}
+              initials={logoUrl ? undefined : initials}
               alt={row.original.name}
-              className="h-10 w-10 rounded-lg object-cover"
+              square
+              className="size-10"
             />
-          ) : (
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-              <BuildingLibraryIcon className="h-5 w-5" />
+            <div>
+              <span className="font-medium">{row.original.name}</span>
+              {row.original.nickname && (
+                <p className="text-xs text-muted-foreground">
+                  {row.original.nickname}
+                </p>
+              )}
             </div>
-          )}
-          <div>
-            <span className="font-medium">{row.original.name}</span>
-            {row.original.shortName && (
-              <p className="text-xs text-muted-foreground">
-                {row.original.shortName}
-              </p>
-            )}
           </div>
-        </div>
-      ),
+        );
+      },
     },
 
     {
-      accessorKey: "headquarters",
-      header: createSortableHeader(t("teams.headquarters")),
+      accessorKey: "conference",
+      header: createSortableHeader(t("teams.conference")),
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {row.original.headquarters || "—"}
+          {row.original.conference || "—"}
         </span>
       ),
     },
 
     {
-      accessorKey: "foundedYear",
-      header: createSortableHeader(t("teams.foundedYear")),
+      id: "delegateName",
+      accessorFn: (row) => row.delegate.name,
+      header: createSortableHeader(t("teams.delegate")),
       cell: ({ row }) => (
-        <span className="text-sm">{row.original.foundedYear || "—"}</span>
+        <span className="text-sm text-muted-foreground">
+          {row.original.delegate.name || "—"}
+        </span>
       ),
     },
 
@@ -85,7 +89,7 @@ export function createSoccerTeamColumns(
       header: createSortableHeader(t("teams.status")),
       cell: ({ row }) => {
         const status = row.original.status;
-        const className = STATUS_STYLES[status] ?? STATUS_STYLES.affiliated;
+        const className = STATUS_STYLES[status];
 
         return (
           <span
