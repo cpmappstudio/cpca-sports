@@ -13,21 +13,21 @@ import {
   SidebarSection,
   SidebarSpacer,
 } from "@/components/ui/sidebar";
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
-import { Cog6ToothIcon } from "@heroicons/react/20/solid";
-import { getNavConfig, getNavContext, isItemActive } from "@/lib/navigation";
+import { UserButton } from "@clerk/nextjs";
+import { Cog6ToothIcon, ArrowLeftIcon } from "@heroicons/react/20/solid";
+import { getTeamNavConfig, isItemActive } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
 import { ROUTES } from "@/lib/navigation/routes";
 import { useSportTerminology } from "@/lib/sports";
 import type { SportTerminology } from "@/lib/sports";
+import { Link } from "@/components/ui/link";
 
 const TERMINOLOGY_MAP: Record<string, keyof SportTerminology> = {
-  teams: "clubs",
-  divisions: "divisions",
-  tournaments: "tournaments",
+  roster: "players",
+  schedule: "matches",
 };
 
-export function NavbarAppSidebar() {
+export function TeamNavbar() {
   return (
     <Navbar>
       <NavbarSpacer />
@@ -38,22 +38,20 @@ export function NavbarAppSidebar() {
   );
 }
 
-export function SidebarAppSidebar() {
+export function TeamSidebar() {
   const params = useParams();
   const pathname = usePathname();
   const t = useTranslations("Navigation.nav");
   const terminology = useSportTerminology();
 
-  const orgSlug = (params.tenant as string) || null;
+  const orgSlug = params.tenant as string;
+  const teamSlug = params.team as string;
 
-  const context = getNavContext(pathname, orgSlug);
-  // This sidebar only handles admin and org contexts, team has its own sidebar
-  const navContext = context === "team" ? "org" : context;
-  const { items, settingsHref } = getNavConfig(navContext);
+  const { items, settingsHref } = getTeamNavConfig();
 
   const getLabel = (labelKey: string): string => {
     const terminologyKey = TERMINOLOGY_MAP[labelKey];
-    if (terminologyKey && context === "org") {
+    if (terminologyKey) {
       return terminology[terminologyKey];
     }
     return t(labelKey);
@@ -62,22 +60,23 @@ export function SidebarAppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <OrganizationSwitcher
-          afterLeaveOrganizationUrl={ROUTES.admin.organizations.list}
-          afterSelectOrganizationUrl="/:slug"
-          appearance={{
-            elements: {
-              rootBox: "w-full",
-              organizationSwitcherTrigger: "w-full justify-between",
-            },
-          }}
-        />
+        <div className="flex items-center gap-2 px-2">
+          <Link
+            href={ROUTES.org.teams.list(orgSlug)}
+            className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+          >
+            <ArrowLeftIcon className="size-4" />
+            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100">
+              {teamSlug}
+            </span>
+          </Link>
+        </div>
       </SidebarHeader>
 
       <SidebarBody>
         <SidebarSection>
           {items.map((item) => {
-            const href = item.href(orgSlug ?? undefined);
+            const href = item.href(orgSlug, teamSlug);
             const isCurrent = isItemActive(pathname, href, item.isIndex);
 
             return (
@@ -93,10 +92,10 @@ export function SidebarAppSidebar() {
 
         <SidebarSection>
           <SidebarItem
-            href={settingsHref(orgSlug ?? undefined)}
+            href={settingsHref(orgSlug, teamSlug)}
             current={isItemActive(
               pathname,
-              settingsHref(orgSlug ?? undefined),
+              settingsHref(orgSlug, teamSlug),
               false,
             )}
           >

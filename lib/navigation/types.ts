@@ -23,7 +23,7 @@ export type NavItem = {
   isIndex: boolean;
 };
 
-export type NavContext = "admin" | "org";
+export type NavContext = "admin" | "org" | "team";
 
 export type NavConfig = {
   items: NavItem[];
@@ -51,4 +51,23 @@ export type SettingsNavItem = {
 export type SettingsNavConfig = {
   items: SettingsNavItem[];
   basePath: (orgSlug?: string) => string;
+};
+
+/**
+ * Team navigation item configuration.
+ * Similar to NavItem but receives both orgSlug and teamSlug.
+ */
+export type TeamNavItem = {
+  labelKey: string;
+  icon: HeroIcon;
+  href: (orgSlug?: string, teamSlug?: string) => string;
+  isIndex: boolean;
+};
+
+/**
+ * Team navigation configuration.
+ */
+export type TeamNavConfig = {
+  items: TeamNavItem[];
+  settingsHref: (orgSlug?: string, teamSlug?: string) => string;
 };

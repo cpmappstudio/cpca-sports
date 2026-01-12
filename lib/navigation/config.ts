@@ -13,6 +13,7 @@ import {
   ShieldCheckIcon,
   TrophyIcon,
   CalendarIcon,
+  RectangleGroupIcon,
 } from "@heroicons/react/20/solid";
 import { Palette } from "lucide-react";
 import { ROUTES } from "@/lib/navigation/routes";
@@ -23,6 +24,8 @@ import type {
   NavIcon,
   SettingsNavItem,
   SettingsNavConfig,
+  TeamNavItem,
+  TeamNavConfig,
 } from "./types";
 
 /**
@@ -118,7 +121,40 @@ const ORG_ITEMS: NavItem[] = [
   // },
 ];
 
-const NAV_CONFIGS: Record<NavContext, NavConfig> = {
+const TEAM_ITEMS: TeamNavItem[] = [
+  {
+    labelKey: "dashboard",
+    icon: HomeIcon,
+    href: (orgSlug, teamSlug) => ROUTES.team.root(orgSlug!, teamSlug!),
+    isIndex: true,
+  },
+  {
+    labelKey: "roster",
+    icon: UsersIcon,
+    href: (orgSlug, teamSlug) => ROUTES.team.roster(orgSlug!, teamSlug!),
+    isIndex: false,
+  },
+  {
+    labelKey: "staff",
+    icon: UserGroupIcon,
+    href: (orgSlug, teamSlug) => ROUTES.team.staff(orgSlug!, teamSlug!),
+    isIndex: false,
+  },
+  {
+    labelKey: "categories",
+    icon: RectangleGroupIcon,
+    href: (orgSlug, teamSlug) => ROUTES.team.categories(orgSlug!, teamSlug!),
+    isIndex: false,
+  },
+  {
+    labelKey: "schedule",
+    icon: CalendarIcon,
+    href: (orgSlug, teamSlug) => ROUTES.team.schedule(orgSlug!, teamSlug!),
+    isIndex: false,
+  },
+];
+
+const NAV_CONFIGS: Record<"admin" | "org", NavConfig> = {
   admin: {
     items: ADMIN_ITEMS,
     settingsHref: () => ROUTES.admin.settings.root,
@@ -127,6 +163,12 @@ const NAV_CONFIGS: Record<NavContext, NavConfig> = {
     items: ORG_ITEMS,
     settingsHref: (orgSlug) => ROUTES.org.settings.root(orgSlug!),
   },
+};
+
+const TEAM_NAV_CONFIG: TeamNavConfig = {
+  items: TEAM_ITEMS,
+  settingsHref: (orgSlug, teamSlug) =>
+    ROUTES.team.settings.root(orgSlug!, teamSlug!),
 };
 
 // =============================================================================
@@ -199,7 +241,7 @@ const ORG_SETTINGS_ITEMS: SettingsNavItem[] = [
   },
 ];
 
-const SETTINGS_NAV_CONFIGS: Record<NavContext, SettingsNavConfig> = {
+const SETTINGS_NAV_CONFIGS: Record<"admin" | "org", SettingsNavConfig> = {
   admin: {
     items: ADMIN_SETTINGS_ITEMS,
     basePath: () => ROUTES.admin.settings.root,
@@ -214,11 +256,17 @@ const SETTINGS_NAV_CONFIGS: Record<NavContext, SettingsNavConfig> = {
 // Exported Functions
 // =============================================================================
 
-export function getNavConfig(context: NavContext): NavConfig {
+export function getNavConfig(context: "admin" | "org"): NavConfig {
   return NAV_CONFIGS[context];
 }
 
-export function getSettingsNavConfig(context: NavContext): SettingsNavConfig {
+export function getTeamNavConfig(): TeamNavConfig {
+  return TEAM_NAV_CONFIG;
+}
+
+export function getSettingsNavConfig(
+  context: "admin" | "org",
+): SettingsNavConfig {
   return SETTINGS_NAV_CONFIGS[context];
 }
 

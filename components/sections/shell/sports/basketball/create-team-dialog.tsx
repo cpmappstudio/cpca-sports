@@ -1,4 +1,3 @@
-// THIS NEEDS TO BE REFACTORED
 "use client";
 
 import { FormEvent, useState, useEffect } from "react";
@@ -7,7 +6,6 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Check, ChevronsUpDown, X } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,7 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -45,7 +42,6 @@ import { useSportTerminology } from "@/lib/sports";
 import type { FileWithPreview } from "@/hooks/use-file-upload";
 
 type ClubStatus = "affiliated" | "invited" | "suspended";
-type DialogStep = "create" | "invite";
 
 interface CreateTeamDialogProps {
   open: boolean;
@@ -58,6 +54,10 @@ interface TeamColor {
   name: string;
 }
 
+interface DelegateState {
+  email: string;
+}
+
 interface FormState {
   name: string;
   nickname: string;
@@ -65,7 +65,12 @@ interface FormState {
   division: string;
   status: ClubStatus;
   colors: TeamColor[];
+  delegate: DelegateState;
 }
+
+const INITIAL_DELEGATE_STATE: DelegateState = {
+  email: "",
+};
 
 const INITIAL_FORM_STATE: FormState = {
   name: "",
@@ -74,21 +79,7 @@ const INITIAL_FORM_STATE: FormState = {
   division: "",
   status: "invited",
   colors: [],
-};
-
-const slideVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 300 : -300,
-    opacity: 0,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-  },
-  exit: (direction: number) => ({
-    x: direction < 0 ? 300 : -300,
-    opacity: 0,
-  }),
+  delegate: INITIAL_DELEGATE_STATE,
 };
 
 export function CreateTeamDialog({
@@ -98,14 +89,12 @@ export function CreateTeamDialog({
 }: CreateTeamDialogProps) {
   const t = useTranslations("Common");
   const terminology = useSportTerminology();
-  const createTeam = useMutation(api.clubs.create);
+  const createTeamWithDelegate = useMutation(api.clubs.createWithDelegate);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const conferences = useQuery(api.conferences.listByLeague, {
     leagueSlug: orgSlug,
   });
 
-  const [step, setStep] = useState<DialogStep>("create");
-  const [direction, setDirection] = useState(0);
   const [isConferenceOpen, setIsConferenceOpen] = useState(false);
   const [formState, setFormState] = useState<FormState>(INITIAL_FORM_STATE);
   const [currentColor, setCurrentColor] = useState("#1E3A8A");
@@ -149,7 +138,7 @@ export function CreateTeamDialog({
       controller.abort();
     };
   }, [currentColor, editingColorIndex]);
-  const [delegateEmail, setDelegateEmail] = useState("");
+
   const [logoFile, setLogoFile] = useState<FileWithPreview | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -183,21 +172,12 @@ export function CreateTeamDialog({
 
     try {
       const logoStorageId = await uploadLogo();
-
       const colorsToSave = formState.colors.length > 0 ? formState.colors : [];
 
-      console.log("[CreateTeam] Submitting with data:", {
-        name: formState.name,
-        nickname: formState.nickname,
-        conference: formState.conference,
-        division: formState.division,
-        status: formState.status,
-        logoStorageId,
-        colors: colorsToSave.map((c) => c.hex),
-        colorNames: colorsToSave.map((c) => c.name),
-      });
+      // Prepare delegate email if provided
+      const delegateEmail = formState.delegate.email.trim() || undefined;
 
-      await createTeam({
+      await createTeamWithDelegate({
         name: formState.name,
         nickname: formState.nickname,
         conferenceName: formState.conference,
@@ -211,10 +191,10 @@ export function CreateTeamDialog({
           colorsToSave.length > 0
             ? colorsToSave.map((c) => c.name).filter(Boolean)
             : undefined,
+        delegateEmail,
       });
 
-      setDirection(1);
-      setStep("invite");
+      onOpenChange(false);
     } catch (error) {
       console.error("[CreateTeam] Failed to create team:", error);
     } finally {
@@ -222,28 +202,16 @@ export function CreateTeamDialog({
     }
   };
 
-  const handleInviteSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    // TODO: Implement Clerk invitation logic
-    onOpenChange(false);
-  };
-
-  const handleSkipInvite = () => {
-    onOpenChange(false);
-  };
-
   const handleOpenChange = (nextOpen: boolean) => {
     onOpenChange(nextOpen);
     if (!nextOpen) {
       setTimeout(() => {
-        setStep("create");
-        setDirection(0);
         setIsConferenceOpen(false);
         setFormState(INITIAL_FORM_STATE);
-        setDelegateEmail("");
         setLogoFile(null);
         setCurrentColor("#1E3A8A");
         setCurrentColorName("");
+        setEditingColorIndex(null);
       }, 150);
     }
   };
@@ -253,6 +221,16 @@ export function CreateTeamDialog({
     value: FormState[K],
   ) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateDelegateField = <K extends keyof DelegateState>(
+    field: K,
+    value: DelegateState[K],
+  ) => {
+    setFormState((prev) => ({
+      ...prev,
+      delegate: { ...prev.delegate, [field]: value },
+    }));
   };
 
   const addOrUpdateColor = (hex: string) => {
@@ -302,362 +280,308 @@ export function CreateTeamDialog({
     }
   };
 
+  const isDelegateValid = true;
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="sm:max-w-md overflow-hidden"
-        showCloseButton={step === "invite"}
-      >
-        <AnimatePresence mode="wait" custom={direction}>
-          {step === "create" && (
-            <motion.div
-              key="create"
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ type: "tween", duration: 0.2 }}
-            >
-              <DialogHeader>
-                <DialogTitle className="text-left">
-                  {t("actions.create")} {terminology.club}
-                </DialogTitle>
-              </DialogHeader>
+      <DialogContent className="sm:max-w-lg overflow-y-auto max-h-[90vh]">
+        <DialogHeader>
+          <DialogTitle className="text-left">
+            {t("actions.create")} {terminology.club}
+          </DialogTitle>
+        </DialogHeader>
 
-              <form onSubmit={handleCreateSubmit} className="space-y-6 mt-4">
-                <div className="flex flex-col items-center gap-7 md:flex-row">
-                  <AvatarUpload onFileChange={handleFileChange} />
+        <form onSubmit={handleCreateSubmit} className="space-y-6 mt-4">
+          <div className="flex flex-col items-center gap-7 md:flex-row">
+            <AvatarUpload onFileChange={handleFileChange} />
 
-                  <FieldGroup className="flex-1 gap-4">
-                    <Field>
-                      <Input
-                        id="name"
-                        value={formState.name}
-                        onChange={(event) =>
-                          updateField("name", event.target.value)
-                        }
-                        required
-                        placeholder={t("teams.name")}
+            <FieldGroup className="flex-1 gap-4">
+              <Field>
+                <Input
+                  id="name"
+                  value={formState.name}
+                  onChange={(event) => updateField("name", event.target.value)}
+                  required
+                  placeholder={t("teams.name")}
+                />
+              </Field>
+
+              <Field>
+                <Input
+                  id="nickname"
+                  value={formState.nickname}
+                  onChange={(event) =>
+                    updateField("nickname", event.target.value)
+                  }
+                  placeholder={t("teams.nickname")}
+                />
+              </Field>
+            </FieldGroup>
+          </div>
+
+          <FieldGroup>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel>{t("teams.conference")}</FieldLabel>
+                <Popover
+                  open={isConferenceOpen}
+                  onOpenChange={setIsConferenceOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={isConferenceOpen}
+                      className="w-full justify-between"
+                      type="button"
+                    >
+                      {formState.conference || t("teams.conference")}
+                      <ChevronsUpDown className="opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder={t("teams.conference")}
+                        className="h-9"
                       />
-                    </Field>
-
-                    <Field>
-                      <Input
-                        id="nickname"
-                        value={formState.nickname}
-                        onChange={(event) =>
-                          updateField("nickname", event.target.value)
-                        }
-                        placeholder={t("teams.nickname")}
-                      />
-                    </Field>
-                  </FieldGroup>
-                </div>
-
-                <FieldGroup>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field>
-                      <FieldLabel>{t("teams.conference")}</FieldLabel>
-                      <Popover
-                        open={isConferenceOpen}
-                        onOpenChange={setIsConferenceOpen}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={isConferenceOpen}
-                            className="w-full justify-between"
-                            type="button"
-                          >
-                            {formState.conference || t("teams.conference")}
-                            <ChevronsUpDown className="opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                          <Command>
-                            <CommandInput
-                              placeholder={t("teams.conference")}
-                              className="h-9"
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                {t("table.noResults")}
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {conferences?.map((option) => (
-                                  <CommandItem
-                                    key={option._id}
-                                    value={option.name}
-                                    onSelect={(currentValue) => {
-                                      updateField(
-                                        "conference",
-                                        currentValue === formState.conference
-                                          ? ""
-                                          : currentValue,
-                                      );
-                                      // Reset division when conference changes
-                                      updateField("division", "");
-                                      setIsConferenceOpen(false);
-                                    }}
-                                  >
-                                    {option.name}
-                                    <Check
-                                      className={`ml-auto ${
-                                        formState.conference === option.name
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      }`}
-                                    />
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </Field>
-
-                    <Field>
-                      <FieldLabel>{t("teams.division")}</FieldLabel>
-                      <Select
-                        value={formState.division}
-                        onValueChange={(value) =>
-                          updateField("division", value)
-                        }
-                        disabled={!formState.conference}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              formState.conference
-                                ? t("teams.division")
-                                : t("teams.selectConferenceFirst")
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {conferences
-                            ?.find((c) => c.name === formState.conference)
-                            ?.divisions?.map((division) => (
-                              <SelectItem key={division} value={division}>
-                                {division}
-                              </SelectItem>
-                            )) || (
-                            <div className="p-2 text-sm text-muted-foreground">
-                              {t("teams.noDivisions")}
-                            </div>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </div>
-                </FieldGroup>
-
-                <FieldGroup>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field>
-                      <FieldLabel>{t("teams.colors")}</FieldLabel>
-                      <div className="flex flex-col gap-2">
-                        {/* Existing colors with names */}
-                        {formState.colors.length > 0 && (
-                          <div className="flex flex-col gap-2">
-                            {formState.colors.map((color, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-2"
-                              >
-                                <div
-                                  className="size-6 rounded-full border-2 border-border shrink-0"
-                                  style={{ backgroundColor: color.hex }}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium truncate">
-                                    {color.name || "Unnamed"}
-                                  </p>
-                                </div>
-                                <div className="flex gap-1">
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 px-2 text-xs"
-                                    onClick={() => editColor(index)}
-                                    disabled={
-                                      editingColorIndex !== null &&
-                                      editingColorIndex !== index
-                                    }
-                                  >
-                                    {t("actions.edit")}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 px-2"
-                                    onClick={() => removeColor(index)}
-                                    disabled={
-                                      editingColorIndex !== null &&
-                                      editingColorIndex !== index
-                                    }
-                                  >
-                                    <X className="size-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Add/Edit color section */}
-                        {(formState.colors.length < 3 ||
-                          editingColorIndex !== null) && (
-                          <div className="flex flex-col gap-2 p-2 border rounded-lg">
-                            <p className="text-xs font-medium">
-                              {editingColorIndex !== null
-                                ? t("actions.edit")
-                                : t("actions.add")}
-                            </p>
-                            <div className="flex items-center gap-2">
-                              <ColorPicker
-                                value={currentColor}
-                                onChange={setCurrentColor}
-                                handleAdd={addOrUpdateColor}
-                              >
-                                <div
-                                  role="button"
-                                  tabIndex={0}
-                                  className="size-8 rounded-full border-2 border-border flex items-center justify-center hover:border-primary transition-colors cursor-pointer shrink-0"
-                                  style={{ backgroundColor: currentColor }}
-                                />
-                              </ColorPicker>
-                              <Input
-                                placeholder={t("teams.colorName")}
-                                value={currentColorName}
-                                onChange={(e) =>
-                                  setCurrentColorName(e.target.value)
-                                }
-                                className="flex-1 h-8 text-xs"
-                                disabled={isFetchingColorName}
+                      <CommandList>
+                        <CommandEmpty>{t("table.noResults")}</CommandEmpty>
+                        <CommandGroup>
+                          {conferences?.map((option) => (
+                            <CommandItem
+                              key={option._id}
+                              value={option.name}
+                              onSelect={(currentValue) => {
+                                updateField(
+                                  "conference",
+                                  currentValue === formState.conference
+                                    ? ""
+                                    : currentValue,
+                                );
+                                // Reset division when conference changes
+                                updateField("division", "");
+                                setIsConferenceOpen(false);
+                              }}
+                            >
+                              {option.name}
+                              <Check
+                                className={`ml-auto ${
+                                  formState.conference === option.name
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                }`}
                               />
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                className="h-7 text-xs"
-                                onClick={() => addOrUpdateColor(currentColor)}
-                                disabled={!currentColorName.trim()}
-                              >
-                                {editingColorIndex !== null
-                                  ? t("actions.save")
-                                  : t("actions.add")}
-                              </Button>
-                              {editingColorIndex !== null && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 text-xs"
-                                  onClick={cancelEdit}
-                                >
-                                  {t("actions.cancel")}
-                                </Button>
-                              )}
-                            </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </Field>
+
+              <Field>
+                <FieldLabel>{t("teams.division")}</FieldLabel>
+                <Select
+                  value={formState.division}
+                  onValueChange={(value) => updateField("division", value)}
+                  disabled={!formState.conference}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        formState.conference
+                          ? t("teams.division")
+                          : t("teams.selectConferenceFirst")
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {conferences
+                      ?.find((c) => c.name === formState.conference)
+                      ?.divisions?.map((division) => (
+                        <SelectItem key={division} value={division}>
+                          {division}
+                        </SelectItem>
+                      )) || (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        {t("teams.noDivisions")}
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+          </FieldGroup>
+
+          <FieldGroup>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel>{t("teams.colors")}</FieldLabel>
+                <div className="flex flex-col gap-2">
+                  {/* Existing colors with names */}
+                  {formState.colors.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      {formState.colors.map((color, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <div
+                            className="size-6 rounded-full border-2 border-border shrink-0"
+                            style={{ backgroundColor: color.hex }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">
+                              {color.name || "Unnamed"}
+                            </p>
                           </div>
+                          <div className="flex gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => editColor(index)}
+                              disabled={
+                                editingColorIndex !== null &&
+                                editingColorIndex !== index
+                              }
+                            >
+                              {t("actions.edit")}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2"
+                              onClick={() => removeColor(index)}
+                              disabled={
+                                editingColorIndex !== null &&
+                                editingColorIndex !== index
+                              }
+                            >
+                              <X className="size-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add/Edit color section */}
+                  {(formState.colors.length < 3 ||
+                    editingColorIndex !== null) && (
+                    <div className="flex flex-col gap-2 p-2 border rounded-lg">
+                      <p className="text-xs font-medium">
+                        {editingColorIndex !== null
+                          ? t("actions.edit")
+                          : t("actions.add")}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <ColorPicker
+                          value={currentColor}
+                          onChange={setCurrentColor}
+                          handleAdd={addOrUpdateColor}
+                        >
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            className="size-8 rounded-full border-2 border-border flex items-center justify-center hover:border-primary transition-colors cursor-pointer shrink-0"
+                            style={{ backgroundColor: currentColor }}
+                          />
+                        </ColorPicker>
+                        <Input
+                          placeholder={t("teams.colorName")}
+                          value={currentColorName}
+                          onChange={(e) => setCurrentColorName(e.target.value)}
+                          className="flex-1 h-8 text-xs"
+                          disabled={isFetchingColorName}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => addOrUpdateColor(currentColor)}
+                          disabled={!currentColorName.trim()}
+                        >
+                          {editingColorIndex !== null
+                            ? t("actions.save")
+                            : t("actions.add")}
+                        </Button>
+                        {editingColorIndex !== null && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={cancelEdit}
+                          >
+                            {t("actions.cancel")}
+                          </Button>
                         )}
                       </div>
-                    </Field>
-                    <Field>
-                      <FieldLabel>{t("teams.status")}</FieldLabel>
-                      <Select
-                        value={formState.status}
-                        onValueChange={(value: ClubStatus) =>
-                          updateField("status", value)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("teams.status")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="affiliated">
-                            {t("teams.statusOptions.affiliated")}
-                          </SelectItem>
-                          <SelectItem value="invited">
-                            {t("teams.statusOptions.invited")}
-                          </SelectItem>
-                          <SelectItem value="suspended">
-                            {t("teams.statusOptions.suspended")}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </div>
-                </FieldGroup>
-
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                    disabled={isSubmitting}
-                  >
-                    {t("actions.cancel")}
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? t("actions.loading") : t("actions.create")}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </motion.div>
-          )}
-
-          {step === "invite" && (
-            <motion.div
-              key="invite"
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ type: "tween", duration: 0.2 }}
-            >
-              <DialogHeader>
-                <DialogTitle className="text-left">
-                  {t("teams.inviteDelegate")}
-                </DialogTitle>
-              </DialogHeader>
-
-              <form onSubmit={handleInviteSubmit} className="space-y-6 mt-4">
-                <div className="grid w-full items-center gap-3">
-                  <Label htmlFor="delegateEmail">{t("teams.delegate")}</Label>
-                  <Input
-                    id="delegateEmail"
-                    type="email"
-                    value={delegateEmail}
-                    onChange={(event) => setDelegateEmail(event.target.value)}
-                    placeholder="delegate@example.com"
-                  />
+                    </div>
+                  )}
                 </div>
+              </Field>
+              <Field>
+                <FieldLabel>{t("teams.status")}</FieldLabel>
+                <Select
+                  value={formState.status}
+                  onValueChange={(value: ClubStatus) =>
+                    updateField("status", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("teams.status")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="affiliated">
+                      {t("teams.statusOptions.affiliated")}
+                    </SelectItem>
+                    <SelectItem value="invited">
+                      {t("teams.statusOptions.invited")}
+                    </SelectItem>
+                    <SelectItem value="suspended">
+                      {t("teams.statusOptions.suspended")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+          </FieldGroup>
 
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={handleSkipInvite}
-                  >
-                    {t("actions.skip")}
-                  </Button>
-                  <Button type="submit" disabled={!delegateEmail}>
-                    {t("actions.sendInvitation")}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          {/* Delegate Section */}
+          <Field>
+            <FieldLabel>
+              {t("teams.delegate")} ({t("actions.optional")})
+            </FieldLabel>
+            <Input
+              type="email"
+              value={formState.delegate.email}
+              onChange={(e) => updateDelegateField("email", e.target.value)}
+              placeholder="delegate@example.com"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("teams.delegateDescription")}
+            </p>
+          </Field>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              {t("actions.cancel")}
+            </Button>
+            <Button type="submit" disabled={isSubmitting || !isDelegateValid}>
+              {isSubmitting ? t("actions.loading") : t("actions.create")}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

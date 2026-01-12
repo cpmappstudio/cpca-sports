@@ -1,5 +1,6 @@
 {
   "actions": {
+    "optional": "Opcional",
     "save": "Guardar",
     "saving": "Guardando...",
     "cancel": "Cancelar",
@@ -77,6 +78,7 @@
     "colors": "Colores",
     "colorName": "Nombre del color (ej. Azul marino)",
     "inviteDelegate": "Invitar delegado",
+    "delegateDescription": "El delegado será el administrador de este equipo. Si no tiene cuenta, se le enviará una invitación.",
     "statusOptions": {
       "affiliated": "Afiliado",
       "invited": "Invitado",
@@ -109,7 +111,28 @@
     "statusOptions": {
       "active": "Activo",
       "injured": "Lesionado",
-      "suspended": "Suspendido",
+      "on_loan": "Cedido",
+      "inactive": "Inactivo"
+    }
+  },
+  "categories": {
+    "title": "Categorías",
+    "name": "Nombre",
+    "ageGroup": "Grupo de Edad",
+    "gender": "Género",
+    "playerCount": "Jugadores",
+    "status": "Estado",
+    "searchPlaceholder": "Buscar categorías...",
+    "emptyMessage": "No se encontraron categorías.",
+    "deleteTitle": "Eliminar Categoría",
+    "deleteDescription": "¿Estás seguro de que deseas eliminar {name}? Esta acción no se puede deshacer.",
+    "genderOptions": {
+      "male": "Masculino",
+      "female": "Femenino",
+      "mixed": "Mixto"
+    },
+    "statusOptions": {
+      "active": "Activo",
       "inactive": "Inactivo"
     }
   },
@@ -177,6 +200,7 @@
     "reboundsPerGame": "RPP"
   },
   "staffRole": {
+    "delegate": "Delegado",
     "technical_director": "Director Técnico",
     "assistant_coach": "Asistente Técnico"
   },
@@ -253,5 +277,11 @@
   "languages": {
     "en": "Inglés",
     "es": "Español"
+  },
+  "form": {
+    "email": "Correo electrónico",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "phoneNumber": "Teléfono"
   }
 }

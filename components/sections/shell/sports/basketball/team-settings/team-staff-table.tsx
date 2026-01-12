@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/table/data-table";
 import {
@@ -19,6 +20,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -33,25 +44,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { FieldLabel } from "@/components/ui/field";
+import { MoreHorizontal, Trash2 } from "lucide-react";
 
-type StaffRole = "delegate" | "head_coach" | "assistant_coach" | "trainer" | "manager";
+type StaffRole = "delegate" | "technical_director" | "assistant_coach";
 
-interface StaffMember {
-  id: string;
-  name: string;
+const ROLE_OPTIONS: { value: StaffRole; labelKey: string }[] = [
+  { value: "delegate", labelKey: "staffRole.delegate" },
+  { value: "technical_director", labelKey: "staffRole.technical_director" },
+  { value: "assistant_coach", labelKey: "staffRole.assistant_coach" },
+];
+
+interface StaffRow {
+  _id: string;
+  profileId: Id<"profiles">;
+  fullName: string;
   email: string;
-  role: StaffRole;
   avatarUrl?: string;
-  phoneNumber?: string;
+  role: string;
+  categoryName?: string;
 }
 
 interface TeamStaffTableProps {
@@ -59,64 +70,58 @@ interface TeamStaffTableProps {
   orgSlug: string;
 }
 
-const ROLE_OPTIONS: { value: StaffRole; label: string }[] = [
-  { value: "delegate", label: "Delegate" },
-  { value: "head_coach", label: "Head Coach" },
-  { value: "assistant_coach", label: "Assistant Coach" },
-  { value: "trainer", label: "Trainer" },
-  { value: "manager", label: "Manager" },
-];
-
 const ROLE_STYLES: Record<StaffRole, string> = {
-  delegate: "text-purple-700 bg-purple-50 dark:text-purple-400 dark:bg-purple-950",
-  head_coach: "text-blue-700 bg-blue-50 dark:text-blue-400 dark:bg-blue-950",
-  assistant_coach: "text-cyan-700 bg-cyan-50 dark:text-cyan-400 dark:bg-cyan-950",
-  trainer: "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950",
-  manager: "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950",
+  delegate:
+    "text-purple-700 bg-purple-50 dark:text-purple-400 dark:bg-purple-950",
+  technical_director:
+    "text-blue-700 bg-blue-50 dark:text-blue-400 dark:bg-blue-950",
+  assistant_coach:
+    "text-cyan-700 bg-cyan-50 dark:text-cyan-400 dark:bg-cyan-950",
 };
 
 export function TeamStaffTable({ clubSlug, orgSlug }: TeamStaffTableProps) {
   const t = useTranslations("Common");
+  const staffData = useQuery(api.staff.listAllByClubSlug, { clubSlug });
+  const addDelegate = useMutation(api.staff.addDelegate);
+  const removeDelegate = useMutation(api.staff.removeDelegate);
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [staffToDelete, setStaffToDelete] = useState<StaffMember | null>(null);
+  const [staffToDelete, setStaffToDelete] = useState<StaffRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // For now, using placeholder data since staff queries may not exist yet
-  const staffMembers: StaffMember[] = [];
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [role, setRole] = useState<StaffRole | "">("");
+  const [role, setRole] = useState<StaffRole>("delegate");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const staffMembers = staffData?.staff ?? [];
+
   const resetForm = () => {
-    setFirstName("");
-    setLastName("");
     setEmail("");
-    setPhoneNumber("");
-    setRole("");
+    setRole("delegate");
   };
 
-  const handleCreateSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateSubmit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
+    if (!email.trim()) return;
+
     setIsSubmitting(true);
 
     try {
-      // TODO: Implement staff creation mutation
-      console.log("[TeamStaffTable] Creating staff member:", {
-        firstName,
-        lastName,
-        email,
-        phoneNumber,
-        role,
-        clubSlug,
-      });
+      if (role === "delegate") {
+        await addDelegate({
+          clubSlug,
+          email: email.trim(),
+        });
+      }
+      // TODO: Handle technical_director and assistant_coach roles
+      // These require a categoryId, so we'd need a category selector
 
       resetForm();
       setIsCreateOpen(false);
     } catch (error) {
-      console.error("[TeamStaffTable] Failed to create staff member:", error);
+      console.error("[TeamStaffTable] Failed to add delegate:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -125,23 +130,30 @@ export function TeamStaffTable({ clubSlug, orgSlug }: TeamStaffTableProps) {
   const handleDelete = async () => {
     if (!staffToDelete) return;
 
+    setIsDeleting(true);
     try {
-      // TODO: Implement staff deletion mutation
-      console.log("[TeamStaffTable] Deleting staff member:", staffToDelete.id);
+      if (staffToDelete.role === "delegate") {
+        await removeDelegate({
+          clubSlug,
+          profileId: staffToDelete.profileId,
+        });
+      }
       setStaffToDelete(null);
     } catch (error) {
       console.error("[TeamStaffTable] Failed to delete staff member:", error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  const columns: ColumnDef<StaffMember>[] = [
-    createSearchColumn<StaffMember>(["name", "email", "role"]),
+  const columns: ColumnDef<StaffRow>[] = [
+    createSearchColumn<StaffRow>(["fullName", "email", "role"]),
 
     {
-      accessorKey: "name",
+      accessorKey: "fullName",
       header: createSortableHeader(t("staff.name")),
       cell: ({ row }) => {
-        const initials = row.original.name.slice(0, 2).toUpperCase();
+        const initials = row.original.fullName.slice(0, 2).toUpperCase();
         const avatarUrl = row.original.avatarUrl;
 
         return (
@@ -149,11 +161,11 @@ export function TeamStaffTable({ clubSlug, orgSlug }: TeamStaffTableProps) {
             <Avatar
               src={avatarUrl}
               initials={avatarUrl ? undefined : initials}
-              alt={row.original.name}
+              alt={row.original.fullName}
               className="size-10"
             />
             <div>
-              <span className="font-medium">{row.original.name}</span>
+              <span className="font-medium">{row.original.fullName}</span>
             </div>
           </div>
         );
@@ -171,28 +183,17 @@ export function TeamStaffTable({ clubSlug, orgSlug }: TeamStaffTableProps) {
     },
 
     {
-      accessorKey: "phoneNumber",
-      header: createSortableHeader(t("staff.phoneNumber")),
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {row.original.phoneNumber || "—"}
-        </span>
-      ),
-    },
-
-    {
       accessorKey: "role",
       header: createSortableHeader(t("staff.role")),
       cell: ({ row }) => {
-        const role = row.original.role;
-        const className = ROLE_STYLES[role];
-        const label = ROLE_OPTIONS.find((r) => r.value === role)?.label || role;
+        const role = row.original.role as StaffRole;
+        const className = ROLE_STYLES[role] || ROLE_STYLES.delegate;
 
         return (
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}
           >
-            {label}
+            {t(`staffRole.${role}`)}
           </span>
         );
       },
@@ -201,6 +202,8 @@ export function TeamStaffTable({ clubSlug, orgSlug }: TeamStaffTableProps) {
     {
       id: "actions",
       cell: ({ row }) => {
+        const isDelegate = row.original.role === "delegate";
+
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -209,17 +212,15 @@ export function TeamStaffTable({ clubSlug, orgSlug }: TeamStaffTableProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <Pencil className="size-4 mr-2" />
-                {t("actions.edit")}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => setStaffToDelete(row.original)}
-              >
-                <Trash2 className="size-4 mr-2" />
-                {t("actions.delete")}
-              </DropdownMenuItem>
+              {isDelegate && (
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => setStaffToDelete(row.original)}
+                >
+                  <Trash2 className="size-4 mr-2" />
+                  {t("actions.delete")}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -229,105 +230,57 @@ export function TeamStaffTable({ clubSlug, orgSlug }: TeamStaffTableProps) {
 
   return (
     <>
-      {staffMembers.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("staff.title")}</CardTitle>
-            <CardDescription>{t("staff.emptyDescription")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => setIsCreateOpen(true)}>
-              {t("staff.addFirst")}
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={staffMembers}
-          filterColumn="search"
-          filterPlaceholder={t("staff.searchPlaceholder")}
-          emptyMessage={t("staff.emptyMessage")}
-          onCreate={() => setIsCreateOpen(true)}
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={staffMembers}
+        filterColumn="search"
+        filterPlaceholder={t("staff.searchPlaceholder")}
+        emptyMessage={t("staff.emptyMessage")}
+        onCreate={() => setIsCreateOpen(true)}
+      />
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{t("staff.create")}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleCreateSubmit} className="space-y-6 mt-4">
-            <FieldGroup>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel>{t("staff.firstName")}</FieldLabel>
-                  <Input
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                    placeholder={t("staff.firstName")}
-                  />
-                </Field>
-
-                <Field>
-                  <FieldLabel>{t("staff.lastName")}</FieldLabel>
-                  <Input
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    required
-                    placeholder={t("staff.lastName")}
-                  />
-                </Field>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <FieldLabel>{t("form.email")}</FieldLabel>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="email@example.com"
+                  className="mt-2"
+                />
               </div>
-            </FieldGroup>
 
-            <FieldGroup>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel>{t("staff.email")}</FieldLabel>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    placeholder={t("staff.email")}
-                  />
-                </Field>
+              <div>
+                <FieldLabel className="invisible">Role</FieldLabel>
 
-                <Field>
-                  <FieldLabel>{t("staff.phoneNumber")}</FieldLabel>
-                  <Input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder={t("staff.phoneNumber")}
-                  />
-                </Field>
+                <Select
+                  value={role}
+                  onValueChange={(value: StaffRole) => setRole(value)}
+                >
+                  <SelectTrigger className="w-[140px] mt-2">
+                    <SelectValue placeholder={t("staff.selectRole")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </FieldGroup>
+            </div>
 
-            <Field>
-              <FieldLabel>{t("staff.role")}</FieldLabel>
-              <Select
-                value={role}
-                onValueChange={(value: StaffRole) => setRole(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("staff.selectRole")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-
-            <DialogFooter>
+            <DialogFooter className="pt-2">
               <Button
                 type="button"
                 variant="outline"
@@ -336,13 +289,41 @@ export function TeamStaffTable({ clubSlug, orgSlug }: TeamStaffTableProps) {
               >
                 {t("actions.cancel")}
               </Button>
-              <Button type="submit" disabled={isSubmitting || !role}>
-                {isSubmitting ? t("actions.loading") : t("actions.create")}
+              <Button type="submit" disabled={isSubmitting || !email.trim()}>
+                {isSubmitting ? t("actions.loading") : t("actions.add")}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={!!staffToDelete}
+        onOpenChange={() => setStaffToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("actions.delete")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("players.deleteDescription", {
+                name: staffToDelete?.fullName ?? "",
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              {t("actions.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? t("actions.loading") : t("actions.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -8,6 +8,7 @@
 // - [ ] Use Next-intl
 
 import Link from "next/link";
+import { ROUTES } from "@/lib/navigation/routes";
 
 import {
   Sidebar,
@@ -50,7 +51,7 @@ export function SidebarLandingNavbar() {
           ))}
         </SidebarSection>
         <SidebarSection>
-          <SidebarItem href="/sign-in" aria-label="sign-in">
+          <SidebarItem href={ROUTES.auth.signIn} aria-label="sign-in">
             Sign in
           </SidebarItem>
           <Button color="blue">
@@ -78,7 +79,7 @@ export function NavbarLandingNavbar() {
       </NavbarSection>
       <NavbarSpacer />
       <NavbarSection className="hidden lg:flex flex-row">
-        <NavbarItem href="/sign-in" aria-label="sign-in">
+        <NavbarItem href={ROUTES.auth.signIn} aria-label="sign-in">
           Sign in
         </NavbarItem>
         <Button color="blue">

@@ -36,9 +36,10 @@ export const createProfileInternal = internalMutation({
       return existing._id;
     }
 
-    const displayName = args.firstName && args.lastName
-      ? `${args.firstName} ${args.lastName}`
-      : args.firstName || args.lastName;
+    const displayName =
+      args.firstName && args.lastName
+        ? `${args.firstName} ${args.lastName}`
+        : args.firstName || args.lastName;
 
     return await ctx.db.insert("profiles", {
       clerkId: args.clerkId,
@@ -69,7 +70,7 @@ export const getCurrentProfile = query({
       phoneNumber: v.optional(v.string()),
       dateOfBirth: v.optional(v.string()),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -99,7 +100,7 @@ export const assignRole = mutation({
       v.literal("ClubAdmin"),
       v.literal("TechnicalDirector"),
       v.literal("Player"),
-      v.literal("Referee")
+      v.literal("Referee"),
     ),
     organizationId: v.string(),
     organizationType: v.union(v.literal("league"), v.literal("club")),
@@ -132,7 +133,9 @@ export const assignRole = mutation({
     const existing = await ctx.db
       .query("roleAssignments")
       .withIndex("by_profileId_and_organizationId", (q) =>
-        q.eq("profileId", args.profileId).eq("organizationId", args.organizationId)
+        q
+          .eq("profileId", args.profileId)
+          .eq("organizationId", args.organizationId),
       )
       .first();
 
@@ -209,12 +212,12 @@ export const getMyOrganizations = query({
         v.literal("ClubAdmin"),
         v.literal("TechnicalDirector"),
         v.literal("Player"),
-        v.literal("Referee")
+        v.literal("Referee"),
       ),
       type: v.union(v.literal("league"), v.literal("club")),
       logoUrl: v.optional(v.string()),
       leagueSlug: v.optional(v.string()),
-    })
+    }),
   ),
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -240,7 +243,7 @@ export const getMyOrganizations = query({
     const superAdminRole = await ctx.db
       .query("roleAssignments")
       .withIndex("by_profileId_and_role", (q) =>
-        q.eq("profileId", profile._id).eq("role", "SuperAdmin")
+        q.eq("profileId", profile._id).eq("role", "SuperAdmin"),
       )
       .first();
 
@@ -294,7 +297,9 @@ export const getMyOrganizations = query({
       if (orgsMap.has(assignment.organizationId)) continue; // Skip if already added via SuperAdmin logic
 
       if (assignment.organizationType === "league") {
-        const league = await ctx.db.get(assignment.organizationId as Id<"leagues">);
+        const league = await ctx.db.get(
+          assignment.organizationId as Id<"leagues">,
+        );
         if (league && league.status === "active") {
           orgsMap.set(league._id, {
             _id: league._id,
@@ -345,7 +350,7 @@ export const getMyRoleInOrg = query({
     v.literal("TechnicalDirector"),
     v.literal("Player"),
     v.literal("Referee"),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -361,7 +366,7 @@ export const getMyRoleInOrg = query({
     const globalAssignment = await ctx.db
       .query("roleAssignments")
       .withIndex("by_profileId_and_role", (q) =>
-        q.eq("profileId", profile._id).eq("role", "SuperAdmin")
+        q.eq("profileId", profile._id).eq("role", "SuperAdmin"),
       )
       .first();
 
@@ -388,7 +393,7 @@ export const getMyRoleInOrg = query({
     const assignment = await ctx.db
       .query("roleAssignments")
       .withIndex("by_profileId_and_organizationId", (q) =>
-        q.eq("profileId", profile._id).eq("organizationId", orgId)
+        q.eq("profileId", profile._id).eq("organizationId", orgId),
       )
       .first();
 
@@ -415,7 +420,7 @@ export const getProfile = internalQuery({
       phoneNumber: v.optional(v.string()),
       dateOfBirth: v.optional(v.string()),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, { profileId }) => {
     return await ctx.db.get(profileId);
@@ -435,13 +440,17 @@ export const getRoleAssignments = internalQuery({
         v.literal("ClubAdmin"),
         v.literal("TechnicalDirector"),
         v.literal("Player"),
-        v.literal("Referee")
+        v.literal("Referee"),
       ),
       organizationId: v.string(),
-      organizationType: v.union(v.literal("league"), v.literal("club"), v.literal("system")),
+      organizationType: v.union(
+        v.literal("league"),
+        v.literal("club"),
+        v.literal("system"),
+      ),
       assignedAt: v.optional(v.number()),
       assignedBy: v.optional(v.id("profiles")),
-    })
+    }),
   ),
   handler: async (ctx, { profileId }) => {
     return await ctx.db
@@ -471,7 +480,7 @@ export const getLeagueById = internalQuery({
       phoneNumber: v.optional(v.string()),
       address: v.optional(v.string()),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, { leagueId }) => {
     try {
@@ -493,21 +502,24 @@ export const getClubById = internalQuery({
       shortName: v.optional(v.string()),
       logoUrl: v.optional(v.string()),
       leagueId: v.id("leagues"),
+      conferenceId: v.optional(v.id("conferences")),
+      divisionName: v.optional(v.string()),
       fifaId: v.optional(v.string()),
       headquarters: v.optional(v.string()),
       status: v.union(
         v.literal("affiliated"),
         v.literal("invited"),
-        v.literal("suspended")
+        v.literal("suspended"),
       ),
       taxId: v.optional(v.string()),
       foundedYear: v.optional(v.number()),
       colors: v.optional(v.array(v.string())),
+      colorNames: v.optional(v.array(v.string())),
       website: v.optional(v.string()),
       email: v.optional(v.string()),
       phoneNumber: v.optional(v.string()),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, { clubId }) => {
     try {
@@ -525,10 +537,18 @@ export const syncRolesToClerk = internalAction({
   args: { profileId: v.id("profiles") },
   returns: v.null(),
   handler: async (ctx, { profileId }) => {
-    const profile = await ctx.runQuery(internal.users.getProfile, { profileId });
+    const profile = await ctx.runQuery(internal.users.getProfile, {
+      profileId,
+    });
+
     if (!profile) return null;
 
-    const assignments = await ctx.runQuery(internal.users.getRoleAssignments, { profileId });
+    // Skip if profile has no clerkId (user hasn't accepted invitation yet)
+    if (!profile.clerkId) return null;
+
+    const assignments = await ctx.runQuery(internal.users.getRoleAssignments, {
+      profileId,
+    });
 
     const rolesMap: Record<string, string> = {};
 
@@ -543,12 +563,12 @@ export const syncRolesToClerk = internalAction({
       let slug: string | undefined;
       if (assignment.organizationType === "league") {
         const league = await ctx.runQuery(internal.users.getLeagueById, {
-          leagueId: assignment.organizationId
+          leagueId: assignment.organizationId,
         });
         slug = league?.slug;
       } else if (assignment.organizationType === "club") {
         const club = await ctx.runQuery(internal.users.getClubById, {
-          clubId: assignment.organizationId
+          clubId: assignment.organizationId,
         });
         slug = club?.slug;
       }
@@ -582,7 +602,7 @@ export const createInvitedUser = mutation({
     role: v.union(
       v.literal("TechnicalDirector"),
       v.literal("Player"),
-      v.literal("Referee")
+      v.literal("Referee"),
     ),
     organizationId: v.string(),
     organizationType: v.union(v.literal("league"), v.literal("club")),
@@ -686,10 +706,14 @@ export const listAllProfiles = query({
         v.object({
           role: v.string(),
           organizationId: v.string(),
-          organizationType: v.union(v.literal("league"), v.literal("club"), v.literal("system")),
-        })
+          organizationType: v.union(
+            v.literal("league"),
+            v.literal("club"),
+            v.literal("system"),
+          ),
+        }),
       ),
-    })
+    }),
   ),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -704,9 +728,7 @@ export const listAllProfiles = query({
       const orgId = args.organizationId;
       const allAssignments = await ctx.db
         .query("roleAssignments")
-        .withIndex("by_organizationId", (q) =>
-          q.eq("organizationId", orgId)
-        )
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", orgId))
         .collect();
 
       const profileIds = new Set(allAssignments.map((a) => a.profileId));
@@ -750,10 +772,14 @@ export const createAdminUser = mutation({
       v.literal("LeagueAdmin"),
       v.literal("ClubAdmin"),
       v.literal("TechnicalDirector"),
-      v.literal("Referee")
+      v.literal("Referee"),
     ),
     organizationId: v.optional(v.string()),
-    organizationType: v.union(v.literal("league"), v.literal("club"), v.literal("system")),
+    organizationType: v.union(
+      v.literal("league"),
+      v.literal("club"),
+      v.literal("system"),
+    ),
   },
   returns: v.object({
     profileId: v.id("profiles"),
@@ -771,13 +797,22 @@ export const createAdminUser = mutation({
       args.organizationId = "global";
     }
 
-    // Verify organization exists
+    // Verify organization exists and get slug for redirect
+    let orgSlug: string | undefined;
+    let teamSlug: string | undefined;
+
     if (args.organizationType === "league") {
       const league = await ctx.db.get(args.organizationId as Id<"leagues">);
       if (!league) throw new Error("League not found");
-    } else {
+      orgSlug = league.slug;
+    } else if (args.organizationType === "club") {
       const club = await ctx.db.get(args.organizationId as Id<"clubs">);
       if (!club) throw new Error("Club not found");
+      teamSlug = club.slug;
+      const league = await ctx.db.get(club.leagueId);
+      if (league) {
+        orgSlug = league.slug;
+      }
     }
 
     // Check if email is already in use
@@ -809,12 +844,14 @@ export const createAdminUser = mutation({
       assignedAt: Date.now(),
     });
 
-    // Create Clerk account asynchronously
+    // Create Clerk account asynchronously with org context for redirect
     await ctx.scheduler.runAfter(0, internal.users.createClerkAccount, {
       profileId,
       email: args.email,
       firstName: args.firstName,
       lastName: args.lastName,
+      orgSlug,
+      teamSlug,
     });
 
     return { profileId, clerkAccountCreated: true };
@@ -830,35 +867,81 @@ export const createClerkAccount = internalAction({
     email: v.string(),
     firstName: v.string(),
     lastName: v.string(),
+    orgSlug: v.optional(v.string()),
+    teamSlug: v.optional(v.string()),
+    clerkOrgId: v.optional(v.string()),
+    inviterUserId: v.optional(v.string()),
+    role: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const { clerkClient } = await import("./clerk");
 
     try {
-      // Create user in Clerk
-      const clerkUser = await clerkClient.users.createUser({
+      // Check if user already exists in Clerk
+      const existingUsers = await clerkClient.users.getUserList({
         emailAddress: [args.email],
-        firstName: args.firstName,
-        lastName: args.lastName,
-        skipPasswordChecks: true,
-        skipPasswordRequirement: true,
       });
 
-      // Link Clerk ID to profile
-      await ctx.runMutation(internal.users.linkClerkAccount, {
-        profileId: args.profileId,
-        clerkId: clerkUser.id,
-      });
+      if (existingUsers.data.length > 0) {
+        // User already exists in Clerk, link to profile
+        const clerkUser = existingUsers.data[0];
+        await ctx.runMutation(internal.users.linkClerkAccount, {
+          profileId: args.profileId,
+          clerkId: clerkUser.id,
+        });
 
-      // Sync roles to Clerk metadata
-      await ctx.runAction(internal.users.syncRolesToClerk, {
-        profileId: args.profileId,
-      });
+        // Sync roles to Clerk metadata
+        await ctx.runAction(internal.users.syncRolesToClerk, {
+          profileId: args.profileId,
+        });
 
-      console.log(`✅ Clerk account created for ${args.email}`);
-    } catch (error) {
-      console.error("Failed to create Clerk account:", error);
+        return null;
+      }
+
+      // Use SITE_URL from Convex env vars
+      const baseUrl = process.env.SITE_URL || "http://localhost:3000";
+
+      // Build redirect URL
+      let redirectUrl = `${baseUrl}/sign-up`;
+      if (args.orgSlug) {
+        redirectUrl = `${baseUrl}/${args.orgSlug}/sign-up`;
+      }
+
+      // If we have a Clerk Organization ID, use Organization invitation
+      // This associates the user with the organization when they accept
+      if (args.clerkOrgId && args.inviterUserId) {
+        await clerkClient.organizations.createOrganizationInvitation({
+          organizationId: args.clerkOrgId,
+          inviterUserId: args.inviterUserId,
+          emailAddress: args.email,
+          role: args.role || "org:member",
+          redirectUrl,
+          publicMetadata: {
+            profileId: args.profileId,
+            firstName: args.firstName,
+            lastName: args.lastName,
+            orgSlug: args.orgSlug,
+            teamSlug: args.teamSlug,
+          },
+        });
+      } else {
+        // Fallback to regular invitation (no org association)
+        await clerkClient.invitations.createInvitation({
+          emailAddress: args.email,
+          redirectUrl,
+          publicMetadata: {
+            profileId: args.profileId,
+            firstName: args.firstName,
+            lastName: args.lastName,
+            orgSlug: args.orgSlug,
+            teamSlug: args.teamSlug,
+          },
+          ignoreExisting: true,
+        });
+      }
+    } catch (error: any) {
+      console.error("[Clerk] Failed to send invitation:", error);
       // Don't throw - allow the profile to exist without Clerk account
       // Admin can retry or user can sign up manually
     }
@@ -885,6 +968,55 @@ export const linkClerkAccount = internalMutation({
 });
 
 /**
+ * Update profile with data from Clerk (name, avatar) when user accepts invitation.
+ */
+export const updateProfileFromClerk = internalMutation({
+  args: {
+    profileId: v.id("profiles"),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.profileId);
+    if (!profile) return null;
+
+    const updates: {
+      firstName?: string;
+      lastName?: string;
+      displayName?: string;
+      avatarUrl?: string;
+    } = {};
+
+    if (args.firstName && !profile.firstName) {
+      updates.firstName = args.firstName;
+    }
+    if (args.lastName && !profile.lastName) {
+      updates.lastName = args.lastName;
+    }
+    if (args.avatarUrl && !profile.avatarUrl) {
+      updates.avatarUrl = args.avatarUrl;
+    }
+
+    // Update displayName if we got new name data
+    if (updates.firstName || updates.lastName) {
+      const firstName = updates.firstName || profile.firstName || "";
+      const lastName = updates.lastName || profile.lastName || "";
+      if (firstName || lastName) {
+        updates.displayName = `${firstName} ${lastName}`.trim();
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(args.profileId, updates);
+    }
+
+    return null;
+  },
+});
+
+/**
  * Get profile by Clerk ID (for webhook).
  */
 export const getProfileByClerkId = internalQuery({
@@ -902,7 +1034,7 @@ export const getProfileByClerkId = internalQuery({
       phoneNumber: v.optional(v.string()),
       dateOfBirth: v.optional(v.string()),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     return await ctx.db
@@ -927,13 +1059,122 @@ export const getProfileByEmail = internalQuery({
       phoneNumber: v.optional(v.string()),
       dateOfBirth: v.optional(v.string()),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("profiles")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .unique();
+  },
+});
+
+/**
+ * Get authentication state and roles for post-login redirect.
+ * Used by auth-callback page to determine where to redirect users.
+ */
+export const getAuthState = query({
+  args: {},
+  returns: v.union(
+    v.object({
+      authenticated: v.literal(true),
+      profileId: v.id("profiles"),
+      roles: v.array(
+        v.object({
+          role: v.union(
+            v.literal("SuperAdmin"),
+            v.literal("LeagueAdmin"),
+            v.literal("ClubAdmin"),
+            v.literal("TechnicalDirector"),
+            v.literal("Player"),
+            v.literal("Referee"),
+          ),
+          organizationId: v.string(),
+          organizationType: v.union(
+            v.literal("league"),
+            v.literal("club"),
+            v.literal("system"),
+          ),
+          organizationSlug: v.optional(v.string()),
+          leagueSlug: v.optional(v.string()),
+        }),
+      ),
+    }),
+    v.object({
+      authenticated: v.literal(false),
+      error: v.string(),
+    }),
+  ),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      return {
+        authenticated: false as const,
+        error: "Not authenticated",
+      };
+    }
+
+    // Try to find profile by clerkId first, then by email
+    let profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!profile && identity.email) {
+      profile = await ctx.db
+        .query("profiles")
+        .withIndex("by_email", (q) => q.eq("email", identity.email!))
+        .unique();
+      // Note: If profile found by email but missing clerkId,
+      // it will be linked by the webhook when user signs in
+    }
+
+    if (!profile) {
+      return {
+        authenticated: false as const,
+        error: "Profile not found",
+      };
+    }
+
+    const assignments = await ctx.db
+      .query("roleAssignments")
+      .withIndex("by_profileId", (q) => q.eq("profileId", profile._id))
+      .collect();
+
+    const roles = [];
+    for (const assignment of assignments) {
+      let slug: string | undefined;
+      let leagueSlug: string | undefined;
+
+      if (assignment.organizationType === "league") {
+        const league = await ctx.db.get(
+          assignment.organizationId as Id<"leagues">,
+        );
+        slug = league?.slug;
+      } else if (assignment.organizationType === "club") {
+        const club = await ctx.db.get(assignment.organizationId as Id<"clubs">);
+        slug = club?.slug;
+        if (club) {
+          const league = await ctx.db.get(club.leagueId);
+          leagueSlug = league?.slug;
+        }
+      }
+
+      roles.push({
+        role: assignment.role,
+        organizationId: assignment.organizationId,
+        organizationType: assignment.organizationType,
+        organizationSlug: slug,
+        leagueSlug,
+      });
+    }
+
+    return {
+      authenticated: true as const,
+      profileId: profile._id,
+      roles,
+    };
   },
 });
 
@@ -953,18 +1194,22 @@ export const debugMyRoles = query({
             v.literal("ClubAdmin"),
             v.literal("TechnicalDirector"),
             v.literal("Player"),
-            v.literal("Referee")
+            v.literal("Referee"),
           ),
           organizationId: v.string(),
-          organizationType: v.union(v.literal("league"), v.literal("club"), v.literal("system")),
+          organizationType: v.union(
+            v.literal("league"),
+            v.literal("club"),
+            v.literal("system"),
+          ),
           organizationSlug: v.optional(v.string()),
-        })
+        }),
       ),
     }),
     v.object({
       authenticated: v.boolean(),
       error: v.string(),
-    })
+    }),
   ),
   handler: async (ctx) => {
     try {
@@ -1002,10 +1247,14 @@ export const debugMyRoles = query({
         let slug: string | undefined;
 
         if (assignment.organizationType === "league") {
-          const league = await ctx.db.get(assignment.organizationId as Id<"leagues">);
+          const league = await ctx.db.get(
+            assignment.organizationId as Id<"leagues">,
+          );
           slug = league?.slug;
         } else {
-          const club = await ctx.db.get(assignment.organizationId as Id<"clubs">);
+          const club = await ctx.db.get(
+            assignment.organizationId as Id<"clubs">,
+          );
           slug = club?.slug;
         }
 
@@ -1058,9 +1307,9 @@ export const listProfilesInOrg = query({
         v.literal("ClubAdmin"),
         v.literal("TechnicalDirector"),
         v.literal("Player"),
-        v.literal("Referee")
+        v.literal("Referee"),
       ),
-    })
+    }),
   ),
   handler: async (ctx, args) => {
     // Find organization ID
@@ -1103,7 +1352,13 @@ export const listProfilesInOrg = query({
         displayName: string | undefined;
         avatarUrl: string | undefined;
         phoneNumber: string | undefined;
-        role: "SuperAdmin" | "LeagueAdmin" | "ClubAdmin" | "TechnicalDirector" | "Player" | "Referee";
+        role:
+          | "SuperAdmin"
+          | "LeagueAdmin"
+          | "ClubAdmin"
+          | "TechnicalDirector"
+          | "Player"
+          | "Referee";
       }
     >();
 
@@ -1130,9 +1385,49 @@ export const listProfilesInOrg = query({
 });
 
 /**
+ * Reset clerkId for a profile (internal - no auth check).
+ * Use this when a user was deleted in Clerk but profile still exists in Convex.
+ * After reset, the user can be re-invited.
+ */
+export const resetClerkIdInternal = internalMutation({
+  args: {
+    email: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
+      .unique();
+
+    if (!profile) {
+      return { success: false, message: `No profile found for ${args.email}` };
+    }
+
+    if (!profile.clerkId) {
+      return {
+        success: false,
+        message: `Profile ${args.email} already has no clerkId`,
+      };
+    }
+
+    await ctx.db.patch(profile._id, { clerkId: "" });
+
+    return {
+      success: true,
+      message: `Reset clerkId for ${args.email}. User can now be re-invited.`,
+    };
+  },
+});
+
+/**
  * Delete a user (Profile + Roles + Clerk Account).
  * Only SuperAdmins can perform this action.
  */
+
 export const deleteUser = mutation({
   args: { profileId: v.id("profiles") },
   returns: v.null(),
@@ -1151,11 +1446,12 @@ export const deleteUser = mutation({
     const superAdminRole = await ctx.db
       .query("roleAssignments")
       .withIndex("by_profileId_and_role", (q) =>
-        q.eq("profileId", requester._id).eq("role", "SuperAdmin")
+        q.eq("profileId", requester._id).eq("role", "SuperAdmin"),
       )
       .first();
 
-    if (!superAdminRole) throw new Error("Unauthorized: Only SuperAdmins can delete users");
+    if (!superAdminRole)
+      throw new Error("Unauthorized: Only SuperAdmins can delete users");
 
     // 2. Prevent self-deletion
     if (args.profileId === requester._id) {

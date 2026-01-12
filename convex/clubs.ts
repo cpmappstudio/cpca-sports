@@ -3,6 +3,172 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
+/**
+ * Create a club with an optional delegate (ClubAdmin).
+ * If delegate info is provided, creates/finds the profile and assigns ClubAdmin role.
+ * If the delegate doesn't have a Clerk account, sends an invitation.
+ */
+export const createWithDelegate = mutation({
+  args: {
+    // Club data
+    name: v.string(),
+    nickname: v.string(),
+    conferenceName: v.string(),
+    divisionName: v.optional(v.string()),
+    orgSlug: v.string(),
+    status: v.union(
+      v.literal("affiliated"),
+      v.literal("invited"),
+      v.literal("suspended"),
+    ),
+    logoStorageId: v.optional(v.id("_storage")),
+    colors: v.optional(v.array(v.string())),
+    colorNames: v.optional(v.array(v.string())),
+    // Delegate email (optional)
+    delegateEmail: v.optional(v.string()),
+  },
+  returns: v.object({
+    clubId: v.id("clubs"),
+    delegateProfileId: v.optional(v.id("profiles")),
+    delegateCreated: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    // Get the current user's profile to use as inviter
+    const identity = await ctx.auth.getUserIdentity();
+    let inviterClerkId: string | undefined;
+    if (identity) {
+      const inviterProfile = await ctx.db
+        .query("profiles")
+        .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+        .unique();
+      inviterClerkId = inviterProfile?.clerkId;
+    }
+
+    // 1. Find or create the league
+    let league = await ctx.db
+      .query("leagues")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .unique();
+
+    if (!league) {
+      const newLeagueId = await ctx.db.insert("leagues", {
+        name: args.orgSlug,
+        slug: args.orgSlug,
+        country: "Unknown",
+        sportType: "basketball",
+        status: "active",
+      });
+      league = await ctx.db.get(newLeagueId);
+      if (!league) {
+        throw new Error("Failed to create and retrieve league.");
+      }
+    }
+
+    // 2. Get or create the conference
+    const conferenceId: Id<"conferences"> = await ctx.runMutation(
+      internal.conferences.getOrCreate,
+      {
+        leagueId: league._id,
+        name: args.conferenceName,
+      },
+    );
+
+    // 3. Handle logo upload
+    let logoUrl: string | undefined;
+    if (args.logoStorageId) {
+      const url = await ctx.storage.getUrl(args.logoStorageId);
+      logoUrl = url ?? undefined;
+    }
+
+    // 4. Create the club
+    const clubId: Id<"clubs"> = await ctx.db.insert("clubs", {
+      name: args.name,
+      slug: args.nickname,
+      shortName: args.nickname,
+      leagueId: league._id,
+      conferenceId: conferenceId,
+      divisionName: args.divisionName,
+      status: args.status,
+      logoUrl,
+      colors: args.colors,
+      colorNames: args.colorNames,
+    });
+
+    // 5. Handle delegate creation if provided
+    let delegateProfileId: Id<"profiles"> | undefined;
+    let delegateCreated = false;
+
+    if (args.delegateEmail) {
+      const email = args.delegateEmail.trim().toLowerCase();
+
+      // Check if profile already exists
+      let profile = await ctx.db
+        .query("profiles")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .unique();
+
+      if (!profile) {
+        // Create new profile without Clerk ID (will be linked later)
+        const newProfileId = await ctx.db.insert("profiles", {
+          clerkId: "",
+          email,
+        });
+        profile = await ctx.db.get(newProfileId);
+        delegateCreated = true;
+
+        // Schedule Clerk organization invitation
+        await ctx.scheduler.runAfter(0, internal.users.createClerkAccount, {
+          profileId: newProfileId,
+          email,
+          firstName: "",
+          lastName: "",
+          orgSlug: league.slug,
+          teamSlug: args.nickname,
+          clerkOrgId: league.clerkOrgId,
+          inviterUserId: inviterClerkId,
+          role: "org:delegate",
+        });
+      }
+
+      if (profile) {
+        delegateProfileId = profile._id;
+
+        // Check if already has a role for this club
+        const existingRole = await ctx.db
+          .query("roleAssignments")
+          .withIndex("by_profileId_and_organizationId", (q) =>
+            q.eq("profileId", profile!._id).eq("organizationId", clubId),
+          )
+          .first();
+
+        if (!existingRole) {
+          // Assign ClubAdmin role
+          await ctx.db.insert("roleAssignments", {
+            profileId: profile._id,
+            role: "ClubAdmin",
+            organizationId: clubId,
+            organizationType: "club",
+            assignedAt: Date.now(),
+          });
+
+          // Sync roles to Clerk if user already has account
+          if (profile.clerkId) {
+            await ctx.scheduler.runAfter(0, internal.users.syncRolesToClerk, {
+              profileId: profile._id,
+            });
+          }
+        }
+      }
+    }
+
+    return {
+      clubId,
+      delegateProfileId,
+      delegateCreated,
+    };
+  },
+});
+
 const clubStatusValidator = v.union(
   v.literal("affiliated"),
   v.literal("invited"),
@@ -117,6 +283,33 @@ export const listByLeague = query({
           conferenceName = conference?.name ?? "N/A";
         }
 
+        // Find the ClubAdmin (delegate) for this club
+        const delegateAssignment = await ctx.db
+          .query("roleAssignments")
+          .withIndex("by_organizationId", (q) =>
+            q.eq("organizationId", club._id),
+          )
+          .filter((q) => q.eq(q.field("role"), "ClubAdmin"))
+          .first();
+
+        let delegateInfo = {
+          name: "Not assigned",
+          avatarUrl: "",
+        };
+
+        if (delegateAssignment) {
+          const profile = await ctx.db.get(delegateAssignment.profileId);
+          if (profile) {
+            delegateInfo = {
+              name:
+                profile.displayName ||
+                `${profile.firstName || ""} ${profile.lastName || ""}`.trim() ||
+                profile.email,
+              avatarUrl: profile.avatarUrl || "",
+            };
+          }
+        }
+
         return {
           _id: club._id.toString(),
           name: club.name,
@@ -124,10 +317,7 @@ export const listByLeague = query({
           logoUrl: club.logoUrl,
           conference: conferenceName,
           divisionName: club.divisionName,
-          delegate: {
-            name: "Delegate TBD",
-            avatarUrl: "",
-          },
+          delegate: delegateInfo,
           status: club.status,
         };
       }),

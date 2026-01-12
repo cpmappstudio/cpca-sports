@@ -16,6 +16,10 @@ export const ROUTES = {
   auth: {
     signIn: "/sign-in",
     signUp: "/sign-up",
+    // Organization-scoped auth (preferred)
+    orgSignIn: (orgSlug: string) => `/${orgSlug}/sign-in`,
+    orgSignUp: (orgSlug: string) => `/${orgSlug}/sign-up`,
+    orgAuthCallback: (orgSlug: string) => `/${orgSlug}/auth-callback`,
   },
 
   onboarding: "/onboarding",
@@ -109,6 +113,27 @@ export const ROUTES = {
       notifications: (orgSlug: string) => `/${orgSlug}/settings/notifications`,
       security: (orgSlug: string) => `/${orgSlug}/settings/security`,
       billing: (orgSlug: string) => `/${orgSlug}/settings/billing`,
+    },
+  },
+
+  team: {
+    root: (orgSlug: string, teamSlug: string) => `/${orgSlug}/${teamSlug}`,
+
+    roster: (orgSlug: string, teamSlug: string) =>
+      `/${orgSlug}/${teamSlug}/roster`,
+
+    staff: (orgSlug: string, teamSlug: string) =>
+      `/${orgSlug}/${teamSlug}/staff`,
+
+    categories: (orgSlug: string, teamSlug: string) =>
+      `/${orgSlug}/${teamSlug}/categories`,
+
+    schedule: (orgSlug: string, teamSlug: string) =>
+      `/${orgSlug}/${teamSlug}/schedule`,
+
+    settings: {
+      root: (orgSlug: string, teamSlug: string) =>
+        `/${orgSlug}/${teamSlug}/settings`,
     },
   },
 } as const;

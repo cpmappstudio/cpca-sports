@@ -4,7 +4,304 @@ import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 
 /**
- * List staff by club slug
+ * List all staff by club slug (includes ClubAdmin/delegate from roleAssignments)
+ */
+export const listAllByClubSlug = query({
+  args: { clubSlug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      club: v.object({
+        _id: v.id("clubs"),
+        name: v.string(),
+      }),
+      staff: v.array(
+        v.object({
+          _id: v.string(),
+          profileId: v.id("profiles"),
+          fullName: v.string(),
+          email: v.string(),
+          avatarUrl: v.optional(v.string()),
+          role: v.string(),
+          categoryName: v.optional(v.string()),
+        }),
+      ),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const club = await ctx.db
+      .query("clubs")
+      .withIndex("by_slug", (q) => q.eq("slug", args.clubSlug))
+      .unique();
+
+    if (!club) {
+      return null;
+    }
+
+    const staff: Array<{
+      _id: string;
+      profileId: Id<"profiles">;
+      fullName: string;
+      email: string;
+      avatarUrl: string | undefined;
+      role: string;
+      categoryName: string | undefined;
+    }> = [];
+
+    // 1. Get ClubAdmin (delegate) from roleAssignments
+    const clubAdminAssignments = await ctx.db
+      .query("roleAssignments")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", club._id))
+      .filter((q) => q.eq(q.field("role"), "ClubAdmin"))
+      .collect();
+
+    for (const assignment of clubAdminAssignments) {
+      const profile = await ctx.db.get(assignment.profileId);
+      if (profile) {
+        staff.push({
+          _id: assignment._id,
+          profileId: assignment.profileId,
+          fullName:
+            profile.displayName ||
+            `${profile.firstName || ""} ${profile.lastName || ""}`.trim() ||
+            profile.email,
+          email: profile.email,
+          avatarUrl: profile.avatarUrl,
+          role: "delegate",
+          categoryName: undefined,
+        });
+      }
+    }
+
+    // 2. Get TechnicalDirectors and AssistantCoaches from categories
+    const categories = await ctx.db
+      .query("categories")
+      .withIndex("by_clubId", (q) => q.eq("clubId", club._id))
+      .collect();
+
+    for (const category of categories) {
+      if (category.technicalDirectorId) {
+        const profile = await ctx.db.get(category.technicalDirectorId);
+        if (profile) {
+          // Avoid duplicates (same person could be delegate + TD)
+          const exists = staff.some(
+            (s) =>
+              s.profileId === category.technicalDirectorId &&
+              s.role === "technical_director",
+          );
+          if (!exists) {
+            staff.push({
+              _id: `${category._id}_td`,
+              profileId: category.technicalDirectorId,
+              fullName:
+                profile.displayName ||
+                `${profile.firstName || ""} ${profile.lastName || ""}`.trim() ||
+                profile.email,
+              email: profile.email,
+              avatarUrl: profile.avatarUrl,
+              role: "technical_director",
+              categoryName: category.name,
+            });
+          }
+        }
+      }
+
+      if (category.assistantCoachIds) {
+        for (const coachId of category.assistantCoachIds) {
+          const profile = await ctx.db.get(coachId);
+          if (profile) {
+            const exists = staff.some(
+              (s) => s.profileId === coachId && s.role === "assistant_coach",
+            );
+            if (!exists) {
+              staff.push({
+                _id: `${category._id}_ac_${coachId}`,
+                profileId: coachId,
+                fullName:
+                  profile.displayName ||
+                  `${profile.firstName || ""} ${profile.lastName || ""}`.trim() ||
+                  profile.email,
+                email: profile.email,
+                avatarUrl: profile.avatarUrl,
+                role: "assistant_coach",
+                categoryName: category.name,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      club: {
+        _id: club._id,
+        name: club.name,
+      },
+      staff,
+    };
+  },
+});
+
+/**
+ * Add delegate (ClubAdmin) to a club
+ */
+export const addDelegate = mutation({
+  args: {
+    clubSlug: v.string(),
+    email: v.string(),
+  },
+  returns: v.object({
+    profileId: v.id("profiles"),
+    created: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    // Get the current user's profile to use as inviter
+    const inviterProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    const club = await ctx.db
+      .query("clubs")
+      .withIndex("by_slug", (q) => q.eq("slug", args.clubSlug))
+      .unique();
+
+    if (!club) {
+      throw new Error("Club not found");
+    }
+
+    // Get league slug for redirect URL
+    const league = await ctx.db.get(club.leagueId);
+    if (!league) {
+      throw new Error("League not found");
+    }
+
+    const email = args.email.trim().toLowerCase();
+
+    // Find or create profile
+    let profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .unique();
+
+    let created = false;
+
+    if (!profile) {
+      const profileId = await ctx.db.insert("profiles", {
+        clerkId: "",
+        email,
+      });
+      profile = await ctx.db.get(profileId);
+      created = true;
+
+      // Schedule Clerk organization invitation
+      await ctx.scheduler.runAfter(0, internal.users.createClerkAccount, {
+        profileId,
+        email,
+        firstName: "",
+        lastName: "",
+        orgSlug: league.slug,
+        teamSlug: club.slug,
+        clerkOrgId: league.clerkOrgId,
+        inviterUserId: inviterProfile?.clerkId,
+        role: "org:delegate",
+      });
+    } else if (!profile.clerkId) {
+      // Profile exists but never completed sign-up, re-send invitation
+      await ctx.scheduler.runAfter(0, internal.users.createClerkAccount, {
+        profileId: profile._id,
+        email,
+        firstName: profile.firstName || "",
+        lastName: profile.lastName || "",
+        orgSlug: league.slug,
+        teamSlug: club.slug,
+        clerkOrgId: league.clerkOrgId,
+        inviterUserId: inviterProfile?.clerkId,
+        role: "org:delegate",
+      });
+    }
+
+    if (!profile) throw new Error("Failed to create profile");
+
+    // Check if already has ClubAdmin role for this club
+    const existingRole = await ctx.db
+      .query("roleAssignments")
+      .withIndex("by_profileId_and_organizationId", (q) =>
+        q.eq("profileId", profile!._id).eq("organizationId", club._id),
+      )
+      .filter((q) => q.eq(q.field("role"), "ClubAdmin"))
+      .first();
+
+    if (!existingRole) {
+      await ctx.db.insert("roleAssignments", {
+        profileId: profile._id,
+        role: "ClubAdmin",
+        organizationId: club._id,
+        organizationType: "club",
+        assignedAt: Date.now(),
+      });
+
+      if (profile.clerkId) {
+        await ctx.scheduler.runAfter(0, internal.users.syncRolesToClerk, {
+          profileId: profile._id,
+        });
+      }
+    }
+
+    return { profileId: profile._id, created };
+  },
+});
+
+/**
+ * Remove delegate (ClubAdmin) from a club
+ */
+export const removeDelegate = mutation({
+  args: {
+    clubSlug: v.string(),
+    profileId: v.id("profiles"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const club = await ctx.db
+      .query("clubs")
+      .withIndex("by_slug", (q) => q.eq("slug", args.clubSlug))
+      .unique();
+
+    if (!club) {
+      throw new Error("Club not found");
+    }
+
+    // Find the role assignment
+    const assignment = await ctx.db
+      .query("roleAssignments")
+      .withIndex("by_profileId_and_organizationId", (q) =>
+        q.eq("profileId", args.profileId).eq("organizationId", club._id),
+      )
+      .filter((q) => q.eq(q.field("role"), "ClubAdmin"))
+      .first();
+
+    if (!assignment) {
+      throw new Error("Delegate not found");
+    }
+
+    await ctx.db.delete(assignment._id);
+
+    return null;
+  },
+});
+
+/**
+ * List staff by club slug (legacy - categories only)
  */
 export const listByClubSlug = query({
   args: { clubSlug: v.string() },
@@ -24,9 +321,9 @@ export const listByClubSlug = query({
           avatarUrl: v.optional(v.string()),
           role: v.string(),
           categoryName: v.optional(v.string()),
-        })
+        }),
       ),
-    })
+    }),
   ),
   handler: async (ctx, args) => {
     // Find club by slug
@@ -120,7 +417,7 @@ export const getByProfileId = query({
         categoryName: v.string(),
         clubName: v.string(),
         role: v.string(),
-      })
+      }),
     ),
   }),
   handler: async (ctx, args) => {
@@ -181,7 +478,10 @@ export const removeFromCategory = mutation({
   args: {
     categoryId: v.id("categories"),
     profileId: v.id("profiles"),
-    role: v.union(v.literal("technical_director"), v.literal("assistant_coach")),
+    role: v.union(
+      v.literal("technical_director"),
+      v.literal("assistant_coach"),
+    ),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -197,14 +497,18 @@ export const removeFromCategory = mutation({
 
     if (args.role === "technical_director") {
       if (category.technicalDirectorId !== args.profileId) {
-        throw new Error("Profile is not the technical director of this category");
+        throw new Error(
+          "Profile is not the technical director of this category",
+        );
       }
       await ctx.db.patch(args.categoryId, {
         technicalDirectorId: undefined,
       });
     } else {
       const assistantCoachIds = category.assistantCoachIds || [];
-      const updatedIds = assistantCoachIds.filter((id) => id !== args.profileId);
+      const updatedIds = assistantCoachIds.filter(
+        (id) => id !== args.profileId,
+      );
 
       if (assistantCoachIds.length === updatedIds.length) {
         throw new Error("Profile is not an assistant coach of this category");
@@ -252,7 +556,9 @@ export const getStatistics = query({
     for (const categoryId of categoryIds) {
       const players = await ctx.db
         .query("players")
-        .withIndex("by_currentCategoryId", (q) => q.eq("currentCategoryId", categoryId))
+        .withIndex("by_currentCategoryId", (q) =>
+          q.eq("currentCategoryId", categoryId),
+        )
         .collect();
       totalPlayers += players.length;
     }
@@ -274,9 +580,12 @@ export const addToCategory = mutation({
     categoryId: v.id("categories"),
     email: v.string(),
     firstName: v.string(), // Added
-    lastName: v.string(),  // Added
+    lastName: v.string(), // Added
     phoneNumber: v.optional(v.string()), // Added
-    role: v.union(v.literal("technical_director"), v.literal("assistant_coach")),
+    role: v.union(
+      v.literal("technical_director"),
+      v.literal("assistant_coach"),
+    ),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -285,12 +594,28 @@ export const addToCategory = mutation({
       throw new Error("Unauthorized");
     }
 
+    // Get the current user's profile to use as inviter
+    const inviterProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
     const category = await ctx.db.get(args.categoryId);
     if (!category) {
       throw new Error("Category not found");
     }
 
     const clubId = category.clubId;
+
+    // Get club and league for redirect URL context
+    const club = await ctx.db.get(clubId);
+    if (!club) {
+      throw new Error("Club not found");
+    }
+    const league = await ctx.db.get(club.leagueId);
+    if (!league) {
+      throw new Error("League not found");
+    }
 
     // 1. Find or Create Profile
     let profile = await ctx.db
@@ -311,12 +636,17 @@ export const addToCategory = mutation({
 
       profile = await ctx.db.get(profileId);
 
-      // Trigger Clerk creation (send invite/create account)
+      // Trigger Clerk organization invitation
       await ctx.scheduler.runAfter(0, internal.users.createClerkAccount, {
         profileId: profileId,
         email: args.email,
         firstName: args.firstName,
         lastName: args.lastName,
+        orgSlug: league.slug,
+        teamSlug: club.slug,
+        clerkOrgId: league.clerkOrgId,
+        inviterUserId: inviterProfile?.clerkId,
+        role: "org:technical_director",
       });
     }
 
@@ -327,7 +657,7 @@ export const addToCategory = mutation({
     const existingRole = await ctx.db
       .query("roleAssignments")
       .withIndex("by_profileId_and_organizationId", (q) =>
-        q.eq("profileId", profile!._id).eq("organizationId", clubId)
+        q.eq("profileId", profile!._id).eq("organizationId", clubId),
       )
       .first();
 
@@ -348,7 +678,10 @@ export const addToCategory = mutation({
 
     // 3. Link to Category
     if (args.role === "technical_director") {
-      if (category.technicalDirectorId && category.technicalDirectorId !== profile._id) {
+      if (
+        category.technicalDirectorId &&
+        category.technicalDirectorId !== profile._id
+      ) {
         throw new Error("Category already has a technical director");
       }
       await ctx.db.patch(args.categoryId, {

@@ -13,11 +13,39 @@ const handleClerkWebhook = httpAction(async (ctx, request) => {
   switch (event.type) {
     case "user.created": {
       const email = event.data.email_addresses[0]?.email_address ?? "";
-      
-      // Check if this email was pre-created by admin
+      const publicMetadata = event.data.public_metadata as
+        | {
+            profileId?: string;
+            firstName?: string;
+            lastName?: string;
+          }
+        | undefined;
+
+      // Priority 1: Check if profileId was passed via invitation metadata
+      if (publicMetadata?.profileId) {
+        await ctx.runMutation(internal.users.linkClerkAccount, {
+          profileId: publicMetadata.profileId as any,
+          clerkId: event.data.id,
+        });
+
+        await ctx.runAction(internal.users.syncRolesToClerk, {
+          profileId: publicMetadata.profileId as any,
+        });
+
+        // Update profile with name/avatar from Clerk if available
+        await ctx.runMutation(internal.users.updateProfileFromClerk, {
+          profileId: publicMetadata.profileId as any,
+          firstName: event.data.first_name ?? publicMetadata.firstName,
+          lastName: event.data.last_name ?? publicMetadata.lastName,
+          avatarUrl: event.data.image_url ?? undefined,
+        });
+        break;
+      }
+
+      // Priority 2: Check if this email was pre-created by admin
       const existingProfile = await ctx.runQuery(
         internal.users.getProfileByEmail,
-        { email }
+        { email },
       );
 
       if (existingProfile && !existingProfile.clerkId) {
@@ -30,6 +58,14 @@ const handleClerkWebhook = httpAction(async (ctx, request) => {
         // Sync pre-assigned roles to Clerk
         await ctx.runAction(internal.users.syncRolesToClerk, {
           profileId: existingProfile._id,
+        });
+
+        // Update profile with name/avatar from Clerk
+        await ctx.runMutation(internal.users.updateProfileFromClerk, {
+          profileId: existingProfile._id,
+          firstName: event.data.first_name ?? undefined,
+          lastName: event.data.last_name ?? undefined,
+          avatarUrl: event.data.image_url ?? undefined,
         });
       } else if (!existingProfile) {
         // New user signing up (shouldn't happen with sign-ups disabled)
@@ -56,7 +92,7 @@ http.route({
 });
 
 async function validateClerkRequest(
-  request: Request
+  request: Request,
 ): Promise<WebhookEvent | undefined> {
   const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
   if (!webhookSecret) {

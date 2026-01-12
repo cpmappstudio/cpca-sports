@@ -1,5 +1,6 @@
 {
   "actions": {
+    "optional": "Optional",
     "save": "Save",
     "saving": "Saving...",
     "cancel": "Cancel",
@@ -77,6 +78,7 @@
     "colors": "Colors",
     "colorName": "Color name (e.g. Navy)",
     "inviteDelegate": "Invite delegate",
+    "delegateDescription": "The delegate will be the administrator for this team. If they don't have an account, an invitation will be sent.",
     "statusOptions": {
       "affiliated": "Affiliated",
       "invited": "Invited",
@@ -109,7 +111,28 @@
     "statusOptions": {
       "active": "Active",
       "injured": "Injured",
-      "suspended": "Suspended",
+      "on_loan": "On Loan",
+      "inactive": "Inactive"
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "name": "Name",
+    "ageGroup": "Age Group",
+    "gender": "Gender",
+    "playerCount": "Players",
+    "status": "Status",
+    "searchPlaceholder": "Search categories...",
+    "emptyMessage": "No categories found.",
+    "deleteTitle": "Delete Category",
+    "deleteDescription": "Are you sure you want to delete {name}? This action cannot be undone.",
+    "genderOptions": {
+      "male": "Male",
+      "female": "Female",
+      "mixed": "Mixed"
+    },
+    "statusOptions": {
+      "active": "Active",
       "inactive": "Inactive"
     }
   },
@@ -170,6 +193,7 @@
     "reboundsPerGame": "RPG"
   },
   "staffRole": {
+    "delegate": "Delegate",
     "technical_director": "Technical Director",
     "assistant_coach": "Assistant Coach"
   },
@@ -244,5 +268,11 @@
   "languages": {
     "en": "English",
     "es": "Spanish"
+  },
+  "form": {
+    "email": "Email",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "phoneNumber": "Phone Number"
   }
 }

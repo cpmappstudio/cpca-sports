@@ -42,7 +42,7 @@ interface PlayerRow {
   dateOfBirth?: string | null;
   jerseyNumber?: number | null;
   position?: string | null;
-  status: "active" | "injured" | "suspended" | "inactive";
+  status: "active" | "injured" | "on_loan" | "inactive";
   height?: number | null;
   weight?: number | null;
   nationality?: string | null;
@@ -57,7 +57,7 @@ interface TeamPlayersTableProps {
 const STATUS_STYLES: Record<PlayerRow["status"], string> = {
   active: "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950",
   injured: "text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-950",
-  suspended: "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950",
+  on_loan: "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950",
   inactive: "text-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-950",
 };
 
