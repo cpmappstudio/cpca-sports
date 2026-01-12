@@ -48,6 +48,7 @@ interface TeamGeneralFormProps {
     shortName?: string | null;
     logoUrl?: string | null;
     conferenceName?: string | null;
+    divisionName?: string | null;
     status: string;
     colors?: string[] | null;
     colorNames?: string[] | null;
@@ -67,6 +68,7 @@ export function TeamGeneralForm({ team, orgSlug }: TeamGeneralFormProps) {
   const [name, setName] = useState(team.name);
   const [nickname, setNickname] = useState(team.shortName || "");
   const [conference, setConference] = useState(team.conferenceName || "");
+  const [division, setDivision] = useState(team.divisionName || "");
   const [status, setStatus] = useState<ClubStatus>(team.status as ClubStatus);
   const [colors, setColors] = useState<TeamColor[]>(() => {
     if (team.colors && team.colors.length > 0) {
@@ -80,11 +82,15 @@ export function TeamGeneralForm({ team, orgSlug }: TeamGeneralFormProps) {
   const [currentColor, setCurrentColor] = useState("#1E3A8A");
   const [currentColorName, setCurrentColorName] = useState("");
   const [isFetchingColorName, setIsFetchingColorName] = useState(false);
+  const [editingColorIndex, setEditingColorIndex] = useState<number | null>(
+    null,
+  );
   const [logoFile, setLogoFile] = useState<FileWithPreview | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!currentColor || currentColor.length < 4) return;
+    if (!currentColor || currentColor.length < 4 || editingColorIndex !== null)
+      return;
 
     const hex = currentColor.replace("#", "");
     const controller = new AbortController();
@@ -99,13 +105,7 @@ export function TeamGeneralForm({ team, orgSlug }: TeamGeneralFormProps) {
         if (response.ok) {
           const data = await response.json();
           if (data.name?.value) {
-            const existingNames = currentColorName
-              .split(",")
-              .map((n) => n.trim())
-              .filter(Boolean);
-            const currentIndex = colors.length;
-            existingNames[currentIndex] = data.name.value;
-            setCurrentColorName(existingNames.join(", "));
+            setCurrentColorName(data.name.value);
           }
         }
       } catch {
@@ -121,7 +121,7 @@ export function TeamGeneralForm({ team, orgSlug }: TeamGeneralFormProps) {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [currentColor, colors.length]);
+  }, [currentColor, editingColorIndex]);
 
   const handleFileChange = (file: FileWithPreview | null) => {
     setLogoFile(file);
@@ -154,37 +154,21 @@ export function TeamGeneralForm({ team, orgSlug }: TeamGeneralFormProps) {
     try {
       const logoStorageId = await uploadLogo();
 
-      const inputNames = currentColorName
-        .split(",")
-        .map((n) => n.trim())
-        .filter(Boolean);
-
-      const colorsToSave =
-        colors.length > 0
-          ? colors
-          : currentColor
-            ? [{ hex: currentColor, name: inputNames[0] || "" }]
-            : [];
-
-      const colorsWithNames = colorsToSave.map((color, index) => ({
-        ...color,
-        name: inputNames[index] || color.name,
-      }));
+      const colorsToSave = colors.length > 0 ? colors : [];
 
       await updateTeam({
         clubId: team._id as Id<"clubs">,
         name,
         nickname,
         conferenceName: conference,
+        divisionName: division || undefined,
         status,
         logoStorageId,
         colors:
-          colorsWithNames.length > 0
-            ? colorsWithNames.map((c) => c.hex)
-            : undefined,
+          colorsToSave.length > 0 ? colorsToSave.map((c) => c.hex) : undefined,
         colorNames:
-          colorsWithNames.length > 0
-            ? colorsWithNames.map((c) => c.name).filter(Boolean)
+          colorsToSave.length > 0
+            ? colorsToSave.map((c) => c.name).filter(Boolean)
             : undefined,
       });
     } catch (error) {
@@ -195,29 +179,41 @@ export function TeamGeneralForm({ team, orgSlug }: TeamGeneralFormProps) {
   };
 
   const addOrUpdateColor = (hex: string) => {
-    const colorNames = currentColorName
-      .split(",")
-      .map((n) => n.trim())
-      .filter(Boolean);
-
-    if (colors.length === 0) {
-      const nameForThisColor = colorNames[0] || "";
-      setColors([{ hex, name: nameForThisColor }]);
-    } else if (!colors.some((c) => c.hex === hex)) {
-      if (colors.length < 3) {
-        const nameForThisColor = colorNames[colors.length] || "";
-        const newColors = [...colors, { hex, name: nameForThisColor }];
-        setColors(newColors);
-
-        if (nameForThisColor && newColors.length < 3) {
-          setCurrentColorName(currentColorName + ", ");
-        }
+    if (editingColorIndex !== null) {
+      // Update existing color
+      const newColors = [...colors];
+      newColors[editingColorIndex] = { hex, name: currentColorName };
+      setColors(newColors);
+      setEditingColorIndex(null);
+      setCurrentColorName("");
+      setCurrentColor("#1E3A8A");
+    } else {
+      // Add new color
+      if (colors.length < 3 && !colors.some((c) => c.hex === hex)) {
+        setColors([...colors, { hex, name: currentColorName }]);
+        setCurrentColorName("");
+        setCurrentColor("#1E3A8A");
       }
     }
   };
 
-  const removeColor = (hexToRemove: string) => {
-    setColors(colors.filter((c) => c.hex !== hexToRemove));
+  const editColor = (index: number) => {
+    setEditingColorIndex(index);
+    setCurrentColor(colors[index].hex);
+    setCurrentColorName(colors[index].name);
+  };
+
+  const cancelEdit = () => {
+    setEditingColorIndex(null);
+    setCurrentColorName("");
+    setCurrentColor("#1E3A8A");
+  };
+
+  const removeColor = (index: number) => {
+    setColors(colors.filter((_, i) => i !== index));
+    if (editingColorIndex === index) {
+      cancelEdit();
+    }
   };
 
   return (
@@ -230,7 +226,6 @@ export function TeamGeneralForm({ team, orgSlug }: TeamGeneralFormProps) {
 
         <FieldGroup className="flex-1 gap-4">
           <Field>
-            <FieldLabel>{t("teams.name")}</FieldLabel>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -240,7 +235,6 @@ export function TeamGeneralForm({ team, orgSlug }: TeamGeneralFormProps) {
           </Field>
 
           <Field>
-            <FieldLabel>{t("teams.nickname")}</FieldLabel>
             <Input
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
@@ -284,6 +278,8 @@ export function TeamGeneralForm({ team, orgSlug }: TeamGeneralFormProps) {
                             setConference(
                               currentValue === conference ? "" : currentValue,
                             );
+                            // Reset division when conference changes
+                            setDivision("");
                             setIsConferenceOpen(false);
                           }}
                         >
@@ -304,6 +300,42 @@ export function TeamGeneralForm({ team, orgSlug }: TeamGeneralFormProps) {
             </Popover>
           </Field>
 
+          <Field>
+            <FieldLabel>{t("teams.division")}</FieldLabel>
+            <Select
+              value={division}
+              onValueChange={(value) => setDivision(value)}
+              disabled={!conference}
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={
+                    conference
+                      ? t("teams.division")
+                      : t("teams.selectConferenceFirst")
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {conferences
+                  ?.find((c) => c.name === conference)
+                  ?.divisions?.map((div) => (
+                    <SelectItem key={div} value={div}>
+                      {div}
+                    </SelectItem>
+                  )) || (
+                  <div className="p-2 text-sm text-muted-foreground">
+                    {t("teams.noDivisions")}
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+      </FieldGroup>
+
+      <FieldGroup>
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field>
             <FieldLabel>{t("teams.status")}</FieldLabel>
             <Select
@@ -332,43 +364,104 @@ export function TeamGeneralForm({ team, orgSlug }: TeamGeneralFormProps) {
       <Field>
         <FieldLabel>{t("teams.colors")}</FieldLabel>
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            {colors.map((color) => (
-              <button
-                key={color.hex}
-                type="button"
-                onClick={() => removeColor(color.hex)}
-                className="group relative size-8 rounded-full border-2 border-border"
-                style={{ backgroundColor: color.hex }}
-              >
-                <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/50 rounded-full">
-                  <X className="size-4 text-white" />
-                </span>
-              </button>
-            ))}
-            {colors.length < 3 && (
-              <ColorPicker
-                value={currentColor}
-                onChange={setCurrentColor}
-                handleAdd={addOrUpdateColor}
-              >
-                <div
-                  role="button"
-                  tabIndex={0}
-                  className="size-8 rounded-full border-2 border-dashed border-border flex items-center justify-center hover:border-primary transition-colors cursor-pointer"
-                  style={{ backgroundColor: currentColor }}
+          {/* Existing colors with names */}
+          {colors.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {colors.map((color, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <div
+                    className="size-8 rounded-full border-2 border-border shrink-0"
+                    style={{ backgroundColor: color.hex }}
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">
+                      {color.name || "Unnamed"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{color.hex}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => editColor(index)}
+                      disabled={
+                        editingColorIndex !== null &&
+                        editingColorIndex !== index
+                      }
+                    >
+                      {t("actions.edit")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeColor(index)}
+                      disabled={
+                        editingColorIndex !== null &&
+                        editingColorIndex !== index
+                      }
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add/Edit color section */}
+          {(colors.length < 3 || editingColorIndex !== null) && (
+            <div className="flex flex-col gap-2 p-3 border rounded-lg">
+              <p className="text-sm font-medium">
+                {editingColorIndex !== null
+                  ? t("actions.edit") + " Color"
+                  : t("actions.add") + " Color"}
+              </p>
+              <div className="flex items-center gap-2">
+                <ColorPicker
+                  value={currentColor}
+                  onChange={setCurrentColor}
+                  handleAdd={addOrUpdateColor}
+                >
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className="size-10 rounded-full border-2 border-border flex items-center justify-center hover:border-primary transition-colors cursor-pointer"
+                    style={{ backgroundColor: currentColor }}
+                  />
+                </ColorPicker>
+                <Input
+                  placeholder={t("teams.colorName")}
+                  value={currentColorName}
+                  onChange={(e) => setCurrentColorName(e.target.value)}
+                  className="flex-1"
+                  disabled={isFetchingColorName}
                 />
-              </ColorPicker>
-            )}
-          </div>
-          {colors.length < 3 && (
-            <Input
-              placeholder={t("teams.colorName")}
-              value={currentColorName}
-              onChange={(e) => setCurrentColorName(e.target.value)}
-              className="max-w-[200px]"
-              disabled={isFetchingColorName}
-            />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => addOrUpdateColor(currentColor)}
+                  disabled={!currentColorName.trim()}
+                >
+                  {editingColorIndex !== null
+                    ? t("actions.save")
+                    : t("actions.add")}
+                </Button>
+                {editingColorIndex !== null && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={cancelEdit}
+                  >
+                    {t("actions.cancel")}
+                  </Button>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </Field>

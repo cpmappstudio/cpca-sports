@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/components/ui/link";
+import { Badge } from "@/components/ui/badge";
 import { ROUTES } from "@/lib/navigation/routes";
 
 interface TeamHeaderProps {
@@ -18,6 +19,7 @@ interface TeamHeaderProps {
     slug: string;
     logoUrl?: string | null;
     conferenceName?: string | null;
+    divisionName?: string | null;
     status: string;
     nickname?: string | null;
     colors?: string[] | null;
@@ -47,6 +49,19 @@ export function TeamHeader({ team, orgSlug }: TeamHeaderProps) {
     },
   ].filter((stat) => stat.value);
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "affiliated":
+        return "bg-green-500";
+      case "invited":
+        return "bg-yellow-500";
+      case "suspended":
+        return "bg-red-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
+
   return (
     <section
       className={cn("w-full", hasColoredBg && "text-white")}
@@ -59,19 +74,30 @@ export function TeamHeader({ team, orgSlug }: TeamHeaderProps) {
       <div className="mx-auto p-2">
         <div className="flex justify-between items-start">
           <div>
-            <Text
-              className="text-xs uppercase tracking-wide"
-              style={{
-                color: hasColoredBg ? "rgba(255,255,255,0.7)" : undefined,
-              }}
-            >
-              {t(`teams.statusOptions.${team.status}`)}
-            </Text>
+            {team.divisionName && (
+              <Text
+                className="text-xs uppercase tracking-wide "
+                style={{
+                  color: hasColoredBg ? "rgba(255,255,255,0.7)" : undefined,
+                }}
+              >
+                {team.divisionName}
+              </Text>
+            )}
             <Heading
               level={1}
+              className="flex items-center gap-2"
               style={{ color: hasColoredBg ? "white" : undefined }}
             >
               {team.name}
+
+              <span
+                className={cn(
+                  "inline-block size-2.5 rounded-full",
+                  getStatusColor(team.status),
+                )}
+                title={t(`teams.statusOptions.${team.status}`)}
+              />
             </Heading>
           </div>
           <Button

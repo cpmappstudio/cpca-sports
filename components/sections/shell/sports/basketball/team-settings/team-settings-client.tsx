@@ -64,14 +64,7 @@ export function TeamSettingsClient({
         </TabsList>
 
         <TabsContent value="general" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings.general")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TeamGeneralForm team={team} orgSlug={orgSlug} />
-            </CardContent>
-          </Card>
+          <TeamGeneralForm team={team} orgSlug={orgSlug} />
         </TabsContent>
 
         <TabsContent value="players" className="mt-6">

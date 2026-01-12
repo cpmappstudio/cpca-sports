@@ -68,7 +68,10 @@
     "name": "Nombre",
     "nickname": "Apodo",
     "conference": "Conferencia",
+    "division": "División",
     "delegate": "Delegado",
+    "selectConferenceFirst": "Selecciona una conferencia primero",
+    "noDivisions": "Sin divisiones en esta conferencia",
     "foundedYear": "Fundado",
     "status": "Estado",
     "colors": "Colores",
@@ -217,6 +220,15 @@
     "minWinPercentage": "% Victorias Mín.",
     "minGamesPlayed": "Juegos Mín.",
     "teamsCount": "Equipos"
+  },
+  "conferences": {
+    "searchPlaceholder": "Buscar por nombre, región...",
+    "emptyMessage": "No se encontraron conferencias. Crea tu primera conferencia para organizar equipos.",
+    "name": "Conferencia",
+    "shortName": "Nombre Corto",
+    "region": "Región",
+    "divisions": "Divisiones",
+    "teams": "Equipos"
   },
   "tournaments": {
     "searchPlaceholder": "Buscar por nombre, temporada, estado...",

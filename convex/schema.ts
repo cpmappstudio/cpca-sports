@@ -118,11 +118,18 @@ export default defineSchema({
 
   /**
    * Conferences for sports like Basketball.
+   * Conferences are regional/geographical groupings of teams.
    */
   conferences: defineTable({
     name: v.string(),
+    slug: v.string(),
+    shortName: v.optional(v.string()),
     leagueId: v.id("leagues"),
-  }).index("by_leagueId_and_name", ["leagueId", "name"]),
+    region: v.optional(v.string()),
+    divisions: v.optional(v.array(v.string())),
+  })
+    .index("by_leagueId_and_name", ["leagueId", "name"])
+    .index("by_slug", ["slug"]),
 
   /**
    * Second-level tenant: A club affiliated with a league.
@@ -135,6 +142,7 @@ export default defineSchema({
     logoUrl: v.optional(v.string()),
     leagueId: v.id("leagues"),
     conferenceId: v.optional(v.id("conferences")),
+    divisionName: v.optional(v.string()),
     fifaId: v.optional(v.string()),
     headquarters: v.optional(v.string()),
     status: clubStatus,

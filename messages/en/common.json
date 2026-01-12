@@ -68,7 +68,10 @@
     "name": "Name",
     "nickname": "Nickname",
     "conference": "Conference",
+    "division": "Division",
     "delegate": "Delegate",
+    "selectConferenceFirst": "Select a conference first",
+    "noDivisions": "No divisions in this conference",
     "foundedYear": "Founded",
     "status": "Status",
     "colors": "Colors",
@@ -208,6 +211,15 @@
     "minWinPercentage": "Min. Win %",
     "minGamesPlayed": "Min. Games",
     "teamsCount": "Teams"
+  },
+  "conferences": {
+    "searchPlaceholder": "Search by name, region...",
+    "emptyMessage": "No conferences found. Create your first conference to organize teams.",
+    "name": "Conference",
+    "shortName": "Short Name",
+    "region": "Region",
+    "divisions": "Divisions",
+    "teams": "Teams"
   },
   "tournaments": {
     "searchPlaceholder": "Search by name, season, status...",

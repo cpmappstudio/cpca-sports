@@ -14,6 +14,7 @@ export const create = mutation({
     name: v.string(),
     nickname: v.string(),
     conferenceName: v.string(),
+    divisionName: v.optional(v.string()),
     orgSlug: v.string(),
     status: clubStatusValidator,
     logoStorageId: v.optional(v.id("_storage")),
@@ -61,6 +62,7 @@ export const create = mutation({
       shortName: args.nickname,
       leagueId: league._id,
       conferenceId: conferenceId,
+      divisionName: args.divisionName,
       status: args.status,
       logoUrl,
       colors: args.colors,
@@ -80,6 +82,7 @@ export const listByLeague = query({
       nickname: v.string(),
       logoUrl: v.optional(v.string()),
       conference: v.string(),
+      divisionName: v.optional(v.string()),
       delegate: v.object({
         name: v.string(),
         avatarUrl: v.string(),
@@ -120,6 +123,7 @@ export const listByLeague = query({
           nickname: club.slug,
           logoUrl: club.logoUrl,
           conference: conferenceName,
+          divisionName: club.divisionName,
           delegate: {
             name: "Delegate TBD",
             avatarUrl: "",
@@ -146,6 +150,7 @@ export const getBySlug = query({
       logoUrl: v.optional(v.string()),
       leagueId: v.id("leagues"),
       conferenceId: v.optional(v.id("conferences")),
+      divisionName: v.optional(v.string()),
       fifaId: v.optional(v.string()),
       headquarters: v.optional(v.string()),
       status: v.union(
@@ -194,6 +199,7 @@ export const update = mutation({
     name: v.optional(v.string()),
     nickname: v.optional(v.string()),
     conferenceName: v.optional(v.string()),
+    divisionName: v.optional(v.string()),
     status: v.optional(clubStatusValidator),
     logoStorageId: v.optional(v.id("_storage")),
     colors: v.optional(v.array(v.string())),
@@ -211,6 +217,7 @@ export const update = mutation({
       shortName: string;
       slug: string;
       conferenceId: Id<"conferences">;
+      divisionName: string;
       status: "affiliated" | "invited" | "suspended";
       logoUrl: string;
       colors: string[];
@@ -235,6 +242,10 @@ export const update = mutation({
         },
       );
       updates.conferenceId = conferenceId;
+    }
+
+    if (args.divisionName !== undefined) {
+      updates.divisionName = args.divisionName;
     }
 
     if (args.status !== undefined) {

@@ -62,6 +62,7 @@ interface FormState {
   name: string;
   nickname: string;
   conference: string;
+  division: string;
   status: ClubStatus;
   colors: TeamColor[];
 }
@@ -70,6 +71,7 @@ const INITIAL_FORM_STATE: FormState = {
   name: "",
   nickname: "",
   conference: "",
+  division: "",
   status: "invited",
   colors: [],
 };
@@ -109,9 +111,13 @@ export function CreateTeamDialog({
   const [currentColor, setCurrentColor] = useState("#1E3A8A");
   const [currentColorName, setCurrentColorName] = useState("");
   const [isFetchingColorName, setIsFetchingColorName] = useState(false);
+  const [editingColorIndex, setEditingColorIndex] = useState<number | null>(
+    null,
+  );
 
   useEffect(() => {
-    if (!currentColor || currentColor.length < 4) return;
+    if (!currentColor || currentColor.length < 4 || editingColorIndex !== null)
+      return;
 
     const hex = currentColor.replace("#", "");
     const controller = new AbortController();
@@ -126,14 +132,7 @@ export function CreateTeamDialog({
         if (response.ok) {
           const data = await response.json();
           if (data.name?.value) {
-            // Parse existing names and update/add the current one
-            const existingNames = currentColorName
-              .split(",")
-              .map((n) => n.trim())
-              .filter(Boolean);
-            const currentIndex = formState.colors.length;
-            existingNames[currentIndex] = data.name.value;
-            setCurrentColorName(existingNames.join(", "));
+            setCurrentColorName(data.name.value);
           }
         }
       } catch {
@@ -149,7 +148,7 @@ export function CreateTeamDialog({
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [currentColor, formState.colors.length]);
+  }, [currentColor, editingColorIndex]);
   const [delegateEmail, setDelegateEmail] = useState("");
   const [logoFile, setLogoFile] = useState<FileWithPreview | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -185,47 +184,32 @@ export function CreateTeamDialog({
     try {
       const logoStorageId = await uploadLogo();
 
-      // Sync color names from input to colors array before saving
-      const inputNames = currentColorName
-        .split(",")
-        .map((n) => n.trim())
-        .filter(Boolean);
-
-      // If no colors were explicitly added, use the current color from the picker
-      const colorsToSave =
-        formState.colors.length > 0
-          ? formState.colors
-          : [{ hex: currentColor, name: inputNames[0] || "" }];
-
-      const colorsWithNames = colorsToSave.map((color, index) => ({
-        ...color,
-        name: inputNames[index] || color.name,
-      }));
+      const colorsToSave = formState.colors.length > 0 ? formState.colors : [];
 
       console.log("[CreateTeam] Submitting with data:", {
         name: formState.name,
         nickname: formState.nickname,
         conference: formState.conference,
+        division: formState.division,
         status: formState.status,
         logoStorageId,
-        colors: colorsWithNames.map((c) => c.hex),
-        colorNames: colorsWithNames.map((c) => c.name),
+        colors: colorsToSave.map((c) => c.hex),
+        colorNames: colorsToSave.map((c) => c.name),
       });
 
       await createTeam({
         name: formState.name,
         nickname: formState.nickname,
         conferenceName: formState.conference,
+        divisionName: formState.division || undefined,
         orgSlug: orgSlug,
         status: formState.status,
         logoStorageId,
         colors:
-          colorsWithNames.length > 0
-            ? colorsWithNames.map((c) => c.hex)
-            : undefined,
+          colorsToSave.length > 0 ? colorsToSave.map((c) => c.hex) : undefined,
         colorNames:
-          colorsWithNames.length > 0
-            ? colorsWithNames.map((c) => c.name).filter(Boolean)
+          colorsToSave.length > 0
+            ? colorsToSave.map((c) => c.name).filter(Boolean)
             : undefined,
       });
 
@@ -272,35 +256,50 @@ export function CreateTeamDialog({
   };
 
   const addOrUpdateColor = (hex: string) => {
-    const colorNames = currentColorName
-      .split(",")
-      .map((n) => n.trim())
-      .filter(Boolean);
-
-    if (formState.colors.length === 0) {
-      const nameForThisColor = colorNames[0] || "";
-      updateField("colors", [{ hex, name: nameForThisColor }]);
-    } else if (!formState.colors.some((c) => c.hex === hex)) {
-      if (formState.colors.length < 3) {
-        const nameForThisColor = colorNames[formState.colors.length] || "";
-        const newColors = [
+    if (editingColorIndex !== null) {
+      // Update existing color
+      const newColors = [...formState.colors];
+      newColors[editingColorIndex] = { hex, name: currentColorName };
+      updateField("colors", newColors);
+      setEditingColorIndex(null);
+      setCurrentColorName("");
+      setCurrentColor("#1E3A8A");
+    } else {
+      // Add new color
+      if (
+        formState.colors.length < 3 &&
+        !formState.colors.some((c) => c.hex === hex)
+      ) {
+        updateField("colors", [
           ...formState.colors,
-          { hex, name: nameForThisColor },
-        ];
-        updateField("colors", newColors);
-
-        if (nameForThisColor && newColors.length < 3) {
-          setCurrentColorName(currentColorName + ", ");
-        }
+          { hex, name: currentColorName },
+        ]);
+        setCurrentColorName("");
+        setCurrentColor("#1E3A8A");
       }
     }
   };
 
-  const removeColor = (hexToRemove: string) => {
+  const editColor = (index: number) => {
+    setEditingColorIndex(index);
+    setCurrentColor(formState.colors[index].hex);
+    setCurrentColorName(formState.colors[index].name);
+  };
+
+  const cancelEdit = () => {
+    setEditingColorIndex(null);
+    setCurrentColorName("");
+    setCurrentColor("#1E3A8A");
+  };
+
+  const removeColor = (index: number) => {
     updateField(
       "colors",
-      formState.colors.filter((c) => c.hex !== hexToRemove),
+      formState.colors.filter((_, i) => i !== index),
     );
+    if (editingColorIndex === index) {
+      cancelEdit();
+    }
   };
 
   return (
@@ -398,6 +397,8 @@ export function CreateTeamDialog({
                                           ? ""
                                           : currentValue,
                                       );
+                                      // Reset division when conference changes
+                                      updateField("division", "");
                                       setIsConferenceOpen(false);
                                     }}
                                   >
@@ -418,6 +419,157 @@ export function CreateTeamDialog({
                       </Popover>
                     </Field>
 
+                    <Field>
+                      <FieldLabel>{t("teams.division")}</FieldLabel>
+                      <Select
+                        value={formState.division}
+                        onValueChange={(value) =>
+                          updateField("division", value)
+                        }
+                        disabled={!formState.conference}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              formState.conference
+                                ? t("teams.division")
+                                : t("teams.selectConferenceFirst")
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {conferences
+                            ?.find((c) => c.name === formState.conference)
+                            ?.divisions?.map((division) => (
+                              <SelectItem key={division} value={division}>
+                                {division}
+                              </SelectItem>
+                            )) || (
+                            <div className="p-2 text-sm text-muted-foreground">
+                              {t("teams.noDivisions")}
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </div>
+                </FieldGroup>
+
+                <FieldGroup>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field>
+                      <FieldLabel>{t("teams.colors")}</FieldLabel>
+                      <div className="flex flex-col gap-2">
+                        {/* Existing colors with names */}
+                        {formState.colors.length > 0 && (
+                          <div className="flex flex-col gap-2">
+                            {formState.colors.map((color, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-2"
+                              >
+                                <div
+                                  className="size-6 rounded-full border-2 border-border shrink-0"
+                                  style={{ backgroundColor: color.hex }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium truncate">
+                                    {color.name || "Unnamed"}
+                                  </p>
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs"
+                                    onClick={() => editColor(index)}
+                                    disabled={
+                                      editingColorIndex !== null &&
+                                      editingColorIndex !== index
+                                    }
+                                  >
+                                    {t("actions.edit")}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2"
+                                    onClick={() => removeColor(index)}
+                                    disabled={
+                                      editingColorIndex !== null &&
+                                      editingColorIndex !== index
+                                    }
+                                  >
+                                    <X className="size-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add/Edit color section */}
+                        {(formState.colors.length < 3 ||
+                          editingColorIndex !== null) && (
+                          <div className="flex flex-col gap-2 p-2 border rounded-lg">
+                            <p className="text-xs font-medium">
+                              {editingColorIndex !== null
+                                ? t("actions.edit")
+                                : t("actions.add")}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <ColorPicker
+                                value={currentColor}
+                                onChange={setCurrentColor}
+                                handleAdd={addOrUpdateColor}
+                              >
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  className="size-8 rounded-full border-2 border-border flex items-center justify-center hover:border-primary transition-colors cursor-pointer shrink-0"
+                                  style={{ backgroundColor: currentColor }}
+                                />
+                              </ColorPicker>
+                              <Input
+                                placeholder={t("teams.colorName")}
+                                value={currentColorName}
+                                onChange={(e) =>
+                                  setCurrentColorName(e.target.value)
+                                }
+                                className="flex-1 h-8 text-xs"
+                                disabled={isFetchingColorName}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => addOrUpdateColor(currentColor)}
+                                disabled={!currentColorName.trim()}
+                              >
+                                {editingColorIndex !== null
+                                  ? t("actions.save")
+                                  : t("actions.add")}
+                              </Button>
+                              {editingColorIndex !== null && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  onClick={cancelEdit}
+                                >
+                                  {t("actions.cancel")}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </Field>
                     <Field>
                       <FieldLabel>{t("teams.status")}</FieldLabel>
                       <Select
@@ -444,50 +596,6 @@ export function CreateTeamDialog({
                     </Field>
                   </div>
                 </FieldGroup>
-
-                <Field>
-                  <FieldLabel>{t("teams.colors")}</FieldLabel>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2">
-                      {formState.colors.map((color) => (
-                        <button
-                          key={color.hex}
-                          type="button"
-                          onClick={() => removeColor(color.hex)}
-                          className="group relative size-8 rounded-full border-2 border-border"
-                          style={{ backgroundColor: color.hex }}
-                        >
-                          <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/50 rounded-full">
-                            <X className="size-4 text-white" />
-                          </span>
-                        </button>
-                      ))}
-                      {formState.colors.length < 3 && (
-                        <ColorPicker
-                          value={currentColor}
-                          onChange={setCurrentColor}
-                          handleAdd={addOrUpdateColor}
-                        >
-                          <div
-                            role="button"
-                            tabIndex={0}
-                            className="size-8 rounded-full border-2 border-dashed border-border flex items-center justify-center hover:border-primary transition-colors cursor-pointer"
-                            style={{ backgroundColor: currentColor }}
-                          />
-                        </ColorPicker>
-                      )}
-                    </div>
-                    {formState.colors.length < 3 && (
-                      <Input
-                        placeholder={t("teams.colorName")}
-                        value={currentColorName}
-                        onChange={(e) => setCurrentColorName(e.target.value)}
-                        className="max-w-[200px]"
-                        disabled={isFetchingColorName}
-                      />
-                    )}
-                  </div>
-                </Field>
 
                 <DialogFooter>
                   <Button
