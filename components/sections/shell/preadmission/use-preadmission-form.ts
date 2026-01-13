@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { STEPS, type StepId } from "./steps/steps-navigation";
 
-const DEV_MODE = true;
-
 export interface FormData {
   format: string;
   program: string;
@@ -239,7 +237,7 @@ export function usePreadmissionForm() {
   };
 
   const handleNext = () => {
-    if (!DEV_MODE && !validateCurrentStep()) {
+    if (!validateCurrentStep()) {
       return;
     }
 
@@ -259,11 +257,6 @@ export function usePreadmissionForm() {
   };
 
   const handleStepClick = (stepId: StepId) => {
-    if (DEV_MODE) {
-      setCurrentStep(stepId);
-      return;
-    }
-
     const stepIndex = STEPS.findIndex((s) => s.id === stepId);
     const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
 
@@ -275,7 +268,7 @@ export function usePreadmissionForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!DEV_MODE && !validateCurrentStep()) {
+    if (!validateCurrentStep()) {
       return;
     }
 
