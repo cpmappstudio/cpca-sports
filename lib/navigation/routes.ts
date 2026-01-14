@@ -61,6 +61,7 @@ export const ROUTES = {
       list: (orgSlug: string) => `/${orgSlug}/applications`,
       detail: (orgSlug: string, applicationId: string) =>
         `/${orgSlug}/applications/${applicationId}`,
+      create: (orgSlug: string) => `/${orgSlug}/applications/create`,
     },
 
     members: {

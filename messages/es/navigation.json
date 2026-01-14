@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Panel",
+    "applications": "Mis Solicitudes",
     "organizations": "Organizaciones",
     "users": "Usuarios",
     "settings": "Configuración",

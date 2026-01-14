@@ -1,0 +1,32 @@
+{
+  "page": {
+    "titleAdmin": "Todas las Solicitudes",
+    "titleClient": "Mis Solicitudes",
+    "descriptionAdmin": "Gestiona las solicitudes de inscripción de la organización",
+    "descriptionClient": "Revisa el estado de tus solicitudes de inscripción"
+  },
+  "searchPlaceholder": "Buscar por nombre...",
+  "emptyMessageAdmin": "No hay solicitudes registradas",
+  "emptyMessageClient": "No has realizado solicitudes aún",
+  "athlete": "Atleta",
+  "parent": "Tutor",
+  "guardian": "Tutor",
+  "date": "Fecha",
+  "program": "Programa",
+  "grade": "Grado",
+  "contact": "Contacto",
+  "status": "Estado",
+  "statusOptions": {
+    "pending": "Pendiente",
+    "approved": "Aprobado",
+    "rejected": "Rechazado",
+    "under_review": "En Revisión"
+  },
+  "programs": {
+    "basketball": "Basketball",
+    "soccer": "Soccer",
+    "volleyball": "Volleyball",
+    "baseball": "Baseball",
+    "tennis": "Tennis"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "page": {
+    "titleAdmin": "All Applications",
+    "titleClient": "My Applications",
+    "descriptionAdmin": "Manage enrollment applications for the organization",
+    "descriptionClient": "Review the status of your enrollment applications"
+  },
+  "searchPlaceholder": "Search by name...",
+  "emptyMessageAdmin": "No applications registered",
+  "emptyMessageClient": "You haven't submitted any applications yet",
+  "athlete": "Athlete",
+  "parent": "Parent",
+  "guardian": "Guardian",
+  "date": "Date",
+  "program": "Program",
+  "grade": "Grade",
+  "contact": "Contact",
+  "status": "Status",
+  "statusOptions": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "under_review": "Under Review"
+  },
+  "programs": {
+    "basketball": "Basketball",
+    "soccer": "Soccer",
+    "volleyball": "Volleyball",
+    "baseball": "Baseball",
+    "tennis": "Tennis"
+  }
+}

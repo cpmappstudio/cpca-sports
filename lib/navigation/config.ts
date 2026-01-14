@@ -1,17 +1,10 @@
 import {
-  HomeIcon,
   BuildingLibraryIcon,
-  DocumentTextIcon,
-  ClipboardDocumentListIcon,
-  UserGroupIcon,
-  CurrencyDollarIcon,
-  DocumentDuplicateIcon,
   UsersIcon,
   CreditCardIcon,
   Cog6ToothIcon,
   BellIcon,
   ShieldCheckIcon,
-  TrophyIcon,
   CalendarIcon,
 } from "@heroicons/react/20/solid";
 import { Palette } from "lucide-react";
@@ -50,30 +43,36 @@ const ADMIN_ITEMS: NavItem[] = [
 ];
 
 const ORG_ITEMS: NavItem[] = [
+  // {
+  //   labelKey: "dashboard",
+  //   icon: HomeIcon,
+  //   href: (orgSlug) => ROUTES.org.root(orgSlug!),
+  //   isIndex: true,
+  // },
   {
-    labelKey: "dashboard",
-    icon: HomeIcon,
-    href: (orgSlug) => ROUTES.org.root(orgSlug!),
-    isIndex: true,
-  },
-  {
-    labelKey: "teams",
+    labelKey: "applications",
     icon: UsersIcon,
-    href: (orgSlug) => ROUTES.org.teams.list(orgSlug!),
+    href: (orgSlug) => ROUTES.org.applications.list(orgSlug!),
     isIndex: false,
   },
-  {
-    labelKey: "divisions",
-    icon: TrophyIcon,
-    href: (orgSlug) => ROUTES.org.divisions.list(orgSlug!),
-    isIndex: false,
-  },
-  {
-    labelKey: "tournaments",
-    icon: CalendarIcon,
-    href: (orgSlug) => ROUTES.org.tournaments.list(orgSlug!),
-    isIndex: false,
-  },
+  // {
+  //   labelKey: "teams",
+  //   icon: UsersIcon,
+  //   href: (orgSlug) => ROUTES.org.teams.list(orgSlug!),
+  //   isIndex: false,
+  // },
+  // {
+  //   labelKey: "divisions",
+  //   icon: TrophyIcon,
+  //   href: (orgSlug) => ROUTES.org.divisions.list(orgSlug!),
+  //   isIndex: false,
+  // },
+  // {
+  //   labelKey: "tournaments",
+  //   icon: CalendarIcon,
+  //   href: (orgSlug) => ROUTES.org.tournaments.list(orgSlug!),
+  //   isIndex: false,
+  // },
   // {
   //   labelKey: "offerings",
   //   icon: DocumentTextIcon,
