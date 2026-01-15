@@ -228,7 +228,7 @@ export const MOCK_APPLICATIONS: Application[] = [
 ];
 
 export const CURRENT_USER_ID = "user_client_123";
-export const IS_ADMIN = true;
+export const IS_ADMIN = false;
 
 export function getApplicationsByRole(isAdmin: boolean, userId: string): Application[] {
   if (isAdmin) {
