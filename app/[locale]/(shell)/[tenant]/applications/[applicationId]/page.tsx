@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { ApplicationHeader } from "@/components/sections/shell/applications/detail/application-header";
-import { ApplicationOverviewCard } from "@/components/sections/shell/applications/detail/application-overview-card";
-import { ApplicationSchoolCard } from "@/components/sections/shell/applications/detail/application-school-card";
-import { ApplicationParentsCard } from "@/components/sections/shell/applications/detail/application-parents-card";
-import { ApplicationAddressCard } from "@/components/sections/shell/applications/detail/application-address-card";
-import { ApplicationAdditionalCard } from "@/components/sections/shell/applications/detail/application-additional-card";
+import { ApplicationOverviewCard } from "@/components/sections/shell/applications/detail/pre-admission/application-overview-card";
+import { ApplicationSchoolCard } from "@/components/sections/shell/applications/detail/pre-admission/application-school-card";
+import { ApplicationParentsCard } from "@/components/sections/shell/applications/detail/pre-admission/application-parents-card";
+import { ApplicationAddressCard } from "@/components/sections/shell/applications/detail/pre-admission/application-address-card";
+import { ApplicationAdditionalCard } from "@/components/sections/shell/applications/detail/pre-admission/application-additional-card";
+import { ApplicationDocuments } from "@/components/sections/shell/applications/detail/application-documents";
+import { ApplicationPayments } from "@/components/sections/shell/applications/detail/application-payments";
 import { MOCK_APPLICATIONS, IS_ADMIN } from "@/lib/applications/mocks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,11 +40,13 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 py-6">
       <div className="lg:col-span-2">
-        <ApplicationHeader
-          application={application}
-          organizationSlug={tenant}
-          isAdmin={IS_ADMIN}
-        />
+        <div className="lg:sticky lg:top-6">
+          <ApplicationHeader
+            application={application}
+            organizationSlug={tenant}
+            isAdmin={IS_ADMIN}
+          />
+        </div>
       </div>
 
       <div className="lg:col-span-3">
@@ -56,18 +60,18 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
               <span>{t("tabs.application")}</span>
             </TabsTrigger>
             <TabsTrigger
-              value="payments"
-              className="gap-1 text-xs md:text-sm px-2 md:px-3"
-            >
-              <CreditCard className="hidden md:block h-4 w-4" />
-              <span>{t("tabs.payments")}</span>
-            </TabsTrigger>
-            <TabsTrigger
               value="docs"
               className="gap-1 text-xs md:text-sm px-2 md:px-3"
             >
               <File className="hidden md:block h-4 w-4" />
               <span>{t("tabs.documents")}</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="payments"
+              className="gap-1 text-xs md:text-sm px-2 md:px-3"
+            >
+              <CreditCard className="hidden md:block h-4 w-4" />
+              <span>{t("tabs.payments")}</span>
             </TabsTrigger>
           </TabsList>
           <TabsContent value="application" className="mt-0">
@@ -105,14 +109,20 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
             </Accordion>
           </TabsContent>
           <TabsContent value="docs" className="mt-0">
-            <Suspense
-              fallback={<Skeleton className="h-96 w-full" />}
-            ></Suspense>
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <ApplicationDocuments
+                applicationId={applicationId}
+                isAdmin={IS_ADMIN}
+              />
+            </Suspense>
           </TabsContent>
           <TabsContent value="payments" className="mt-0">
-            <Suspense
-              fallback={<Skeleton className="h-96 w-full" />}
-            ></Suspense>
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <ApplicationPayments
+                applicationId={applicationId}
+                isAdmin={IS_ADMIN}
+              />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>
