@@ -126,6 +126,9 @@
     "emptyMessage": "No categories found.",
     "deleteTitle": "Delete Category",
     "deleteDescription": "Are you sure you want to delete {name}? This action cannot be undone.",
+    "horizontalDivision": "Division",
+    "selectDivision": "Select division",
+    "noDivisionsAvailable": "No divisions available",
     "genderOptions": {
       "male": "Male",
       "female": "Female",
@@ -134,6 +137,21 @@
     "statusOptions": {
       "active": "Active",
       "inactive": "Inactive"
+    }
+  },
+  "games": {
+    "title": "Games",
+    "date": "Date",
+    "opponent": "Opponent",
+    "location": "Location",
+    "score": "Score",
+    "status": "Status",
+    "searchPlaceholder": "Search games...",
+    "emptyMessage": "No games scheduled.",
+    "statusOptions": {
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
     }
   },
   "position": {

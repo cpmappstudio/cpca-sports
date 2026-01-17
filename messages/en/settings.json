@@ -9,7 +9,40 @@
   "general": {
     "title": "General Settings",
     "description": "Manage your organization's general settings",
-    "placeholder": "General settings content coming soon.",
+    "teamConfig": {
+      "title": "{clubs} Configuration",
+      "description": "Define the age categories and branches available when {clubs} create their teams",
+      "ageCategories": {
+        "title": "Age Categories",
+        "description": "Define the age categories that {clubs} can use when creating teams",
+        "name": "Category Name",
+        "namePlaceholder": "e.g., Sub-17",
+        "minAge": "Min Age",
+        "maxAge": "Max Age",
+        "add": "Add Category",
+        "empty": "No age categories defined yet",
+        "deleteTitle": "Delete Category",
+        "deleteDescription": "Are you sure you want to delete the category \"{name}\"? {clubs} will no longer be able to use this category for new teams."
+      },
+      "enabledGenders": {
+        "title": "Enabled Branches",
+        "description": "Select which branches {clubs} can use when creating teams",
+        "male": "Male",
+        "female": "Female",
+        "mixed": "Mixed"
+      },
+      "horizontalDivisions": {
+        "title": "Horizontal Divisions",
+        "description": "Enable horizontal divisions (A, B, C) for teams within the same age category",
+        "enabled": "Enable horizontal divisions",
+        "type": "Division naming",
+        "types": {
+          "alphabetic": "Alphabetic (A, B, C...)",
+          "greek": "Greek (Alpha, Beta, Gamma...)",
+          "numeric": "Numeric (1, 2, 3...)"
+        }
+      }
+    },
     "appearance": {
       "title": "Appearance",
       "description": "Customize how the app looks",

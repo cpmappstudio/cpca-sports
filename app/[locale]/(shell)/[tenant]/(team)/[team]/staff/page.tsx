@@ -1,5 +1,6 @@
-import { Heading } from "@/components/ui/heading";
-import { Text } from "@/components/ui/text";
+import { TeamStaffClient } from "@/components/sections/shell/teams/team-staff-client";
+import { preloadQuery } from "convex/nextjs";
+import { api } from "@/convex/_generated/api";
 
 type Params = Promise<{
   locale: string;
@@ -8,14 +9,17 @@ type Params = Promise<{
 }>;
 
 export default async function TeamStaffPage({ params }: { params: Params }) {
-  const { team } = await params;
+  const { tenant, team } = await params;
+
+  const preloadedStaff = await preloadQuery(api.staff.listAllByClubSlug, {
+    clubSlug: team,
+  });
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <Heading>Staff</Heading>
-        <Text className="mt-1">Manage staff for {team}</Text>
-      </div>
-    </div>
+    <TeamStaffClient
+      preloadedStaff={preloadedStaff}
+      clubSlug={team}
+      orgSlug={tenant}
+    />
   );
 }

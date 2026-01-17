@@ -838,6 +838,7 @@ export const listBasketballPlayersByClubSlug = query({
           height: v.optional(v.number()),
           weight: v.optional(v.number()),
           nationality: v.optional(v.string()),
+          categoryName: v.optional(v.string()),
           yearsExperience: v.optional(v.number()),
           stats: v.optional(
             v.object({
@@ -888,20 +889,27 @@ export const listBasketballPlayersByClubSlug = query({
       ),
     );
 
-    const allPlayers = playersPerCategory.flat();
+    const allPlayersWithCategory = playersPerCategory.flat().map((player) => {
+      const category = player.currentCategoryId
+        ? categoryMap.get(player.currentCategoryId)
+        : undefined;
+      return { ...player, categoryName: category?.name };
+    });
 
-    if (allPlayers.length === 0) {
+    if (allPlayersWithCategory.length === 0) {
       return {
         club: { _id: club._id, name: club.name, slug: club.slug },
         players: [],
       };
     }
 
-    const profileIds = [...new Set(allPlayers.map((p) => p.profileId))];
+    const profileIds = [
+      ...new Set(allPlayersWithCategory.map((p) => p.profileId)),
+    ];
     const profiles = await Promise.all(profileIds.map((id) => ctx.db.get(id)));
     const profileMap = new Map(profileIds.map((id, i) => [id, profiles[i]]));
 
-    const players = allPlayers.map((player) => {
+    const players = allPlayersWithCategory.map((player) => {
       const profile = profileMap.get(player.profileId);
       const firstName = profile?.firstName;
       const lastName = profile?.lastName;
@@ -961,6 +969,7 @@ export const listBasketballPlayersByClubSlug = query({
         height: player.height,
         weight: player.weight,
         nationality: player.nationality,
+        categoryName: player.categoryName,
         yearsExperience,
         stats,
       };

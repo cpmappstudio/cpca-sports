@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
@@ -98,5 +98,62 @@ export const listByClubSlugWithPlayerCount = query({
     );
 
     return categoriesWithCount;
+  },
+});
+
+export const create = mutation({
+  args: {
+    clubSlug: v.string(),
+    name: v.string(),
+    ageGroup: v.string(),
+    gender: v.union(v.literal("male"), v.literal("female"), v.literal("mixed")),
+  },
+  handler: async (ctx, args) => {
+    const club = await ctx.db
+      .query("clubs")
+      .withIndex("by_slug", (q) => q.eq("slug", args.clubSlug))
+      .unique();
+
+    if (!club) {
+      throw new Error(`Club not found: ${args.clubSlug}`);
+    }
+
+    const categoryId = await ctx.db.insert("categories", {
+      clubId: club._id,
+      name: args.name,
+      ageGroup: args.ageGroup,
+      gender: args.gender,
+      status: "active",
+    });
+
+    return { success: true, categoryId };
+  },
+});
+
+export const remove = mutation({
+  args: {
+    categoryId: v.id("categories"),
+  },
+  handler: async (ctx, args) => {
+    const category = await ctx.db.get(args.categoryId);
+
+    if (!category) {
+      throw new Error("Category not found");
+    }
+
+    const players = await ctx.db
+      .query("players")
+      .withIndex("by_currentCategoryId", (q) =>
+        q.eq("currentCategoryId", args.categoryId),
+      )
+      .collect();
+
+    if (players.length > 0) {
+      throw new Error("Cannot delete category with players assigned");
+    }
+
+    await ctx.db.delete(args.categoryId);
+
+    return { success: true };
   },
 });

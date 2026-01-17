@@ -9,7 +9,40 @@
   "general": {
     "title": "Configuración General",
     "description": "Administra la configuración general de tu organización",
-    "placeholder": "La configuración general estará disponible próximamente.",
+    "teamConfig": {
+      "title": "Configuración de {clubs}",
+      "description": "Define las categorías de edad y ramas disponibles cuando los {clubs} creen sus equipos",
+      "ageCategories": {
+        "title": "Categorías de Edad",
+        "description": "Define las categorías de edad que los {clubs} pueden usar al crear equipos",
+        "name": "Nombre de Categoría",
+        "namePlaceholder": "ej., Sub-17",
+        "minAge": "Edad Mín.",
+        "maxAge": "Edad Máx.",
+        "add": "Agregar Categoría",
+        "empty": "Aún no hay categorías de edad definidas",
+        "deleteTitle": "Eliminar Categoría",
+        "deleteDescription": "¿Estás seguro de eliminar la categoría \"{name}\"? Los {clubs} ya no podrán usar esta categoría para nuevos equipos."
+      },
+      "enabledGenders": {
+        "title": "Ramas Habilitadas",
+        "description": "Selecciona qué ramas pueden usar los {clubs} al crear equipos",
+        "male": "Masculino",
+        "female": "Femenino",
+        "mixed": "Mixto"
+      },
+      "horizontalDivisions": {
+        "title": "Divisiones Horizontales",
+        "description": "Habilita divisiones horizontales (A, B, C) para equipos dentro de la misma categoría de edad",
+        "enabled": "Habilitar divisiones horizontales",
+        "type": "Nomenclatura de división",
+        "types": {
+          "alphabetic": "Alfabético (A, B, C...)",
+          "greek": "Griego (Alfa, Beta, Gamma...)",
+          "numeric": "Numérico (1, 2, 3...)"
+        }
+      }
+    },
     "appearance": {
       "title": "Apariencia",
       "description": "Personaliza cómo se ve la aplicación",

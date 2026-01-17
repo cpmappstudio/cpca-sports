@@ -16,6 +16,7 @@ import type * as dashboard from "../dashboard.js";
 import type * as divisions from "../divisions.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
+import type * as leagueSettings from "../leagueSettings.js";
 import type * as leagues from "../leagues.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_auth_types from "../lib/auth_types.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   divisions: typeof divisions;
   files: typeof files;
   http: typeof http;
+  leagueSettings: typeof leagueSettings;
   leagues: typeof leagues;
   "lib/auth": typeof lib_auth;
   "lib/auth_types": typeof lib_auth_types;

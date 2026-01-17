@@ -46,6 +46,7 @@ interface PlayerRow {
   height?: number | null;
   weight?: number | null;
   nationality?: string | null;
+  categoryName?: string | null;
 }
 
 interface TeamPlayersTableProps {
@@ -53,13 +54,6 @@ interface TeamPlayersTableProps {
   clubSlug: string;
   orgSlug: string;
 }
-
-const STATUS_STYLES: Record<PlayerRow["status"], string> = {
-  active: "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950",
-  injured: "text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-950",
-  on_loan: "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950",
-  inactive: "text-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-950",
-};
 
 const POSITION_LABELS: Record<string, string> = {
   point_guard: "PG",
@@ -163,20 +157,13 @@ export function TeamPlayersTable({
     },
 
     {
-      accessorKey: "status",
-      header: createSortableHeader(t("players.status")),
-      cell: ({ row }) => {
-        const status = row.original.status;
-        const className = STATUS_STYLES[status];
-
-        return (
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}
-          >
-            {t(`players.statusOptions.${status}`)}
-          </span>
-        );
-      },
+      accessorKey: "categoryName",
+      header: createSortableHeader(t("players.category")),
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.original.categoryName || t("players.notAssigned")}
+        </span>
+      ),
     },
 
     {

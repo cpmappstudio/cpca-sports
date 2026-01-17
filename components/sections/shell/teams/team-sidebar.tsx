@@ -2,6 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { usePathname } from "@/i18n/navigation";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Navbar, NavbarSection, NavbarSpacer } from "@/components/ui/navbar";
 import {
   Sidebar,
@@ -13,8 +15,9 @@ import {
   SidebarSection,
   SidebarSpacer,
 } from "@/components/ui/sidebar";
+import { Avatar } from "@/components/ui/avatar";
 import { UserButton } from "@clerk/nextjs";
-import { Cog6ToothIcon, ArrowLeftIcon } from "@heroicons/react/20/solid";
+import { Cog6ToothIcon } from "@heroicons/react/20/solid";
 import { getTeamNavConfig, isItemActive } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
 import { ROUTES } from "@/lib/navigation/routes";
@@ -47,6 +50,8 @@ export function TeamSidebar() {
   const orgSlug = params.tenant as string;
   const teamSlug = params.team as string;
 
+  const team = useQuery(api.clubs.getBySlug, { slug: teamSlug });
+
   const { items, settingsHref } = getTeamNavConfig();
 
   const getLabel = (labelKey: string): string => {
@@ -57,20 +62,25 @@ export function TeamSidebar() {
     return t(labelKey);
   };
 
+  const teamName = team?.name || teamSlug;
+  const teamLogo = team?.logoUrl;
+
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2">
-          <Link
-            href={ROUTES.org.teams.list(orgSlug)}
-            className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            <ArrowLeftIcon className="size-4" />
-            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100">
-              {teamSlug}
-            </span>
-          </Link>
-        </div>
+        <Link
+          href={ROUTES.org.teams.list(orgSlug)}
+          className="flex items-center gap-3 px-2 hover:opacity-80 transition-opacity"
+        >
+          <Avatar
+            src={teamLogo}
+            initials={teamName.slice(0, 2).toUpperCase()}
+            className="size-10"
+          />
+          <span className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            {teamName}
+          </span>
+        </Link>
       </SidebarHeader>
 
       <SidebarBody>

@@ -125,7 +125,10 @@
     "searchPlaceholder": "Buscar categorías...",
     "emptyMessage": "No se encontraron categorías.",
     "deleteTitle": "Eliminar Categoría",
-    "deleteDescription": "¿Estás seguro de que deseas eliminar {name}? Esta acción no se puede deshacer.",
+    "deleteDescription": "¿Estás seguro de eliminar {name}? Esta acción no se puede deshacer.",
+    "horizontalDivision": "División",
+    "selectDivision": "Seleccionar división",
+    "noDivisionsAvailable": "No hay divisiones disponibles",
     "genderOptions": {
       "male": "Masculino",
       "female": "Femenino",
@@ -134,6 +137,21 @@
     "statusOptions": {
       "active": "Activo",
       "inactive": "Inactivo"
+    }
+  },
+  "games": {
+    "title": "Partidos",
+    "date": "Fecha",
+    "opponent": "Oponente",
+    "location": "Ubicación",
+    "score": "Marcador",
+    "status": "Estado",
+    "searchPlaceholder": "Buscar partidos...",
+    "emptyMessage": "No hay partidos programados.",
+    "statusOptions": {
+      "scheduled": "Programado",
+      "completed": "Completado",
+      "cancelled": "Cancelado"
     }
   },
   "position": {
@@ -203,15 +221,6 @@
     "delegate": "Delegado",
     "technical_director": "Director Técnico",
     "assistant_coach": "Asistente Técnico"
-  },
-  "staff": {
-    "title": "Cuerpo Técnico",
-    "searchPlaceholder": "Buscar por nombre...",
-    "emptyMessage": "No se encontraron miembros del staff. Agrega tu primer director técnico para comenzar.",
-    "name": "Nombre",
-    "role": "Rol",
-    "team": "Equipo",
-    "notAssigned": "Sin asignar"
   },
   "status": {
     "active": "Activo",

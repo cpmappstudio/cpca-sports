@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { MoreHorizontal, Pencil, Trash2, Users } from "lucide-react";
+import { CreateCategoryDialog } from "./create-category-dialog";
 
 interface CategoryRow {
   _id: string;
@@ -68,13 +69,16 @@ export function TeamCategoriesTable({
   );
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const deleteCategory = useMutation(api.categories.remove);
+
   const handleDelete = async () => {
     if (!categoryToDelete) return;
 
     setIsDeleting(true);
     try {
-      // TODO: Implement delete mutation when available
-      console.log("Delete category:", categoryToDelete._id);
+      await deleteCategory({
+        categoryId: categoryToDelete._id as Id<"categories">,
+      });
       setCategoryToDelete(null);
     } catch (error) {
       console.error("[TeamCategoriesTable] Failed to delete category:", error);
@@ -132,7 +136,9 @@ export function TeamCategoriesTable({
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Users className="size-4 text-muted-foreground" />
-          <span className="text-sm font-medium">{row.original.playerCount}</span>
+          <span className="text-sm font-medium">
+            {row.original.playerCount}
+          </span>
         </div>
       ),
     },
@@ -192,6 +198,13 @@ export function TeamCategoriesTable({
         filterPlaceholder={t("categories.searchPlaceholder")}
         emptyMessage={t("categories.emptyMessage")}
         onCreate={() => setIsCreateOpen(true)}
+      />
+
+      <CreateCategoryDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        clubSlug={clubSlug}
+        orgSlug={orgSlug}
       />
 
       <AlertDialog

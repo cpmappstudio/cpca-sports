@@ -6,16 +6,11 @@ import { api } from "@/convex/_generated/api";
 import { Heading } from "@/components/ui/heading";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { darkenHex } from "@/lib/utils";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useSportTerminology } from "@/lib/sports";
 import { RosterGrid } from "./roster-grid";
 import { TeamHeader } from "./team-header";
+import { TeamStaffList } from "./team-staff-list";
+import { TeamGamesList } from "./team-games-list";
 
 interface TeamDetailClientProps {
   preloadedTeam: Preloaded<typeof api.clubs.getBySlug>;
@@ -82,31 +77,11 @@ export function TeamDetailClient({
         <TabsContent value="roster">
           <RosterGrid clubSlug={team.slug} />
         </TabsContent>
-        <TabsContent value="staff">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("staff.title")}</CardTitle>
-              <CardDescription>
-                Manage the {terminology.club.toLowerCase()}&apos;s staff here.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Staff list will be here.</p>
-            </CardContent>
-          </Card>
+        <TabsContent value="staff" className="mt-4">
+          <TeamStaffList clubSlug={team.slug} />
         </TabsContent>
-        <TabsContent value="schedule">
-          <Card>
-            <CardHeader>
-              <CardTitle>{terminology.matches}</CardTitle>
-              <CardDescription>
-                View the {terminology.club.toLowerCase()}&apos;s schedule here.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Schedule will be here.</p>
-            </CardContent>
-          </Card>
+        <TabsContent value="schedule" className="mt-4">
+          <TeamGamesList clubSlug={team.slug} />
         </TabsContent>
       </Tabs>
     </div>
