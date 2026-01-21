@@ -1,41 +1,39 @@
 import { QueryCtx, MutationCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
+import { getCurrentUser, getUserRole } from "./auth";
 
-export async function requireClubAccess(
+/**
+ * Require that the current user has access to the specified organization.
+ * Returns the user if authorized.
+ */
+export async function requireOrganizationAccess(
   ctx: QueryCtx | MutationCtx,
-  clubId: Id<"clubs">
+  organizationId: Id<"organizations">,
 ) {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new Error("Not authenticated");
+  const user = await getCurrentUser(ctx);
+  const role = await getUserRole(ctx, user._id);
 
-  // 1. Check Global SuperAdmin (via DB lookup for accuracy)
-  const profile = await ctx.db
-    .query("profiles")
-    .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
-    .unique();
-    
-  if (!profile) throw new Error("Profile not found");
+  if (role === "SuperAdmin") {
+    return user;
+  }
 
-  const superAdminRole = await ctx.db
-    .query("roleAssignments")
-    .withIndex("by_profileId_and_role", (q) => 
-      q.eq("profileId", profile._id).eq("role", "SuperAdmin")
-    )
-    .first();
+  if (role === "Admin") {
+    return user;
+  }
 
-  if (superAdminRole) return true; // Access granted
+  throw new Error("You do not have permission to access this organization");
+}
 
-  // 2. Check Club Admin
-  const clubRole = await ctx.db
-    .query("roleAssignments")
-    .withIndex("by_profileId_and_organizationId", (q) =>
-      q.eq("profileId", profile._id).eq("organizationId", clubId)
-    )
-    .first();
+/**
+ * Require SuperAdmin role.
+ */
+export async function requireSuperAdmin(ctx: QueryCtx | MutationCtx) {
+  const user = await getCurrentUser(ctx);
+  const role = await getUserRole(ctx, user._id);
 
-  if (clubRole?.role === "ClubAdmin") return true;
+  if (role !== "SuperAdmin") {
+    throw new Error("SuperAdmin access required");
+  }
 
-  // League Admins usually DO NOT manage internal club data (players/cats)
-  // so we return false or throw.
-  throw new Error("You do not have permission to manage this club's data");
+  return user;
 }

@@ -1,243 +1,202 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { query, mutation, internalMutation } from "./_generated/server";
+import { requireSuperAdmin } from "./lib/permissions";
+
+const organizationValidator = v.object({
+  _id: v.id("organizations"),
+  _creationTime: v.number(),
+  organizationId: v.string(),
+  name: v.string(),
+  slug: v.string(),
+});
 
 /**
- * List all organizations (leagues and clubs) for SuperAdmin
+ * Get organization by slug.
  */
-export const listAll = query({
-  args: {},
-  returns: v.array(
-    v.object({
-      _id: v.union(v.id("leagues"), v.id("clubs")),
-      _creationTime: v.number(),
-      name: v.string(),
-      slug: v.string(),
-      logoUrl: v.optional(v.string()),
-      type: v.union(v.literal("league"), v.literal("club")),
-      status: v.union(
-        v.literal("active"),
-        v.literal("inactive"),
-        v.literal("affiliated"),
-        v.literal("invited"),
-        v.literal("suspended"),
-      ),
-      country: v.optional(v.string()),
-      region: v.optional(v.string()),
-      clubCount: v.optional(v.number()),
-      playerCount: v.optional(v.number()),
-    }),
-  ),
-  handler: async (ctx) => {
-    // Get all leagues
-    const leagues = await ctx.db.query("leagues").order("desc").collect();
-
-    // Get all clubs
-    const clubs = await ctx.db.query("clubs").order("desc").collect();
-
-    // Count clubs per league
-    const clubCountByLeague = new Map<string, number>();
-    for (const club of clubs) {
-      const count = clubCountByLeague.get(club.leagueId) || 0;
-      clubCountByLeague.set(club.leagueId, count + 1);
-    }
-
-    // Map leagues to organization format
-    const leagueOrgs = leagues.map((league) => ({
-      _id: league._id as Id<"leagues"> | Id<"clubs">,
-      _creationTime: league._creationTime,
-      name: league.name,
-      slug: league.slug,
-      logoUrl: league.logoUrl,
-      type: "league" as const,
-      status: league.status as "active" | "inactive",
-      country: league.country,
-      region: league.region,
-      clubCount: clubCountByLeague.get(league._id) || 0,
-      playerCount: undefined,
-    }));
-
-    // Map clubs to organization format
-    const clubOrgs = clubs.map((club) => ({
-      _id: club._id as Id<"leagues"> | Id<"clubs">,
-      _creationTime: club._creationTime,
-      name: club.name,
-      slug: club.slug,
-      logoUrl: club.logoUrl,
-      type: "club" as const,
-      status: club.status as "affiliated" | "invited" | "suspended",
-      country: undefined,
-      region: undefined,
-      clubCount: undefined,
-      playerCount: undefined,
-    }));
-
-    // Combine and sort by creation time (most recent first)
-    return [...leagueOrgs, ...clubOrgs].sort(
-      (a, b) => b._creationTime - a._creationTime,
-    );
+export const getBySlug = query({
+  args: { slug: v.string() },
+  returns: v.union(organizationValidator, v.null()),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("organizations")
+      .withIndex("bySlug", (q) => q.eq("slug", args.slug))
+      .unique();
   },
 });
 
 /**
- * Get organization by slug (league or club)
+ * Get organization by ID.
  */
-export const getBySlug = query({
-  args: { slug: v.string() },
-  returns: v.union(
-    v.object({
-      _id: v.string(),
-      type: v.literal("league"),
-      slug: v.string(),
-      name: v.string(),
-      logoUrl: v.optional(v.string()),
-      clubId: v.null(),
-    }),
-    v.object({
-      _id: v.string(),
-      type: v.literal("club"),
-      slug: v.string(),
-      name: v.string(),
-      logoUrl: v.optional(v.string()),
-      clubId: v.id("clubs"),
-    }),
-    v.null(),
-  ),
+export const getById = query({
+  args: { organizationId: v.id("organizations") },
+  returns: v.union(organizationValidator, v.null()),
   handler: async (ctx, args) => {
-    // Try to find as league first
-    const league = await ctx.db
-      .query("leagues")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+    return await ctx.db.get(args.organizationId);
+  },
+});
+
+/**
+ * List all organizations (SuperAdmin only).
+ */
+export const listAll = query({
+  args: {},
+  returns: v.array(organizationValidator),
+  handler: async (ctx) => {
+    await requireSuperAdmin(ctx);
+    return await ctx.db.query("organizations").order("desc").collect();
+  },
+});
+
+/**
+ * Create organization (SuperAdmin only).
+ */
+export const create = mutation({
+  args: {
+    organizationId: v.string(),
+    name: v.string(),
+    slug: v.string(),
+  },
+  returns: v.id("organizations"),
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+
+    const existingBySlug = await ctx.db
+      .query("organizations")
+      .withIndex("bySlug", (q) => q.eq("slug", args.slug))
       .unique();
 
-    if (league) {
-      return {
-        _id: league._id,
-        type: "league" as const,
-        slug: league.slug,
-        name: league.name,
-        logoUrl: league.logoUrl,
-        clubId: null,
-      };
+    if (existingBySlug) {
+      throw new Error("Organization with this slug already exists");
     }
 
-    // Try to find as club
-    const club = await ctx.db
-      .query("clubs")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .unique();
+    return await ctx.db.insert("organizations", {
+      organizationId: args.organizationId,
+      name: args.name,
+      slug: args.slug,
+    });
+  },
+});
 
-    if (club) {
-      return {
-        _id: club._id,
-        type: "club" as const,
-        slug: club.slug,
-        name: club.name,
-        logoUrl: club.logoUrl,
-        clubId: club._id,
-      };
+/**
+ * Update organization (SuperAdmin only).
+ */
+export const update = mutation({
+  args: {
+    id: v.id("organizations"),
+    name: v.optional(v.string()),
+    slug: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+
+    const organization = await ctx.db.get(args.id);
+    if (!organization) {
+      throw new Error("Organization not found");
     }
+
+    if (args.slug && args.slug !== organization.slug) {
+      const newSlug = args.slug;
+      const existingBySlug = await ctx.db
+        .query("organizations")
+        .withIndex("bySlug", (q) => q.eq("slug", newSlug))
+        .unique();
+
+      if (existingBySlug) {
+        throw new Error("Organization with this slug already exists");
+      }
+    }
+
+    await ctx.db.patch(args.id, {
+      ...(args.name && { name: args.name }),
+      ...(args.slug && { slug: args.slug }),
+    });
 
     return null;
   },
 });
 
 /**
- * Create a new league from a Clerk organization.
- * Used when an organization is created in Clerk and needs to be synced to Convex.
+ * Create organization from Clerk webhook (internal).
  */
-export const createFromClerk = mutation({
+export const createFromClerk = internalMutation({
   args: {
-    clerkOrgId: v.string(),
+    organizationId: v.string(),
     name: v.string(),
     slug: v.string(),
-    logoUrl: v.optional(v.string()),
-    country: v.optional(v.string()),
   },
-  returns: v.object({
-    success: v.boolean(),
-    leagueId: v.optional(v.id("leagues")),
-    error: v.optional(v.string()),
-  }),
+  returns: v.id("organizations"),
   handler: async (ctx, args) => {
-    // Check if organization already exists by clerkOrgId
-    const existingByClerkId = await ctx.db
-      .query("leagues")
-      .withIndex("by_clerkOrgId", (q) => q.eq("clerkOrgId", args.clerkOrgId))
-      .first();
+    const existing = await ctx.db
+      .query("organizations")
+      .filter((q) => q.eq(q.field("organizationId"), args.organizationId))
+      .unique();
 
-    if (existingByClerkId) {
-      return {
-        success: true,
-        leagueId: existingByClerkId._id,
-        error: undefined,
-      };
+    if (existing) {
+      return existing._id;
     }
 
-    // Check if slug is already taken
     const existingBySlug = await ctx.db
-      .query("leagues")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .first();
+      .query("organizations")
+      .withIndex("bySlug", (q) => q.eq("slug", args.slug))
+      .unique();
 
     if (existingBySlug) {
-      return {
-        success: false,
-        leagueId: undefined,
-        error: "Slug already taken",
-      };
+      throw new Error(
+        `Organization with slug "${args.slug}" already exists`,
+      );
     }
 
-    // Create the league
-    const leagueId = await ctx.db.insert("leagues", {
-      clerkOrgId: args.clerkOrgId,
+    return await ctx.db.insert("organizations", {
+      organizationId: args.organizationId,
       name: args.name,
       slug: args.slug,
-      logoUrl: args.logoUrl,
-      country: args.country || "CO",
-      status: "active",
-      sportType: "basketball",
     });
-
-    return {
-      success: true,
-      leagueId,
-      error: undefined,
-    };
   },
 });
 
 /**
- * Get a league by its Clerk organization ID.
+ * Update organization from Clerk webhook (internal).
  */
-export const getByClerkOrgId = query({
-  args: { clerkOrgId: v.string() },
-  returns: v.union(
-    v.object({
-      _id: v.id("leagues"),
-      name: v.string(),
-      slug: v.string(),
-      logoUrl: v.optional(v.string()),
-      status: v.union(v.literal("active"), v.literal("inactive")),
-    }),
-    v.null(),
-  ),
+export const updateFromClerk = internalMutation({
+  args: {
+    organizationId: v.string(),
+    name: v.string(),
+    slug: v.string(),
+  },
+  returns: v.null(),
   handler: async (ctx, args) => {
-    const league = await ctx.db
-      .query("leagues")
-      .withIndex("by_clerkOrgId", (q) => q.eq("clerkOrgId", args.clerkOrgId))
-      .first();
+    const organization = await ctx.db
+      .query("organizations")
+      .filter((q) => q.eq(q.field("organizationId"), args.organizationId))
+      .unique();
 
-    if (!league) {
+    if (!organization) {
+      console.error(
+        `Organization not found for organizationId: ${args.organizationId}`,
+      );
       return null;
     }
 
-    return {
-      _id: league._id,
-      name: league.name,
-      slug: league.slug,
-      logoUrl: league.logoUrl,
-      status: league.status,
-    };
+    if (args.slug !== organization.slug) {
+      const existingBySlug = await ctx.db
+        .query("organizations")
+        .withIndex("bySlug", (q) => q.eq("slug", args.slug))
+        .unique();
+
+      if (existingBySlug && existingBySlug._id !== organization._id) {
+        console.error(
+          `Cannot update organization: slug "${args.slug}" already exists`,
+        );
+        return null;
+      }
+    }
+
+    await ctx.db.patch(organization._id, {
+      name: args.name,
+      slug: args.slug,
+    });
+
+    return null;
   },
 });

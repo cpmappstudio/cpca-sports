@@ -1,78 +1,78 @@
-import type { GenericQueryCtx, GenericMutationCtx } from "convex/server";
-import type { DataModel } from "../_generated/dataModel";
-import type { UserIdentity } from "convex/server";
+import {
+  QueryCtx,
+  MutationCtx,
+} from "../_generated/server";
 
-// Helper to get the full identity and profile
-export async function getFullIdentity(
-  ctx: GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>,
-  identity: UserIdentity,
-) {
-  const profile = await ctx.db
-    .query("profiles")
-    .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+/**
+ * Get the current authenticated user from Clerk identity.
+ * Throws if not authenticated or user not found in DB.
+ */
+export async function getCurrentUser(ctx: QueryCtx | MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+
+  if (!identity) {
+    throw new Error("Not authenticated");
+  }
+
+  const user = await ctx.db
+    .query("users")
+    .withIndex("byClerkdId", (q) => q.eq("clerkId", identity.subject))
     .unique();
 
-  if (!profile) {
-    throw new Error("User profile not found. Webhook might be delayed.");
+  if (!user) {
+    throw new Error("User not found in database");
   }
-  return profile;
+
+  return user;
 }
 
 /**
- * The BE version of getOrgRole. It queries the DB, not session claims.
+ * Get the current user or null if not authenticated.
+ * Use for optional auth scenarios.
  */
-export const getOrgRole = async (
-  ctx: GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>,
-  identity: UserIdentity,
-  orgSlug: string,
-) => {
-  const profile = await getFullIdentity(ctx, identity);
+export async function getCurrentUserOrNull(ctx: QueryCtx | MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
 
-  // 1. Check if the org is a League
-  const league = await ctx.db
-    .query("leagues")
-    .withIndex("by_slug", (q) => q.eq("slug", orgSlug))
-    .unique();
-
-  if (league) {
-    const assignment = await ctx.db
-      .query("roleAssignments")
-      .withIndex("by_profileId_and_organizationId", (q) =>
-        q.eq("profileId", profile._id).eq("organizationId", league._id),
-      )
-      .first();
-
-    if (assignment && assignment.organizationType === "league") {
-      return {
-        organization: league,
-        role: assignment.role,
-        type: "league" as const,
-      };
-    }
+  if (!identity) {
+    return null;
   }
 
-  // 2. Check if the org is a Club
-  const club = await ctx.db
-    .query("clubs")
-    .withIndex("by_slug", (q) => q.eq("slug", orgSlug))
+  return await ctx.db
+    .query("users")
+    .withIndex("byClerkdId", (q) => q.eq("clerkId", identity.subject))
     .unique();
+}
 
-  if (club) {
-    const assignment = await ctx.db
-      .query("roleAssignments")
-      .withIndex("by_profileId_and_organizationId", (q) =>
-        q.eq("profileId", profile._id).eq("organizationId", club._id),
-      )
-      .first();
+/**
+ * Get user role assignment.
+ */
+export async function getUserRole(ctx: QueryCtx | MutationCtx, userId: string) {
+  const assignment = await ctx.db
+    .query("userRoleAssigments")
+    .withIndex("byUserId", (q) => q.eq("userId", userId as any))
+    .first();
 
-    if (assignment && assignment.organizationType === "club") {
-      return {
-        organization: club,
-        role: assignment.role,
-        type: "club" as const,
-      };
-    }
+  return assignment?.role ?? null;
+}
+
+/**
+ * Check if user has admin or superadmin role.
+ */
+export async function isAdmin(ctx: QueryCtx | MutationCtx, userId: string) {
+  const role = await getUserRole(ctx, userId);
+  return role === "Admin" || role === "SuperAdmin";
+}
+
+/**
+ * Require admin role, throws if not admin.
+ */
+export async function requireAdmin(ctx: QueryCtx | MutationCtx) {
+  const user = await getCurrentUser(ctx);
+  const admin = await isAdmin(ctx, user._id);
+
+  if (!admin) {
+    throw new Error("Unauthorized: Admin role required");
   }
-  
-  return null;
-};
+
+  return user;
+}

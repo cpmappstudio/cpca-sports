@@ -8,7 +8,6 @@ import type { FilterConfig } from "@/lib/table/types";
 import { BuildingOfficeIcon, ShieldCheckIcon } from "@heroicons/react/20/solid";
 
 export interface OrganizationRow {
-    _id: Id<"leagues"> | Id<"clubs">;
     _creationTime: number;
     name: string;
     slug: string;
