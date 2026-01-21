@@ -189,9 +189,12 @@ export default defineSchema({
     name: v.string(),
     slug: v.string(),
     description: v.optional(v.string()),
-    ageGroup: v.string(), // e.g., "U17"
+    ageGroups: v.array(v.string()), // Array of age groups, e.g., ["Sub-17", "Sub-15"]
+    conferences: v.optional(v.array(v.string())), // Array of conference names convoked for this tournament
     gender: v.union(v.literal("male"), v.literal("female"), v.literal("mixed")),
     season: v.string(), // e.g., "2025"
+    registrationDeadline: v.optional(v.string()), // ISO date string
+    location: v.optional(v.string()), // Zone or location
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
     status: tournamentStatus,

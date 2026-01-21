@@ -24,6 +24,7 @@ import type * as lib_permissions from "../lib/permissions.js";
 import type * as organizations from "../organizations.js";
 import type * as players from "../players.js";
 import type * as staff from "../staff.js";
+import type * as tournaments from "../tournaments.js";
 import type * as users from "../users.js";
 
 import type {
@@ -57,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   organizations: typeof organizations;
   players: typeof players;
   staff: typeof staff;
+  tournaments: typeof tournaments;
   users: typeof users;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

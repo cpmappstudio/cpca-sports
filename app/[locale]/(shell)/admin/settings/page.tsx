@@ -1,5 +1,6 @@
-import { GeneralSettings } from "@/components/sections/shell/settings/general-settings";
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/lib/navigation/routes";
 
 export default function AdminSettingsPage() {
-  return <GeneralSettings />;
+  redirect(ROUTES.admin.settings.appearance);
 }

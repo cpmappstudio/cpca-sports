@@ -1,5 +1,7 @@
 import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
+import { TournamentsGrid } from "@/components/sections/shell/tournaments";
+import { getTranslations } from "next-intl/server";
 
 type Params = Promise<{
   locale: string;
@@ -7,21 +9,9 @@ type Params = Promise<{
   team: string;
 }>;
 
-export default async function TeamSchedulePage({
-  params,
-}: {
-  params: Params;
-}) {
+export default async function TeamSchedulePage({ params }: { params: Params }) {
   const { team } = await params;
+  const t = await getTranslations("Common");
 
-  return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <Heading>Schedule</Heading>
-        <Text className="mt-1">
-          View and manage the schedule for {team}
-        </Text>
-      </div>
-    </div>
-  );
+  return <TournamentsGrid clubSlug={team} />;
 }

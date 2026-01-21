@@ -27,7 +27,6 @@ import { Link } from "@/components/ui/link";
 
 const TERMINOLOGY_MAP: Record<string, keyof SportTerminology> = {
   roster: "players",
-  schedule: "matches",
 };
 
 export function TeamNavbar() {

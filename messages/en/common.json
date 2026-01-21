@@ -27,7 +27,9 @@
     "export": "Export",
     "skip": "Skip",
     "sendInvitation": "Send invitation",
-    "settings": "Settings"
+    "settings": "Settings",
+    "selectAll": "Select all",
+    "all": "All"
   },
   "table": {
     "columns": "Columns",
@@ -255,6 +257,7 @@
     "teamsCount": "Teams"
   },
   "conferences": {
+    "title": "Conferences",
     "searchPlaceholder": "Search by name, region...",
     "emptyMessage": "No conferences found. Create your first conference to organize teams.",
     "name": "Conference",
@@ -264,6 +267,7 @@
     "teams": "Teams"
   },
   "tournaments": {
+    "title": "Season",
     "searchPlaceholder": "Search by name, season, status...",
     "emptyMessage": "No tournaments found. Create your first tournament to start organizing competitions.",
     "name": "Name",
@@ -274,7 +278,14 @@
     "startDate": "Start Date",
     "endDate": "End Date",
     "enableDivisions": "Divisions",
-    "teamsCount": "Teams"
+    "teamsCount": "Teams",
+    "selectCategories": "Select categories",
+    "searchCategories": "Search categories...",
+    "selectConferences": "Select conferences",
+    "searchConferences": "Search conferences...",
+    "registrationDeadline": "Registration Deadline",
+    "location": "Location",
+    "preRegister": "Pre-register"
   },
   "tournamentStatus": {
     "draft": "Draft",
