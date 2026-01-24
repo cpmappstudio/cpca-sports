@@ -107,6 +107,12 @@ export const ROUTES = {
       create: (orgSlug: string) => `/${orgSlug}/tournaments/create`,
     },
 
+    games: {
+      list: (orgSlug: string) => `/${orgSlug}/games`,
+      detail: (orgSlug: string, gameId: string) =>
+        `/${orgSlug}/games/${gameId}`,
+    },
+
     settings: {
       root: (orgSlug: string) => `/${orgSlug}/settings`,
       appearance: (orgSlug: string) => `/${orgSlug}/settings/appearance`,

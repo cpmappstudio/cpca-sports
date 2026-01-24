@@ -53,11 +53,17 @@ const ADMIN_ITEMS: NavItem[] = [
 ];
 
 const ORG_ITEMS: NavItem[] = [
+  // {
+  //   labelKey: "dashboard",
+  //   icon: HomeIcon,
+  //   href: (orgSlug) => ROUTES.org.root(orgSlug!),
+  //   isIndex: true,
+  // },
   {
-    labelKey: "dashboard",
-    icon: HomeIcon,
-    href: (orgSlug) => ROUTES.org.root(orgSlug!),
-    isIndex: true,
+    labelKey: "tournaments",
+    icon: CalendarIcon,
+    href: (orgSlug) => ROUTES.org.tournaments.list(orgSlug!),
+    isIndex: false,
   },
   {
     labelKey: "teams",
@@ -65,18 +71,12 @@ const ORG_ITEMS: NavItem[] = [
     href: (orgSlug) => ROUTES.org.teams.list(orgSlug!),
     isIndex: false,
   },
-  {
-    labelKey: "divisions",
-    icon: TrophyIcon,
-    href: (orgSlug) => ROUTES.org.divisions.list(orgSlug!),
-    isIndex: false,
-  },
-  {
-    labelKey: "tournaments",
-    icon: CalendarIcon,
-    href: (orgSlug) => ROUTES.org.tournaments.list(orgSlug!),
-    isIndex: false,
-  },
+  // {
+  //   labelKey: "divisions",
+  //   icon: TrophyIcon,
+  //   href: (orgSlug) => ROUTES.org.divisions.list(orgSlug!),
+  //   isIndex: false,
+  // },
   // {
   //   labelKey: "offerings",
   //   icon: DocumentTextIcon,
@@ -107,12 +107,12 @@ const ORG_ITEMS: NavItem[] = [
   //   href: (orgSlug) => ROUTES.org.forms.list(orgSlug!),
   //   isIndex: false,
   // },
-  // {
-  //   labelKey: "staff",
-  //   icon: UsersIcon,
-  //   href: (orgSlug) => ROUTES.org.staff.list(orgSlug!),
-  //   isIndex: false,
-  // },
+  {
+    labelKey: "staff",
+    icon: UserGroupIcon,
+    href: (orgSlug) => ROUTES.org.staff.list(orgSlug!),
+    isIndex: false,
+  },
   // {
   //   labelKey: "payments",
   //   icon: CreditCardIcon,
@@ -123,11 +123,17 @@ const ORG_ITEMS: NavItem[] = [
 
 const TEAM_ITEMS: TeamNavItem[] = [
   {
-    labelKey: "dashboard",
-    icon: HomeIcon,
-    href: (orgSlug, teamSlug) => ROUTES.team.root(orgSlug!, teamSlug!),
-    isIndex: true,
+    labelKey: "schedule",
+    icon: CalendarIcon,
+    href: (orgSlug, teamSlug) => ROUTES.team.schedule(orgSlug!, teamSlug!),
+    isIndex: false,
   },
+  // {
+  //   labelKey: "dashboard",
+  //   icon: HomeIcon,
+  //   href: (orgSlug, teamSlug) => ROUTES.team.root(orgSlug!, teamSlug!),
+  //   isIndex: true,
+  // },
   {
     labelKey: "roster",
     icon: UsersIcon,
@@ -144,12 +150,6 @@ const TEAM_ITEMS: TeamNavItem[] = [
     labelKey: "categories",
     icon: RectangleGroupIcon,
     href: (orgSlug, teamSlug) => ROUTES.team.categories(orgSlug!, teamSlug!),
-    isIndex: false,
-  },
-  {
-    labelKey: "schedule",
-    icon: CalendarIcon,
-    href: (orgSlug, teamSlug) => ROUTES.team.schedule(orgSlug!, teamSlug!),
     isIndex: false,
   },
 ];

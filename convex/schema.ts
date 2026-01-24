@@ -44,6 +44,12 @@ const playerStatus = v.union(
   v.literal("on_loan"),
   v.literal("inactive"),
 );
+const gameStatus = v.union(
+  v.literal("scheduled"),
+  v.literal("in_progress"),
+  v.literal("completed"),
+  v.literal("cancelled"),
+);
 
 export default defineSchema({
   // ========================================
@@ -452,4 +458,41 @@ export default defineSchema({
     // Age group definitions
     ageGroupDefinitions: v.optional(v.string()), // JSON config
   }).index("by_leagueId", ["leagueId"]),
+
+  // ========================================
+  // PART 7: GAMES (QUICK MATCHES)
+  // ========================================
+
+  /**
+   * Individual games/matches between two clubs.
+   * Can be standalone (quick games) or part of a tournament.
+   */
+  games: defineTable({
+    leagueId: v.id("leagues"),
+    tournamentId: v.optional(v.id("tournaments")),
+    // Teams
+    homeClubId: v.id("clubs"),
+    awayClubId: v.id("clubs"),
+    // Schedule
+    date: v.string(), // ISO date string (YYYY-MM-DD)
+    startTime: v.string(), // HH:mm format
+    // Classification
+    category: v.string(), // Age category name
+    gender: v.union(v.literal("male"), v.literal("female"), v.literal("mixed")),
+    // Location
+    locationName: v.optional(v.string()),
+    locationCoordinates: v.optional(v.array(v.number())), // [lat, lng]
+    // Status & scores
+    status: gameStatus,
+    homeScore: v.optional(v.number()),
+    awayScore: v.optional(v.number()),
+    // Metadata
+    createdBy: v.optional(v.id("profiles")),
+  })
+    .index("by_leagueId", ["leagueId"])
+    .index("by_leagueId_and_status", ["leagueId", "status"])
+    .index("by_leagueId_and_date", ["leagueId", "date"])
+    .index("by_tournamentId", ["tournamentId"])
+    .index("by_homeClubId", ["homeClubId"])
+    .index("by_awayClubId", ["awayClubId"]),
 });

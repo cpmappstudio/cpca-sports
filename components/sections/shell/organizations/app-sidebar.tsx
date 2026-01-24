@@ -23,7 +23,7 @@ import type { SportTerminology } from "@/lib/sports";
 
 const TERMINOLOGY_MAP: Record<string, keyof SportTerminology> = {
   teams: "clubs",
-  divisions: "divisions",
+  // divisions: "divisions",
   tournaments: "tournaments",
 };
 

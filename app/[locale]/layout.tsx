@@ -21,10 +21,6 @@ import { routing } from "@/i18n/routing";
 import { esES, enUS } from "@clerk/localizations";
 import { notFound } from "next/navigation";
 
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }));
-}
-
 const clerkLocalizations = {
   es: esES,
   en: enUS,

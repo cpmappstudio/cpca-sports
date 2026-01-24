@@ -700,3 +700,293 @@ export const addToCategory = mutation({
     return null;
   },
 });
+
+/**
+ * List all staff by league slug (includes LeagueAdmin and Referee roles)
+ */
+export const listAllByLeagueSlug = query({
+  args: { leagueSlug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      league: v.object({
+        _id: v.id("leagues"),
+        name: v.string(),
+      }),
+      staff: v.array(
+        v.object({
+          _id: v.string(),
+          profileId: v.id("profiles"),
+          fullName: v.string(),
+          email: v.string(),
+          avatarUrl: v.optional(v.string()),
+          role: v.string(),
+          certificationLevel: v.optional(v.string()),
+          zone: v.optional(v.string()),
+        }),
+      ),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const league = await ctx.db
+      .query("leagues")
+      .withIndex("by_slug", (q) => q.eq("slug", args.leagueSlug))
+      .unique();
+
+    if (!league) {
+      return null;
+    }
+
+    const staff: Array<{
+      _id: string;
+      profileId: Id<"profiles">;
+      fullName: string;
+      email: string;
+      avatarUrl: string | undefined;
+      role: string;
+      certificationLevel: string | undefined;
+      zone: string | undefined;
+    }> = [];
+
+    // Get LeagueAdmin assignments
+    const leagueAdminAssignments = await ctx.db
+      .query("roleAssignments")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", league._id))
+      .filter((q) => q.eq(q.field("role"), "LeagueAdmin"))
+      .collect();
+
+    for (const assignment of leagueAdminAssignments) {
+      const profile = await ctx.db.get(assignment.profileId);
+      if (profile) {
+        staff.push({
+          _id: assignment._id,
+          profileId: assignment.profileId,
+          fullName:
+            profile.displayName ||
+            `${profile.firstName || ""} ${profile.lastName || ""}`.trim() ||
+            profile.email,
+          email: profile.email,
+          avatarUrl: profile.avatarUrl,
+          role: "admin",
+          certificationLevel: undefined,
+          zone: undefined,
+        });
+      }
+    }
+
+    // Get Referees
+    const referees = await ctx.db
+      .query("referees")
+      .withIndex("by_leagueId", (q) => q.eq("leagueId", league._id))
+      .collect();
+
+    for (const referee of referees) {
+      const profile = await ctx.db.get(referee.profileId);
+      if (profile) {
+        const exists = staff.some((s) => s.profileId === referee.profileId);
+        if (!exists) {
+          staff.push({
+            _id: referee._id,
+            profileId: referee.profileId,
+            fullName:
+              profile.displayName ||
+              `${profile.firstName || ""} ${profile.lastName || ""}`.trim() ||
+              profile.email,
+            email: profile.email,
+            avatarUrl: profile.avatarUrl,
+            role: "referee",
+            certificationLevel: referee.certificationLevel,
+            zone: referee.zone,
+          });
+        }
+      }
+    }
+
+    return {
+      league: {
+        _id: league._id,
+        name: league.name,
+      },
+      staff,
+    };
+  },
+});
+
+/**
+ * Add a league admin or referee to a league
+ */
+export const addLeagueAdmin = mutation({
+  args: {
+    leagueSlug: v.string(),
+    email: v.string(),
+    role: v.union(v.literal("admin"), v.literal("referee")),
+  },
+  returns: v.object({
+    profileId: v.id("profiles"),
+    created: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const inviterProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    const league = await ctx.db
+      .query("leagues")
+      .withIndex("by_slug", (q) => q.eq("slug", args.leagueSlug))
+      .unique();
+
+    if (!league) {
+      throw new Error("League not found");
+    }
+
+    const email = args.email.trim().toLowerCase();
+
+    let profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .unique();
+
+    let created = false;
+
+    if (!profile) {
+      const profileId = await ctx.db.insert("profiles", {
+        clerkId: "",
+        email,
+      });
+
+      profile = await ctx.db.get(profileId);
+
+      if (profile && inviterProfile) {
+        await ctx.scheduler.runAfter(0, internal.users.createClerkAccount, {
+          profileId: profile._id,
+          email,
+          firstName: "",
+          lastName: "",
+          orgSlug: args.leagueSlug,
+          teamSlug: "",
+          clerkOrgId: league.clerkOrgId,
+          inviterUserId: inviterProfile.clerkId,
+          role: args.role === "admin" ? "org:admin" : "org:member",
+        });
+      }
+
+      created = true;
+    } else {
+      if (inviterProfile && profile) {
+        await ctx.scheduler.runAfter(0, internal.users.createClerkAccount, {
+          profileId: profile._id,
+          email,
+          firstName: profile.firstName || "",
+          lastName: profile.lastName || "",
+          orgSlug: args.leagueSlug,
+          teamSlug: "",
+          clerkOrgId: league.clerkOrgId,
+          inviterUserId: inviterProfile.clerkId,
+          role: args.role === "admin" ? "org:admin" : "org:member",
+        });
+      }
+    }
+
+    if (!profile) {
+      throw new Error("Failed to create profile");
+    }
+
+    if (args.role === "admin") {
+      const existingRole = await ctx.db
+        .query("roleAssignments")
+        .withIndex("by_profileId_and_organizationId", (q) =>
+          q.eq("profileId", profile!._id).eq("organizationId", league._id),
+        )
+        .filter((q) => q.eq(q.field("role"), "LeagueAdmin"))
+        .unique();
+
+      if (!existingRole) {
+        await ctx.db.insert("roleAssignments", {
+          profileId: profile._id,
+          role: "LeagueAdmin",
+          organizationId: league._id,
+          organizationType: "league",
+          assignedAt: Date.now(),
+        });
+      }
+    } else if (args.role === "referee") {
+      const existingReferee = await ctx.db
+        .query("referees")
+        .withIndex("by_leagueId", (q) => q.eq("leagueId", league._id))
+        .filter((q) => q.eq(q.field("profileId"), profile!._id))
+        .unique();
+
+      if (!existingReferee) {
+        await ctx.db.insert("referees", {
+          profileId: profile._id,
+          leagueId: league._id,
+          certificationLevel: "Level 1",
+          status: "active",
+        });
+      }
+    }
+
+    return {
+      profileId: profile._id,
+      created,
+    };
+  },
+});
+
+/**
+ * Remove a staff member from a league (admin or referee)
+ */
+export const removeLeagueStaff = mutation({
+  args: {
+    leagueSlug: v.string(),
+    profileId: v.id("profiles"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const league = await ctx.db
+      .query("leagues")
+      .withIndex("by_slug", (q) => q.eq("slug", args.leagueSlug))
+      .unique();
+
+    if (!league) {
+      throw new Error("League not found");
+    }
+
+    // Remove LeagueAdmin role assignment
+    const adminAssignment = await ctx.db
+      .query("roleAssignments")
+      .withIndex("by_profileId_and_organizationId", (q) =>
+        q.eq("profileId", args.profileId).eq("organizationId", league._id),
+      )
+      .filter((q) => q.eq(q.field("role"), "LeagueAdmin"))
+      .unique();
+
+    if (adminAssignment) {
+      await ctx.db.delete(adminAssignment._id);
+    }
+
+    // Remove Referee entry
+    const refereeEntry = await ctx.db
+      .query("referees")
+      .withIndex("by_leagueId", (q) => q.eq("leagueId", league._id))
+      .filter((q) => q.eq(q.field("profileId"), args.profileId))
+      .unique();
+
+    if (refereeEntry) {
+      await ctx.db.delete(refereeEntry._id);
+    }
+
+    return null;
+  },
+});

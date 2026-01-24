@@ -15,6 +15,7 @@ import type * as conferences from "../conferences.js";
 import type * as dashboard from "../dashboard.js";
 import type * as divisions from "../divisions.js";
 import type * as files from "../files.js";
+import type * as games from "../games.js";
 import type * as http from "../http.js";
 import type * as leagueSettings from "../leagueSettings.js";
 import type * as leagues from "../leagues.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   dashboard: typeof dashboard;
   divisions: typeof divisions;
   files: typeof files;
+  games: typeof games;
   http: typeof http;
   leagueSettings: typeof leagueSettings;
   leagues: typeof leagues;

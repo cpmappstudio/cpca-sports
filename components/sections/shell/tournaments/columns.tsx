@@ -1,109 +1,85 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { Id } from "@/convex/_generated/dataModel";
 import {
   createSearchColumn,
   createSortableHeader,
 } from "@/components/table/column-helpers";
 import type { FilterConfig } from "@/lib/table/types";
-import { CalendarIcon } from "@heroicons/react/20/solid";
 
-export interface TournamentRow {
-  _id: Id<"tournaments">;
+export interface GameRow {
+  _id: string;
   _creationTime: number;
-  name: string;
-  slug: string;
-  description?: string;
-  status: "draft" | "upcoming" | "ongoing" | "completed" | "cancelled";
-  ageGroups: string[];
-  conferences: string[];
+  homeTeamId: string;
+  homeTeamName: string;
+  awayTeamId: string;
+  awayTeamName: string;
+  date: string;
+  startTime: string;
+  category: string;
   gender: "male" | "female" | "mixed";
-  registrationDeadline?: string;
-  location?: string;
-  startDate?: string;
-  endDate?: string;
+  locationName?: string;
+  locationCoordinates?: number[];
+  status: "scheduled" | "in_progress" | "completed" | "cancelled";
+  homeScore?: number;
+  awayScore?: number;
 }
 
 type Translator = (key: string) => string;
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "text-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800",
-  upcoming: "text-blue-700 bg-blue-50 dark:text-blue-400 dark:bg-blue-950",
-  ongoing: "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950",
-  completed:
-    "text-purple-700 bg-purple-50 dark:text-purple-400 dark:bg-purple-950",
+  scheduled: "text-blue-700 bg-blue-50 dark:text-blue-400 dark:bg-blue-950",
+  in_progress:
+    "text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950",
+  completed: "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950",
   cancelled: "text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-950",
 };
 
-export function createTournamentColumns(
-  t: Translator,
-): ColumnDef<TournamentRow>[] {
+export function createGameColumns(t: Translator): ColumnDef<GameRow>[] {
   return [
-    createSearchColumn<TournamentRow>(["name", "slug", "location"]),
+    createSearchColumn<GameRow>([
+      "homeTeamName",
+      "awayTeamName",
+      "locationName",
+      "category",
+    ]),
 
     {
-      accessorKey: "name",
-      header: createSortableHeader(t("tournaments.name")),
+      accessorKey: "teams",
+      header: t("games.match"),
       cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-            <CalendarIcon className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="font-medium">{row.original.name}</span>
-            <p className="text-xs text-muted-foreground">
-              {row.original.description || row.original.slug}
-            </p>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{row.original.homeTeamName}</span>
+          <span className="text-muted-foreground">vs</span>
+          <span className="font-medium">{row.original.awayTeamName}</span>
         </div>
       ),
     },
 
     {
-      accessorKey: "registrationDeadline",
-      header: createSortableHeader(t("tournaments.registrationDeadline")),
-      cell: ({ row }) => (
-        <span className="text-sm">
-          {row.original.registrationDeadline
-            ? new Date(row.original.registrationDeadline).toLocaleDateString()
-            : "—"}
-        </span>
-      ),
-    },
-
-    {
-      accessorKey: "status",
-      header: t("tournaments.status"),
+      accessorKey: "date",
+      header: createSortableHeader(t("games.dateTime")),
       cell: ({ row }) => {
-        const status = row.original.status;
-        const className = STATUS_STYLES[status] ?? STATUS_STYLES.draft;
+        const date = row.original.date;
+        const time = row.original.startTime;
         return (
-          <span
-            className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${className}`}
-          >
-            {t(`tournamentStatus.${status}`)}
+          <span className="text-sm">
+            {date ? new Date(date).toLocaleDateString() : "—"}
+            {time && ` · ${time}`}
           </span>
         );
       },
-      filterFn: (row, id, value) => {
-        return value.includes(row.getValue(id));
-      },
     },
 
     {
-      accessorKey: "ageGroups",
-      header: t("tournaments.ageGroup"),
+      accessorKey: "category",
+      header: t("games.category"),
       cell: ({ row }) => (
-        <span className="text-sm">
-          {row.original.ageGroups.length > 2
-            ? `${row.original.ageGroups.slice(0, 2).join(", ")}...`
-            : row.original.ageGroups.join(", ")}
-        </span>
+        <span className="text-sm">{row.original.category || "—"}</span>
       ),
     },
 
     {
       accessorKey: "gender",
-      header: t("tournaments.gender"),
+      header: t("games.gender"),
       cell: ({ row }) => (
         <span className="text-sm">{t(`gender.${row.original.gender}`)}</span>
       ),
@@ -113,17 +89,45 @@ export function createTournamentColumns(
     },
 
     {
-      accessorKey: "conferences",
-      header: t("conferences.title"),
+      accessorKey: "locationName",
+      header: t("games.location"),
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.original.locationName || "—"}
+        </span>
+      ),
+    },
+
+    {
+      accessorKey: "status",
+      header: t("games.status"),
       cell: ({ row }) => {
-        const conferences = row.original.conferences || [];
+        const status = row.original.status;
+        const className = STATUS_STYLES[status] ?? STATUS_STYLES.scheduled;
         return (
-          <span className="text-sm">
-            {conferences.length === 0
-              ? "—"
-              : conferences.length > 2
-                ? `${conferences.slice(0, 2).join(", ")}...`
-                : conferences.join(", ")}
+          <span
+            className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${className}`}
+          >
+            {t(`games.statusOptions.${status}`)}
+          </span>
+        );
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id));
+      },
+    },
+
+    {
+      accessorKey: "score",
+      header: t("games.score"),
+      cell: ({ row }) => {
+        const { homeScore, awayScore, status } = row.original;
+        if (status === "scheduled" || status === "cancelled") {
+          return <span className="text-sm text-muted-foreground">—</span>;
+        }
+        return (
+          <span className="text-sm font-medium">
+            {homeScore ?? 0} - {awayScore ?? 0}
           </span>
         );
       },
@@ -131,22 +135,21 @@ export function createTournamentColumns(
   ];
 }
 
-export function createTournamentFilterConfigs(t: Translator): FilterConfig[] {
+export function createGameFilterConfigs(t: Translator): FilterConfig[] {
   return [
     {
       id: "status",
-      label: t("tournaments.status"),
+      label: t("games.status"),
       options: [
-        { value: "draft", label: t("tournamentStatus.draft") },
-        { value: "upcoming", label: t("tournamentStatus.upcoming") },
-        { value: "ongoing", label: t("tournamentStatus.ongoing") },
-        { value: "completed", label: t("tournamentStatus.completed") },
-        { value: "cancelled", label: t("tournamentStatus.cancelled") },
+        { value: "scheduled", label: t("games.statusOptions.scheduled") },
+        { value: "in_progress", label: t("games.statusOptions.in_progress") },
+        { value: "completed", label: t("games.statusOptions.completed") },
+        { value: "cancelled", label: t("games.statusOptions.cancelled") },
       ],
     },
     {
       id: "gender",
-      label: t("tournaments.gender"),
+      label: t("games.gender"),
       options: [
         { value: "male", label: t("gender.male") },
         { value: "female", label: t("gender.female") },
