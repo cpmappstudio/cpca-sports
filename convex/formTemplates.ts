@@ -200,3 +200,117 @@ export const publish = mutation({
     return null;
   },
 });
+
+/**
+ * Get or create base template for organization (admin only).
+ * Ensures organization always has a base template available.
+ */
+export const getOrCreateBase = mutation({
+  args: { organizationSlug: v.string() },
+  returns: templateValidator,
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    const organization = await ctx.db
+      .query("organizations")
+      .withIndex("bySlug", (q) => q.eq("slug", args.organizationSlug))
+      .unique();
+
+    if (!organization) {
+      throw new Error("Organization not found");
+    }
+
+    // Check if base template exists
+    const existing = await ctx.db
+      .query("formTemplates")
+      .withIndex("byOrganization", (q) =>
+        q.eq("organizationId", organization._id),
+      )
+      .filter((q) => q.eq(q.field("mode"), "base"))
+      .first();
+
+    if (existing) {
+      return existing;
+    }
+
+    // Create base template with pre-admission structure
+    const templateId = await ctx.db.insert("formTemplates", {
+      organizationId: organization._id,
+      version: 1,
+      name: "Pre-Admission Form",
+      description: "Standard pre-admission form for athletes",
+      mode: "base",
+      sections: [
+        {
+          key: "personal",
+          label: "Personal Information",
+          order: 1,
+          fields: [
+            { key: "firstName", label: "First Name", type: "text", required: true },
+            { key: "lastName", label: "Last Name", type: "text", required: true },
+            { key: "email", label: "Email", type: "email", required: true },
+            { key: "telephone", label: "Phone", type: "tel", required: true },
+            { key: "birthDate", label: "Date of Birth", type: "date", required: true },
+            { key: "sex", label: "Gender", type: "select", required: true },
+            { key: "height", label: "Height (cm)", type: "number", required: false },
+            { key: "weight", label: "Weight (kg)", type: "number", required: false },
+          ],
+        },
+        {
+          key: "academic",
+          label: "Academic Information",
+          order: 2,
+          fields: [
+            { key: "currentSchoolName", label: "Current School", type: "text", required: true },
+            { key: "gradeEntering", label: "Grade Entering", type: "select", required: true },
+            { key: "graduationYear", label: "Graduation Year", type: "number", required: true },
+            { key: "currentGPA", label: "Current GPA", type: "number", required: false },
+          ],
+        },
+        {
+          key: "sports",
+          label: "Sports Information",
+          order: 3,
+          fields: [
+            { key: "sport", label: "Sport", type: "select", required: true },
+            { key: "program", label: "Program", type: "select", required: true },
+            { key: "format", label: "Format", type: "select", required: true },
+            { key: "highlightsLink", label: "Highlights Video Link", type: "url", required: false },
+          ],
+        },
+        {
+          key: "parents",
+          label: "Parent/Guardian Information",
+          order: 4,
+          fields: [
+            { key: "parentName", label: "Parent/Guardian Name", type: "text", required: true },
+            { key: "parent1Relationship", label: "Relationship", type: "text", required: true },
+            { key: "parentEmail", label: "Email", type: "email", required: true },
+            { key: "parentTelephone", label: "Phone", type: "tel", required: true },
+            { key: "parent2Name", label: "Second Parent/Guardian (Optional)", type: "text", required: false },
+          ],
+        },
+        {
+          key: "address",
+          label: "Address Information",
+          order: 5,
+          fields: [
+            { key: "streetAddress", label: "Street Address", type: "text", required: true },
+            { key: "city", label: "City", type: "text", required: true },
+            { key: "state", label: "State/Province", type: "text", required: true },
+            { key: "zipCode", label: "ZIP/Postal Code", type: "text", required: true },
+            { key: "country", label: "Country", type: "text", required: true },
+          ],
+        },
+      ],
+      isPublished: true,
+    });
+
+    const template = await ctx.db.get(templateId);
+    if (!template) {
+      throw new Error("Failed to create template");
+    }
+
+    return template;
+  },
+});
