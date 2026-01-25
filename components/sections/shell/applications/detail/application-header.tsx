@@ -10,18 +10,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Application } from "@/lib/applications/types";
+import type { Application, ApplicationStatus } from "@/lib/applications/types";
+import { getFormField } from "@/lib/applications/types";
 import Image from "next/image";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import {
   BookOpen,
   GraduationCap,
   Calendar,
-  Award,
   Mail,
   Phone,
   Globe,
-  School,
   Home,
   FileText,
   User,
@@ -42,19 +41,43 @@ export function ApplicationHeader({
 }: ApplicationHeaderProps) {
   const t = useTranslations("Applications.detail");
   const tStatus = useTranslations("Applications.statusOptions");
-  const [status, setStatus] = useState(application.status);
+  const [status, setStatus] = useState<ApplicationStatus>(application.status);
+
+  const { formData } = application;
+  const firstName = getFormField(formData, "athlete", "firstName");
+  const lastName = getFormField(formData, "athlete", "lastName");
+  const email = getFormField(formData, "athlete", "email");
+  const telephone = getFormField(formData, "athlete", "telephone");
+  const birthDate = getFormField(formData, "athlete", "birthDate");
+  const countryOfBirth = getFormField(formData, "athlete", "countryOfBirth");
+  const countryOfCitizenship = getFormField(
+    formData,
+    "athlete",
+    "countryOfCitizenship",
+  );
+  const format = getFormField(formData, "athlete", "format");
+  const program = getFormField(formData, "athlete", "program");
+  const gradeEntering = getFormField(formData, "athlete", "gradeEntering");
+  const enrollmentYear = getFormField(formData, "athlete", "enrollmentYear");
+  const needsI20 = getFormField(formData, "athlete", "needsI20");
+  const interestedInBoarding = getFormField(
+    formData,
+    "general",
+    "interestedInBoarding",
+  );
 
   const statusMap = {
     pending: { label: tStatus("pending"), variant: "outline" as const },
-    approved: { label: tStatus("approved"), variant: "default" as const },
-    rejected: { label: tStatus("rejected"), variant: "destructive" as const },
-    under_review: {
-      label: tStatus("under_review"),
-      variant: "secondary" as const,
+    reviewing: { label: tStatus("reviewing"), variant: "secondary" as const },
+    "pre-admitted": {
+      label: tStatus("pre-admitted"),
+      variant: "default" as const,
     },
+    admitted: { label: tStatus("admitted"), variant: "default" as const },
+    denied: { label: tStatus("denied"), variant: "destructive" as const },
   };
 
-  const statusInfo = statusMap[status as keyof typeof statusMap];
+  const statusInfo = statusMap[status];
 
   const handleStatusChange = (newStatus: typeof status) => {
     setStatus(newStatus);
@@ -86,7 +109,7 @@ export function ApplicationHeader({
               <AspectRatio ratio={1} className="bg-muted rounded-lg">
                 <Image
                   src="/avatars/avatar-1.png"
-                  alt={`${application.firstName} ${application.lastName}`}
+                  alt={`${firstName} ${lastName}`}
                   fill
                   className="rounded-lg object-cover"
                 />
@@ -94,7 +117,7 @@ export function ApplicationHeader({
             </div>
             <div className="flex flex-col gap-2 flex-1 min-w-0">
               <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-                {application.firstName} {application.lastName}
+                {firstName} {lastName}
               </h1>
               <div className="flex items-start gap-2 mt-1">
                 {isAdmin ? (
@@ -106,14 +129,17 @@ export function ApplicationHeader({
                       <SelectItem value="pending">
                         {tStatus("pending")}
                       </SelectItem>
-                      <SelectItem value="under_review">
-                        {tStatus("under_review")}
+                      <SelectItem value="reviewing">
+                        {tStatus("reviewing")}
                       </SelectItem>
-                      <SelectItem value="approved">
-                        {tStatus("approved")}
+                      <SelectItem value="pre-admitted">
+                        {tStatus("pre-admitted")}
                       </SelectItem>
-                      <SelectItem value="rejected">
-                        {tStatus("rejected")}
+                      <SelectItem value="admitted">
+                        {tStatus("admitted")}
+                      </SelectItem>
+                      <SelectItem value="denied">
+                        {tStatus("denied")}
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -130,7 +156,7 @@ export function ApplicationHeader({
                       className="h-9 w-9"
                       asChild
                     >
-                      <a href={`tel:${application.telephone}`}>
+                      <a href={`tel:${telephone}`}>
                         <Phone className="h-4 w-4" />
                       </a>
                     </Button>
@@ -140,7 +166,7 @@ export function ApplicationHeader({
                       className="h-9 w-9"
                       asChild
                     >
-                      <a href={`mailto:${application.email}`}>
+                      <a href={`mailto:${email}`}>
                         <Mail className="h-4 w-4" />
                       </a>
                     </Button>
@@ -159,7 +185,7 @@ export function ApplicationHeader({
               <User className="h-4 w-4 text-primary shrink-0" />
               <span className="font-semibold text-foreground">Age:</span>
               <span className="text-muted-foreground">
-                {calculateAge(application.birthDate)} years
+                {birthDate ? `${calculateAge(birthDate)} years` : "-"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -168,7 +194,7 @@ export function ApplicationHeader({
                 {t("birthCountry")}:
               </span>
               <span className="text-muted-foreground">
-                {application.countryOfBirth}
+                {countryOfBirth || "-"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -177,7 +203,7 @@ export function ApplicationHeader({
                 {t("citizenship")}:
               </span>
               <span className="text-muted-foreground">
-                {application.countryOfCitizenship}
+                {countryOfCitizenship || "-"}
               </span>
             </div>
             <hr />
@@ -187,7 +213,7 @@ export function ApplicationHeader({
                 {t("format")}:
               </span>
               <span className="text-muted-foreground capitalize">
-                {application.format}
+                {format || "-"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -196,7 +222,7 @@ export function ApplicationHeader({
                 {t("program")}:
               </span>
               <span className="text-muted-foreground capitalize">
-                {application.program}
+                {program || "-"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -205,7 +231,7 @@ export function ApplicationHeader({
                 {t("gradeEntering")}:
               </span>
               <span className="text-muted-foreground">
-                {application.gradeEntering}
+                {gradeEntering || "-"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -214,7 +240,7 @@ export function ApplicationHeader({
                 {t("enrollmentYear")}:
               </span>
               <span className="text-muted-foreground">
-                {application.enrollmentYear}
+                {enrollmentYear || "-"}
               </span>
             </div>
             <hr />
@@ -222,7 +248,7 @@ export function ApplicationHeader({
               <IdCard className="h-4 w-4 text-primary shrink-0" />
               <span className="font-semibold text-foreground">I-20:</span>
               <span className="text-muted-foreground">
-                {application.needsI20 === "yes" ? t("yes") : t("no")}
+                {needsI20 === "yes" ? t("yes") : t("no")}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -231,9 +257,7 @@ export function ApplicationHeader({
                 {t("boarding")}:
               </span>
               <span className="text-muted-foreground">
-                {application.interestedInBoarding === "yes"
-                  ? t("yes")
-                  : t("no")}
+                {interestedInBoarding === "yes" ? t("yes") : t("no")}
               </span>
             </div>
           </div>

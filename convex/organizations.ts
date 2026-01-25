@@ -1,13 +1,15 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, internalMutation } from "./_generated/server";
 import { requireSuperAdmin } from "./lib/permissions";
 
 const organizationValidator = v.object({
   _id: v.id("organizations"),
   _creationTime: v.number(),
-  organizationId: v.string(),
+  clerkOrgId: v.string(),
   name: v.string(),
   slug: v.string(),
+  imageUrl: v.optional(v.string()),
+  createdAt: v.number(),
 });
 
 /**
@@ -36,6 +38,20 @@ export const getById = query({
 });
 
 /**
+ * Get organization by Clerk organization ID.
+ */
+export const getByClerkOrgId = query({
+  args: { clerkOrgId: v.string() },
+  returns: v.union(organizationValidator, v.null()),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("organizations")
+      .withIndex("byClerkOrgId", (q) => q.eq("clerkOrgId", args.clerkOrgId))
+      .unique();
+  },
+});
+
+/**
  * List all organizations (SuperAdmin only).
  */
 export const listAll = query({
@@ -48,109 +64,43 @@ export const listAll = query({
 });
 
 /**
- * Create organization (SuperAdmin only).
- */
-export const create = mutation({
-  args: {
-    organizationId: v.string(),
-    name: v.string(),
-    slug: v.string(),
-  },
-  returns: v.id("organizations"),
-  handler: async (ctx, args) => {
-    await requireSuperAdmin(ctx);
-
-    const existingBySlug = await ctx.db
-      .query("organizations")
-      .withIndex("bySlug", (q) => q.eq("slug", args.slug))
-      .unique();
-
-    if (existingBySlug) {
-      throw new Error("Organization with this slug already exists");
-    }
-
-    return await ctx.db.insert("organizations", {
-      organizationId: args.organizationId,
-      name: args.name,
-      slug: args.slug,
-    });
-  },
-});
-
-/**
- * Update organization (SuperAdmin only).
- */
-export const update = mutation({
-  args: {
-    id: v.id("organizations"),
-    name: v.optional(v.string()),
-    slug: v.optional(v.string()),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await requireSuperAdmin(ctx);
-
-    const organization = await ctx.db.get(args.id);
-    if (!organization) {
-      throw new Error("Organization not found");
-    }
-
-    if (args.slug && args.slug !== organization.slug) {
-      const newSlug = args.slug;
-      const existingBySlug = await ctx.db
-        .query("organizations")
-        .withIndex("bySlug", (q) => q.eq("slug", newSlug))
-        .unique();
-
-      if (existingBySlug) {
-        throw new Error("Organization with this slug already exists");
-      }
-    }
-
-    await ctx.db.patch(args.id, {
-      ...(args.name && { name: args.name }),
-      ...(args.slug && { slug: args.slug }),
-    });
-
-    return null;
-  },
-});
-
-/**
  * Create organization from Clerk webhook (internal).
  */
 export const createFromClerk = internalMutation({
   args: {
-    organizationId: v.string(),
+    clerkOrgId: v.string(),
     name: v.string(),
     slug: v.string(),
+    imageUrl: v.optional(v.string()),
   },
   returns: v.id("organizations"),
   handler: async (ctx, args) => {
+    // Check if organization already exists
     const existing = await ctx.db
       .query("organizations")
-      .filter((q) => q.eq(q.field("organizationId"), args.organizationId))
+      .withIndex("byClerkOrgId", (q) => q.eq("clerkOrgId", args.clerkOrgId))
       .unique();
 
     if (existing) {
       return existing._id;
     }
 
+    // Check slug uniqueness
     const existingBySlug = await ctx.db
       .query("organizations")
       .withIndex("bySlug", (q) => q.eq("slug", args.slug))
       .unique();
 
     if (existingBySlug) {
-      throw new Error(
-        `Organization with slug "${args.slug}" already exists`,
-      );
+      throw new Error(`Organization with slug "${args.slug}" already exists`);
     }
 
     return await ctx.db.insert("organizations", {
-      organizationId: args.organizationId,
+      clerkOrgId: args.clerkOrgId,
       name: args.name,
       slug: args.slug,
+      imageUrl: args.imageUrl,
+      createdAt: Date.now(),
     });
   },
 });
@@ -160,24 +110,26 @@ export const createFromClerk = internalMutation({
  */
 export const updateFromClerk = internalMutation({
   args: {
-    organizationId: v.string(),
+    clerkOrgId: v.string(),
     name: v.string(),
     slug: v.string(),
+    imageUrl: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const organization = await ctx.db
       .query("organizations")
-      .filter((q) => q.eq(q.field("organizationId"), args.organizationId))
+      .withIndex("byClerkOrgId", (q) => q.eq("clerkOrgId", args.clerkOrgId))
       .unique();
 
     if (!organization) {
       console.error(
-        `Organization not found for organizationId: ${args.organizationId}`,
+        `Organization not found for clerkOrgId: ${args.clerkOrgId}`,
       );
       return null;
     }
 
+    // Check slug uniqueness if changing
     if (args.slug !== organization.slug) {
       const existingBySlug = await ctx.db
         .query("organizations")
@@ -195,7 +147,40 @@ export const updateFromClerk = internalMutation({
     await ctx.db.patch(organization._id, {
       name: args.name,
       slug: args.slug,
+      imageUrl: args.imageUrl,
     });
+
+    return null;
+  },
+});
+
+/**
+ * Delete organization from Clerk webhook (internal).
+ */
+export const deleteFromClerk = internalMutation({
+  args: { clerkOrgId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const organization = await ctx.db
+      .query("organizations")
+      .withIndex("byClerkOrgId", (q) => q.eq("clerkOrgId", args.clerkOrgId))
+      .unique();
+
+    if (organization) {
+      // Delete all memberships for this organization
+      const memberships = await ctx.db
+        .query("organizationMembers")
+        .withIndex("byOrganization", (q) =>
+          q.eq("organizationId", organization._id),
+        )
+        .collect();
+
+      for (const membership of memberships) {
+        await ctx.db.delete(membership._id);
+      }
+
+      await ctx.db.delete(organization._id);
+    }
 
     return null;
   },

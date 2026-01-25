@@ -2,8 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, MessageSquare, Globe } from "lucide-react";
-import type { Application } from "@/lib/applications/types";
+import { type Application, getFormField } from "@/lib/applications/types";
 
 interface ApplicationAdditionalCardProps {
   application: Application;
@@ -14,8 +13,8 @@ export function ApplicationAdditionalCard({
 }: ApplicationAdditionalCardProps) {
   const t = useTranslations("Applications.detail");
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -24,24 +23,32 @@ export function ApplicationAdditionalCard({
     });
   };
 
+  const needsI20 = getFormField(application.formData, "additional", "needsI20");
+
   const rows = [
     {
       label: t("submittedBy"),
-      value: application.personSubmitting,
+      value: getFormField(
+        application.formData,
+        "additional",
+        "personSubmitting",
+      ),
     },
     {
       label: t("howDidYouHear"),
-      value: application.howDidYouHear,
+      value: getFormField(application.formData, "additional", "howDidYouHear"),
     },
     {
       label: t("needsI20"),
-      value: application.needsI20 === "yes" ? t("yes") : t("no"),
+      value: needsI20 === "yes" ? t("yes") : t("no"),
     },
     {
       label: t("submittedAt"),
-      value: formatDate(application.createdAt),
+      value: formatDate(application._creationTime),
     },
   ];
+
+  const message = getFormField(application.formData, "additional", "message");
 
   return (
     <Card>
@@ -62,13 +69,13 @@ export function ApplicationAdditionalCard({
           ))}
         </div>
 
-        {application.message && (
+        {message && (
           <div className="pt-4 border-t">
             <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
               {t("message")}
             </h4>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {application.message}
+              {message}
             </p>
           </div>
         )}

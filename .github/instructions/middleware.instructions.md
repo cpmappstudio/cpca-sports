@@ -1,3 +1,4 @@
+
 ---
 title: clerkMiddleware() | Next.js
 description: The clerkMiddleware() function allows you to protect your Next.js
@@ -5,7 +6,7 @@ description: The clerkMiddleware() function allows you to protect your Next.js
 sdk: nextjs
 sdkScoped: "true"
 canonical: /docs/reference/nextjs/clerk-middleware
-lastUpdated: 2025-12-11T21:01:08.000Z
+lastUpdated: 2026-01-22T06:00:59.000Z
 availableSdks: nextjs
 notAvailableSdks: react,js-frontend,chrome-extension,expo,android,ios,expressjs,fastify,react-router,remix,tanstack-react-start,go,astro,nuxt,vue,ruby,js-backend
 activeSdk: nextjs
@@ -405,7 +406,7 @@ The `clerkMiddleware()` function accepts an optional object. The following optio
   * `organizationSyncOptions?`
   * <code>[OrganizationSyncOptions](#organization-sync-options) | undefined</code>
 
-  Used to activate a specific [Organization](/docs/guides/organizations/overview) or [Personal Account](/docs/guides/dashboard/overview) based on URL path parameters. If there's a mismatch between the <Tooltip><TooltipTrigger>Active Organization</TooltipTrigger><TooltipContent>A user can be a member of multiple Organizations, but only one can be active at a time. The **Active Organization** determines which Organization-specific data the user can access and which Role and related Permissions they have within the Organization.</TooltipContent></Tooltip> in the session (e.g., as reported by [`auth()`](/docs/reference/nextjs/app-router/auth)) and the Organization indicated by the URL, the middleware will attempt to activate the Organization specified in the URL.
+  Used to activate a specific [Organization](/docs/guides/organizations/overview) or <Tooltip><TooltipTrigger>Personal Account</TooltipTrigger><TooltipContent>**Personal Accounts** are individual workspaces that allow users to operate independently without belonging to an Organization. Learn more about [Personal Accounts](/docs/guides/organizations/configure#personal-accounts).</TooltipContent></Tooltip> based on URL path parameters. If there's a mismatch between the <Tooltip><TooltipTrigger>Active Organization</TooltipTrigger><TooltipContent>A user can be a member of multiple Organizations, but only one can be active at a time. The **Active Organization** determines which Organization-specific data the user can access and which Role and related Permissions they have within the Organization.</TooltipContent></Tooltip> in the session (e.g., as reported by [`auth()`](/docs/reference/nextjs/app-router/auth)) and the Organization indicated by the URL, the middleware will attempt to activate the Organization specified in the URL.
 
   ***
 
@@ -433,14 +434,14 @@ The `clerkMiddleware()` function accepts an optional object. The following optio
   * `publishableKey`
   * `string`
 
-  The Clerk Publishable Key for your instance. This can be found on the [**API keys**](https://dashboard.clerk.com/~/api-keys) page in the Clerk Dashboard.
+  The Clerk <Tooltip><TooltipTrigger>Publishable Key</TooltipTrigger><TooltipContent>Your Clerk **Publishable Key** tells your app what your FAPI URL is, enabling your app to locate and communicate with your dedicated FAPI instance. You can find it on the [**API keys**](https://dashboard.clerk.com/~/api-keys) page in the Clerk Dashboard.</TooltipContent></Tooltip> for your instance.
 
   ***
 
   * `secretKey?`
   * `string`
 
-  The Clerk Secret Key for your instance. This can be found on the [**API keys**](https://dashboard.clerk.com/~/api-keys) page in the Clerk Dashboard. The `CLERK_ENCRYPTION_KEY` environment variable must be set when providing `secretKey` as an option, refer to [Dynamic keys](#dynamic-keys).
+  The Clerk <Tooltip><TooltipTrigger>Secret Key</TooltipTrigger><TooltipContent>Your Clerk **Secret Key** is used to authenticate requests from your backend to Clerk's API. You can find it on the [**API keys**](https://dashboard.clerk.com/~/api-keys) page in the Clerk Dashboard. **Do not expose this on the frontend with a public environment variable.**</TooltipContent></Tooltip> for your instance. The `CLERK_ENCRYPTION_KEY` environment variable must be set when providing `secretKey` as an option, refer to [Dynamic keys](#dynamic-keys).
 </Properties>
 
 It's also possible to dynamically set options based on the incoming request:
@@ -531,7 +532,7 @@ object has the type `OrganizationSyncOptions`, which has the following propertie
   * `personalAccountPatterns`
   * <code>[Pattern](#pattern)\[]</code>
 
-  URL patterns for resources that exist within the context of a user's [Personal Account](/docs/guides/organizations/configure#allow-personal-accounts).
+  URL patterns for resources that exist within the context of a user's <Tooltip><TooltipTrigger>Personal Account</TooltipTrigger><TooltipContent>**Personal Accounts** are individual workspaces that allow users to operate independently without belonging to an Organization. Learn more about [Personal Accounts](/docs/guides/organizations/configure#personal-accounts).</TooltipContent></Tooltip>.
 
   If the route also matches the `organizationPattern` prop, the `organizationPattern` prop takes precedence.
 

@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { usePathname } from "@/i18n/navigation";
+import { useLocale } from "next-intl";
 import { Navbar, NavbarSection, NavbarSpacer } from "@/components/ui/navbar";
 import {
   Sidebar,
@@ -18,14 +19,7 @@ import { Cog6ToothIcon } from "@heroicons/react/20/solid";
 import { getNavConfig, getNavContext, isItemActive } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
 import { ROUTES } from "@/lib/navigation/routes";
-import { useSportTerminology } from "@/lib/sports";
-import type { SportTerminology } from "@/lib/sports";
-
-const TERMINOLOGY_MAP: Record<string, keyof SportTerminology> = {
-  teams: "clubs",
-  divisions: "divisions",
-  tournaments: "tournaments",
-};
+import { routing } from "@/i18n/routing";
 
 export function NavbarAppSidebar() {
   return (
@@ -41,28 +35,25 @@ export function NavbarAppSidebar() {
 export function SidebarAppSidebar() {
   const params = useParams();
   const pathname = usePathname();
+  const locale = useLocale();
   const t = useTranslations("Navigation.nav");
-  const terminology = useSportTerminology();
 
   const orgSlug = (params.tenant as string) || null;
 
+  // Build locale-aware URL for OrganizationSwitcher
+  // Only include locale prefix if it's not the default locale (due to localePrefix: "as-needed")
+  const localePrefix = locale === routing.defaultLocale ? "" : `/${locale}`;
+  const afterSelectOrgUrl = `${localePrefix}/:slug/applications`;
+
   const context = getNavContext(pathname, orgSlug);
   const { items, settingsHref } = getNavConfig(context);
-
-  const getLabel = (labelKey: string): string => {
-    const terminologyKey = TERMINOLOGY_MAP[labelKey];
-    if (terminologyKey && context === "org") {
-      return terminology[terminologyKey];
-    }
-    return t(labelKey);
-  };
 
   return (
     <Sidebar>
       <SidebarHeader>
         <OrganizationSwitcher
           afterLeaveOrganizationUrl={ROUTES.admin.organizations.list}
-          afterSelectOrganizationUrl="/:slug"
+          afterSelectOrganizationUrl={afterSelectOrgUrl}
           appearance={{
             elements: {
               rootBox: "w-full",
@@ -81,7 +72,7 @@ export function SidebarAppSidebar() {
             return (
               <SidebarItem key={item.labelKey} href={href} current={isCurrent}>
                 <item.icon data-slot="icon" />
-                <SidebarLabel>{getLabel(item.labelKey)}</SidebarLabel>
+                <SidebarLabel>{t(item.labelKey)}</SidebarLabel>
               </SidebarItem>
             );
           })}

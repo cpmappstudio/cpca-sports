@@ -18,9 +18,10 @@
   "status": "Status",
   "statusOptions": {
     "pending": "Pending",
-    "approved": "Approved",
-    "rejected": "Rejected",
-    "under_review": "Under Review"
+    "reviewing": "Reviewing",
+    "pre-admitted": "Pre-admitted",
+    "admitted": "Admitted",
+    "denied": "Denied"
   },
   "programs": {
     "basketball": "Basketball",

@@ -1,9 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { School, MapPin, Award, User } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import type { Application } from "@/lib/applications/types";
+import { getFormField } from "@/lib/applications/types";
 
 interface ApplicationSchoolCardProps {
   application: Application;
@@ -14,12 +14,41 @@ export function ApplicationSchoolCard({
 }: ApplicationSchoolCardProps) {
   const t = useTranslations("Applications.detail");
 
-  const schoolAddress = [
-    application.schoolAddress,
-    application.schoolCity,
-    application.schoolState,
-    application.schoolZipCode,
-    application.schoolCountry,
+  const { formData } = application;
+  const currentSchoolName = getFormField(
+    formData,
+    "school",
+    "currentSchoolName",
+  );
+  const schoolAddress = getFormField(formData, "school", "schoolAddress");
+  const schoolCity = getFormField(formData, "school", "schoolCity");
+  const schoolState = getFormField(formData, "school", "schoolState");
+  const schoolZipCode = getFormField(formData, "school", "schoolZipCode");
+  const schoolCountry = getFormField(formData, "school", "schoolCountry");
+  const currentSchoolType = getFormField(
+    formData,
+    "school",
+    "currentSchoolType",
+  );
+  const currentGPA = getFormField(formData, "school", "currentGPA");
+  const referenceFullName = getFormField(
+    formData,
+    "school",
+    "referenceFullName",
+  );
+  const referenceRelationship = getFormField(
+    formData,
+    "school",
+    "referenceRelationship",
+  );
+  const referencePhone = getFormField(formData, "school", "referencePhone");
+
+  const fullSchoolAddress = [
+    schoolAddress,
+    schoolCity,
+    schoolState,
+    schoolZipCode,
+    schoolCountry,
   ]
     .filter(Boolean)
     .join(", ");
@@ -27,41 +56,43 @@ export function ApplicationSchoolCard({
   const rows = [
     {
       label: t("currentSchool"),
-      value: application.currentSchoolName,
+      value: currentSchoolName || "-",
     },
     {
       label: t("schoolAddress"),
-      value: schoolAddress || "-",
+      value: fullSchoolAddress || "-",
     },
     {
       label: t("schoolType"),
-      value: application.currentSchoolType,
+      value: currentSchoolType || "-",
     },
     {
       label: t("gpa"),
-      value: application.currentGPA,
+      value: currentGPA || "-",
     },
   ];
 
   const referenceRows = [
     {
       label: t("referenceName"),
-      value: application.referenceFullName,
+      value: referenceFullName || "-",
     },
     {
       label: t("referenceRelationship"),
-      value: application.referenceRelationship,
+      value: referenceRelationship || "-",
     },
     {
       label: t("referencePhone"),
-      value: application.referencePhone,
+      value: referencePhone || "-",
     },
   ];
 
   return (
     <Card>
       <CardContent className="space-y-6">
-        <h3 className="text-base font-bold text-foreground">{t("schoolInfo")}</h3>
+        <h3 className="text-base font-bold text-foreground">
+          {t("schoolInfo")}
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {rows.map((row, index) => (
             <div key={index} className="flex flex-col gap-2">
@@ -76,7 +107,9 @@ export function ApplicationSchoolCard({
         </div>
 
         <div>
-          <h4 className="text-base font-bold text-foreground mb-3">{t("reference")}</h4>
+          <h4 className="text-base font-bold text-foreground mb-3">
+            {t("reference")}
+          </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {referenceRows.map((row, index) => (
               <div key={index} className="flex flex-col gap-2">

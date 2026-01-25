@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { STEPS, type StepId } from "./steps/steps-navigation";
+import type { FormData as ConvexFormData } from "@/lib/applications/types";
 
 export interface FormData {
   format: string;
@@ -52,10 +55,85 @@ export interface FormData {
   message: string;
 }
 
-export function usePreadmissionForm() {
+interface UsePreadmissionFormOptions {
+  organizationSlug: string;
+}
+
+/**
+ * Convert flat form data to sectioned format for Convex.
+ */
+function convertToConvexFormData(data: FormData): ConvexFormData {
+  return {
+    athlete: {
+      format: data.format,
+      program: data.program,
+      enrollmentYear: data.enrollmentYear,
+      graduationYear: data.graduationYear,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      sex: data.sex,
+      height: data.height,
+      birthDate: data.birthDate,
+      email: data.email,
+      telephone: data.telephone,
+      countryOfBirth: data.countryOfBirth,
+      countryOfCitizenship: data.countryOfCitizenship,
+      highlightsLink: data.highlightsLink,
+      gradeEntering: data.gradeEntering,
+      programOfInterest: data.programOfInterest,
+      needsI20: data.needsI20,
+    },
+    address: {
+      country: data.country,
+      state: data.state,
+      city: data.city,
+      streetAddress: data.streetAddress,
+      zipCode: data.zipCode,
+    },
+    school: {
+      currentSchoolName: data.currentSchoolName,
+      currentSchoolType: data.currentSchoolType,
+      currentGPA: data.currentGPA,
+      schoolAddress: data.schoolAddress,
+      schoolCity: data.schoolCity,
+      schoolCountry: data.schoolCountry,
+      schoolState: data.schoolState,
+      schoolZipCode: data.schoolZipCode,
+      referenceFullName: data.referenceFullName,
+      referencePhone: data.referencePhone,
+      referenceRelationship: data.referenceRelationship,
+    },
+    parents: {
+      parent1FirstName: data.parent1FirstName,
+      parent1LastName: data.parent1LastName,
+      parent1Relationship: data.parent1Relationship,
+      parent1Email: data.parent1Email,
+      parent1Telephone: data.parent1Telephone,
+      parent2FirstName: data.parent2FirstName,
+      parent2LastName: data.parent2LastName,
+      parent2Relationship: data.parent2Relationship,
+      parent2Email: data.parent2Email,
+      parent2Telephone: data.parent2Telephone,
+    },
+    general: {
+      personSubmitting: data.personSubmitting,
+      howDidYouHear: data.howDidYouHear,
+      interestedInBoarding: data.interestedInBoarding,
+      message: data.message,
+    },
+  };
+}
+
+export function usePreadmissionForm({
+  organizationSlug,
+}: UsePreadmissionFormOptions) {
+  const submitApplication = useMutation(api.applications.submit);
+
   const [currentStep, setCurrentStep] = useState<StepId>("athlete");
   const [completedSteps, setCompletedSteps] = useState<Set<StepId>>(new Set());
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [applicationCode, setApplicationCode] = useState("");
   const [formData, setFormData] = useState<FormData>({
     format: "",
@@ -109,7 +187,7 @@ export function usePreadmissionForm() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleFieldChange = (field: string,  value: string | File | null) => {
+  const handleFieldChange = (field: string, value: string | File | null) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => {
@@ -265,17 +343,32 @@ export function usePreadmissionForm() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateCurrentStep()) {
       return;
     }
 
-    const code = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-    setApplicationCode(code);
-    setIsSubmitted(true);
-    console.log("[PreAdmissionForm] Submitting form:", formData);
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const convexFormData = convertToConvexFormData(formData);
+      const result = await submitApplication({
+        organizationSlug,
+        formData: convexFormData,
+      });
+
+      setApplicationCode(result.applicationCode);
+      setIsSubmitted(true);
+    } catch (error) {
+      const err = error as Error;
+      setSubmitError(err.message || "Failed to submit application");
+      console.error("[PreAdmissionForm] Submit error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleNewApplication = () => {
@@ -347,6 +440,8 @@ export function usePreadmissionForm() {
     isLastStep,
     isFirstStep,
     isSubmitted,
+    isSubmitting,
+    submitError,
     applicationCode,
     handleFieldChange,
     validateCurrentStep,

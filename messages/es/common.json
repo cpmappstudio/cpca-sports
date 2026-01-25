@@ -48,7 +48,11 @@
     "type": "Tipo",
     "location": "Ubicación",
     "clubs": "Clubes",
-    "status": "Estado"
+    "status": "Estado",
+    "mismatch": {
+      "title": "Organización no disponible",
+      "description": "No tienes acceso a la organización \"{organization}\". Por favor selecciona una organización a la que pertenezcas."
+    }
   },
   "organizationType": {
     "league": "Liga",

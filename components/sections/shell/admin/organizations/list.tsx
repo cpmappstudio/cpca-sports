@@ -1,7 +1,3 @@
-// ################################################################################
-// # Check: 01/14/2025                                                            #
-// ################################################################################
-
 import { getTranslations } from "next-intl/server";
 import { Building2 } from "lucide-react";
 import { OrganizationCard } from "./card";

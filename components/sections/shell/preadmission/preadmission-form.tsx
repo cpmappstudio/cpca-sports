@@ -1,5 +1,6 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AthleteStep } from "./steps/athlete-step";
 import { AddressStep } from "./steps/address-step";
 import { SchoolStep } from "./steps/school-step";
@@ -19,8 +21,9 @@ import { SuccessMessage } from "./success-message";
 import { usePreadmissionForm } from "./use-preadmission-form";
 
 export function PreAdmissionForm() {
+  const params = useParams<{ tenant: string }>();
   const t = useTranslations("preadmission");
-  const form = usePreadmissionForm();
+  const form = usePreadmissionForm({ organizationSlug: params.tenant });
 
   if (form.isSubmitted) {
     return (
@@ -32,7 +35,7 @@ export function PreAdmissionForm() {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 md:p-8">
+    <div className="min-h-screen">
       <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
         <StepsNavigation
           currentStep={form.currentStep}
@@ -90,12 +93,18 @@ export function PreAdmissionForm() {
                 />
               )}
 
+              {form.submitError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{form.submitError}</AlertDescription>
+                </Alert>
+              )}
+
               <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 pt-6">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={form.handleBack}
-                  disabled={form.isFirstStep}
+                  disabled={form.isFirstStep || form.isSubmitting}
                   className="w-full sm:w-auto"
                 >
                   {t("navigation.back")}
@@ -103,11 +112,14 @@ export function PreAdmissionForm() {
                 <Button
                   type={form.isLastStep ? "submit" : "button"}
                   onClick={form.isLastStep ? undefined : form.handleNext}
+                  disabled={form.isSubmitting}
                   className="w-full sm:w-auto"
                 >
-                  {form.isLastStep
-                    ? t("navigation.submit")
-                    : t("navigation.next")}
+                  {form.isSubmitting
+                    ? t("navigation.submitting")
+                    : form.isLastStep
+                      ? t("navigation.submit")
+                      : t("navigation.next")}
                 </Button>
               </div>
             </form>

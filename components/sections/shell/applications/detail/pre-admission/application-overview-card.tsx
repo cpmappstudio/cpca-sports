@@ -2,8 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
-import { User, Mail, Phone, Calendar, Globe, Ruler, Video, BookOpen, GraduationCap, Home } from "lucide-react";
 import type { Application } from "@/lib/applications/types";
+import { getFormField } from "@/lib/applications/types";
 
 interface ApplicationOverviewCardProps {
   application: Application;
@@ -15,7 +15,10 @@ export function ApplicationOverviewCard({
   const t = useTranslations("Applications.detail");
   const tPrograms = useTranslations("Applications.programs");
 
+  const { formData } = application;
+
   const formatDate = (dateString: string) => {
+    if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -23,69 +26,104 @@ export function ApplicationOverviewCard({
     });
   };
 
+  const firstName = getFormField(formData, "athlete", "firstName");
+  const lastName = getFormField(formData, "athlete", "lastName");
+  const email = getFormField(formData, "athlete", "email");
+  const telephone = getFormField(formData, "athlete", "telephone");
+  const birthDate = getFormField(formData, "athlete", "birthDate");
+  const sex = getFormField(formData, "athlete", "sex");
+  const height = getFormField(formData, "athlete", "height");
+  const countryOfBirth = getFormField(formData, "athlete", "countryOfBirth");
+  const countryOfCitizenship = getFormField(
+    formData,
+    "athlete",
+    "countryOfCitizenship",
+  );
+  const highlightsLink = getFormField(formData, "athlete", "highlightsLink");
+  const program = getFormField(formData, "athlete", "program");
+  const format = getFormField(formData, "athlete", "format");
+  const gradeEntering = getFormField(formData, "athlete", "gradeEntering");
+  const enrollmentYear = getFormField(formData, "athlete", "enrollmentYear");
+  const graduationYear = getFormField(formData, "athlete", "graduationYear");
+  const programOfInterest = getFormField(
+    formData,
+    "athlete",
+    "programOfInterest",
+  );
+  const interestedInBoarding = getFormField(
+    formData,
+    "general",
+    "interestedInBoarding",
+  );
+
   const athleteRows = [
     {
       label: t("fullName"),
-      value: `${application.firstName} ${application.lastName}`,
+      value: `${firstName} ${lastName}`.trim() || "-",
     },
     {
       label: t("email"),
-      value: application.email,
+      value: email || "-",
     },
     {
       label: t("phone"),
-      value: application.telephone,
+      value: telephone || "-",
     },
     {
       label: t("birthDate"),
-      value: formatDate(application.birthDate),
+      value: formatDate(birthDate),
     },
     {
       label: t("sex"),
-      value: application.sex === "male" ? t("male") : t("female"),
+      value: sex === "male" ? t("male") : sex === "female" ? t("female") : "-",
     },
     {
       label: t("height"),
-      value: application.height,
+      value: height || "-",
     },
     {
       label: t("birthCountry"),
-      value: application.countryOfBirth,
+      value: countryOfBirth || "-",
     },
     {
       label: t("citizenship"),
-      value: application.countryOfCitizenship,
+      value: countryOfCitizenship || "-",
     },
   ];
 
   const programRows = [
     {
       label: t("program"),
-      value: tPrograms(application.program),
+      value: program ? tPrograms(program) : "-",
     },
     {
       label: t("format"),
-      value: application.format === "full-time" ? t("fullTime") : t("partTime"),
+      value:
+        format === "full-time"
+          ? t("fullTime")
+          : format === "part-time"
+            ? t("partTime")
+            : "-",
     },
     {
       label: t("gradeEntering"),
-      value: application.gradeEntering,
+      value: gradeEntering || "-",
     },
     {
       label: t("enrollmentYear"),
-      value: application.enrollmentYear,
+      value: enrollmentYear || "-",
     },
     {
       label: t("graduationYear"),
-      value: application.graduationYear,
+      value: graduationYear || "-",
     },
     {
       label: t("programOfInterest"),
-      value: application.programOfInterest,
+      value: programOfInterest || "-",
     },
     {
       label: t("boarding"),
-      value: application.interestedInBoarding === "yes" ? t("yes") : t("no"),
+      value: interestedInBoarding === "yes" ? t("yes") : t("no"),
     },
   ];
 
@@ -93,7 +131,9 @@ export function ApplicationOverviewCard({
     <Card>
       <CardContent className="space-y-6">
         <div>
-          <h3 className="text-base font-bold text-foreground mb-3">{t("athleteInfo")}</h3>
+          <h3 className="text-base font-bold text-foreground mb-3">
+            {t("athleteInfo")}
+          </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {athleteRows.map((row, index) => (
               <div key={index} className="flex flex-col gap-2">
@@ -103,18 +143,18 @@ export function ApplicationOverviewCard({
                 <p className="text-sm break-words">{row.value}</p>
               </div>
             ))}
-            {application.highlightsLink && (
+            {highlightsLink && (
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-semibold text-foreground">
                   {t("highlights")}
                 </p>
                 <a
-                  href={application.highlightsLink}
+                  href={highlightsLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:underline break-all"
                 >
-                  {application.highlightsLink}
+                  {highlightsLink}
                 </a>
               </div>
             )}
@@ -122,7 +162,9 @@ export function ApplicationOverviewCard({
         </div>
 
         <div>
-          <h3 className="text-base font-bold text-foreground mb-3">{t("programInfo")}</h3>
+          <h3 className="text-base font-bold text-foreground mb-3">
+            {t("programInfo")}
+          </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {programRows.map((row, index) => (
               <div key={index} className="flex flex-col gap-2">

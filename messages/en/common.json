@@ -48,7 +48,11 @@
     "type": "Type",
     "location": "Location",
     "clubs": "Clubs",
-    "status": "Status"
+    "status": "Status",
+    "mismatch": {
+      "title": "Organization not available",
+      "description": "You don't have access to the organization \"{organization}\". Please select an organization you belong to."
+    }
   },
   "organizationType": {
     "league": "League",

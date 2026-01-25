@@ -1,9 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Phone, Users } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import type { Application } from "@/lib/applications/types";
+import { getFormField } from "@/lib/applications/types";
 
 interface ApplicationParentsCardProps {
   application: Application;
@@ -14,46 +14,78 @@ export function ApplicationParentsCard({
 }: ApplicationParentsCardProps) {
   const t = useTranslations("Applications.detail");
 
+  const { formData } = application;
+  const parent1FirstName = getFormField(
+    formData,
+    "parents",
+    "parent1FirstName",
+  );
+  const parent1LastName = getFormField(formData, "parents", "parent1LastName");
+  const parent1Relationship = getFormField(
+    formData,
+    "parents",
+    "parent1Relationship",
+  );
+  const parent1Email = getFormField(formData, "parents", "parent1Email");
+  const parent1Telephone = getFormField(
+    formData,
+    "parents",
+    "parent1Telephone",
+  );
+  const parent2FirstName = getFormField(
+    formData,
+    "parents",
+    "parent2FirstName",
+  );
+  const parent2LastName = getFormField(formData, "parents", "parent2LastName");
+  const parent2Relationship = getFormField(
+    formData,
+    "parents",
+    "parent2Relationship",
+  );
+  const parent2Email = getFormField(formData, "parents", "parent2Email");
+  const parent2Telephone = getFormField(
+    formData,
+    "parents",
+    "parent2Telephone",
+  );
+
   const parent1Rows = [
     {
-      icon: <User className="h-4 w-4 text-primary" />,
       label: t("fullName"),
-      value: `${application.parent1FirstName} ${application.parent1LastName}`,
+      value: `${parent1FirstName} ${parent1LastName}`.trim() || "-",
     },
     {
-      icon: <Users className="h-4 w-4 text-primary" />,
       label: t("relationship"),
-      value: application.parent1Relationship,
+      value: parent1Relationship || "-",
     },
     {
-      icon: <Mail className="h-4 w-4 text-primary" />,
       label: t("email"),
-      value: application.parent1Email,
+      value: parent1Email || "-",
     },
     {
-      icon: <Phone className="h-4 w-4 text-primary" />,
       label: t("phone"),
-      value: application.parent1Telephone,
+      value: parent1Telephone || "-",
     },
   ];
 
-  const parent2Rows = application.parent2FirstName
+  const parent2Rows = parent2FirstName
     ? [
         {
           label: t("fullName"),
-          value: `${application.parent2FirstName} ${application.parent2LastName}`,
+          value: `${parent2FirstName} ${parent2LastName}`.trim() || "-",
         },
         {
           label: t("relationship"),
-          value: application.parent2Relationship || "-",
+          value: parent2Relationship || "-",
         },
         {
           label: t("email"),
-          value: application.parent2Email || "-",
+          value: parent2Email || "-",
         },
         {
           label: t("phone"),
-          value: application.parent2Telephone || "-",
+          value: parent2Telephone || "-",
         },
       ]
     : null;
@@ -61,9 +93,13 @@ export function ApplicationParentsCard({
   return (
     <Card>
       <CardContent className="space-y-6">
-        <h3 className="text-base font-bold text-foreground">{t("parentsInfo")}</h3>
+        <h3 className="text-base font-bold text-foreground">
+          {t("parentsInfo")}
+        </h3>
         <div>
-          <h4 className="text-base font-bold text-foreground mb-3">{t("parent1")}</h4>
+          <h4 className="text-base font-bold text-foreground mb-3">
+            {t("parent1")}
+          </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {parent1Rows.map((row, index) => (
               <div key={index} className="flex flex-col gap-2">
@@ -80,7 +116,9 @@ export function ApplicationParentsCard({
 
         {parent2Rows && (
           <div>
-            <h4 className="text-base font-bold text-foreground mb-3">{t("parent2")}</h4>
+            <h4 className="text-base font-bold text-foreground mb-3">
+              {t("parent2")}
+            </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {parent2Rows.map((row, index) => (
                 <div key={index} className="flex flex-col gap-2">

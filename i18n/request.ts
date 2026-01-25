@@ -15,7 +15,6 @@ async function loadMessages(locale: string) {
     import(`../messages/${locale}/settings.json`),
     import(`../messages/${locale}/forms.json`),
     import(`../messages/${locale}/admin.json`),
-    import(`../messages/${locale}/sports.json`),
     import(`../messages/${locale}/preadmission.json`),
     import(`../messages/${locale}/applications.json`),
   ]);
@@ -26,9 +25,8 @@ async function loadMessages(locale: string) {
     { Settings: modules[2].default },
     { Forms: modules[3].default },
     { Admin: modules[4].default },
-    { Sports: modules[5].default },
-    { preadmission: modules[6].default },
-    { Applications: modules[7].default },
+    { preadmission: modules[5].default },
+    { Applications: modules[6].default },
   ]) as Record<string, unknown>;
 }
 

@@ -1,57 +1,40 @@
+import type { Id } from "@/convex/_generated/dataModel";
+
+export type ApplicationStatus =
+  | "pending"
+  | "reviewing"
+  | "pre-admitted"
+  | "admitted"
+  | "denied";
+
+export type FormData = Record<
+  string,
+  Record<string, string | number | boolean | null>
+>;
+
 export interface Application {
-  _id: string;
+  _id: Id<"applications">;
+  _creationTime: number;
+  userId: Id<"users">;
+  organizationId: Id<"organizations">;
+  formTemplateId: Id<"formTemplates">;
+  formTemplateVersion: number;
   applicationCode: string;
-  status: "pending" | "approved" | "rejected" | "under_review";
-  userId: string;
-  organizationSlug: string;
-  createdAt: string;
-  updatedAt: string;
-  format: string;
-  program: string;
-  enrollmentYear: string;
-  graduationYear: string;
-  firstName: string;
-  lastName: string;
-  sex: string;
-  height: string;
-  birthDate: string;
-  email: string;
-  telephone: string;
-  countryOfBirth: string;
-  countryOfCitizenship: string;
-  highlightsLink: string;
-  gradeEntering: string;
-  programOfInterest: string;
-  needsI20: string;
-  country: string;
-  state: string;
-  city: string;
-  streetAddress: string;
-  zipCode: string;
-  currentSchoolName: string;
-  currentSchoolType: string;
-  currentGPA: string;
-  schoolAddress: string;
-  schoolCity: string;
-  schoolCountry: string;
-  schoolState: string;
-  schoolZipCode: string;
-  referenceFullName: string;
-  referencePhone: string;
-  referenceRelationship: string;
-  parent1FirstName: string;
-  parent1LastName: string;
-  parent1Relationship: string;
-  parent1Email: string;
-  parent1Telephone: string;
-  parent2FirstName: string;
-  parent2LastName: string;
-  parent2Relationship: string;
-  parent2Email: string;
-  parent2Telephone: string;
-  personSubmitting: string;
-  howDidYouHear: string;
-  interestedInBoarding: string;
-  profilePictureUrl?: string;
-  message: string;
+  status: ApplicationStatus;
+  formData: FormData;
+  reviewedBy?: Id<"users">;
+  reviewedAt?: number;
+}
+
+/**
+ * Helper to get a field value from formData.
+ * formData structure: { sectionKey: { fieldKey: value } }
+ */
+export function getFormField(
+  formData: FormData,
+  sectionKey: string,
+  fieldKey: string,
+): string {
+  const value = formData[sectionKey]?.[fieldKey];
+  return value != null ? String(value) : "";
 }

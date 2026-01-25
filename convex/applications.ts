@@ -1,6 +1,11 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getCurrentUser, requireAdmin } from "./lib/auth";
+import { getCurrentUser } from "./lib/auth";
+import {
+  requireOrgAdmin,
+  requireOrgAccess,
+  hasOrgAdminAccess,
+} from "./lib/permissions";
 import { formDataValidator, applicationStatus } from "./lib/validators";
 
 const applicationValidator = v.object({
@@ -27,6 +32,249 @@ function generateApplicationCode(): string {
 }
 
 /**
+ * Default form template sections for pre-admission.
+ */
+const DEFAULT_FORM_SECTIONS = [
+  {
+    key: "athlete",
+    label: "Athlete Information",
+    order: 1,
+    fields: [
+      { key: "firstName", label: "First Name", type: "text", required: true },
+      { key: "lastName", label: "Last Name", type: "text", required: true },
+      { key: "email", label: "Email", type: "email", required: true },
+      { key: "telephone", label: "Phone", type: "tel", required: true },
+      { key: "birthDate", label: "Birth Date", type: "date", required: true },
+      { key: "sex", label: "Sex", type: "select", required: true },
+      { key: "height", label: "Height", type: "text", required: false },
+      {
+        key: "countryOfBirth",
+        label: "Country of Birth",
+        type: "select",
+        required: true,
+      },
+      {
+        key: "citizenship",
+        label: "Citizenship",
+        type: "select",
+        required: true,
+      },
+      {
+        key: "highlightsUrl",
+        label: "Highlights URL",
+        type: "url",
+        required: false,
+      },
+    ],
+  },
+  {
+    key: "program",
+    label: "Program Information",
+    order: 2,
+    fields: [
+      { key: "format", label: "Format", type: "select", required: true },
+      { key: "program", label: "Program", type: "select", required: true },
+      {
+        key: "enrollmentYear",
+        label: "Enrollment Year",
+        type: "select",
+        required: true,
+      },
+      {
+        key: "graduationYear",
+        label: "Graduation Year",
+        type: "select",
+        required: true,
+      },
+      {
+        key: "gradeEntering",
+        label: "Grade Entering",
+        type: "select",
+        required: true,
+      },
+      {
+        key: "programOfInterest",
+        label: "Program of Interest",
+        type: "select",
+        required: false,
+      },
+      {
+        key: "interestedInBoarding",
+        label: "Interested in Boarding",
+        type: "checkbox",
+        required: false,
+      },
+    ],
+  },
+  {
+    key: "address",
+    label: "Address",
+    order: 3,
+    fields: [
+      { key: "country", label: "Country", type: "select", required: true },
+      { key: "state", label: "State", type: "text", required: true },
+      { key: "city", label: "City", type: "text", required: true },
+      {
+        key: "streetAddress",
+        label: "Street Address",
+        type: "text",
+        required: true,
+      },
+      { key: "zipCode", label: "Zip Code", type: "text", required: true },
+    ],
+  },
+  {
+    key: "school",
+    label: "School Information",
+    order: 4,
+    fields: [
+      {
+        key: "currentSchoolName",
+        label: "Current School Name",
+        type: "text",
+        required: true,
+      },
+      {
+        key: "schoolType",
+        label: "School Type",
+        type: "select",
+        required: true,
+      },
+      {
+        key: "schoolCountry",
+        label: "School Country",
+        type: "select",
+        required: true,
+      },
+      {
+        key: "schoolState",
+        label: "School State",
+        type: "text",
+        required: false,
+      },
+      {
+        key: "schoolCity",
+        label: "School City",
+        type: "text",
+        required: false,
+      },
+      {
+        key: "currentGPA",
+        label: "Current GPA",
+        type: "text",
+        required: false,
+      },
+      {
+        key: "referenceName",
+        label: "Reference Name",
+        type: "text",
+        required: false,
+      },
+      {
+        key: "referencePhone",
+        label: "Reference Phone",
+        type: "tel",
+        required: false,
+      },
+      {
+        key: "referenceRelationship",
+        label: "Reference Relationship",
+        type: "text",
+        required: false,
+      },
+    ],
+  },
+  {
+    key: "parents",
+    label: "Parents/Guardians",
+    order: 5,
+    fields: [
+      {
+        key: "parent1FirstName",
+        label: "Parent 1 First Name",
+        type: "text",
+        required: true,
+      },
+      {
+        key: "parent1LastName",
+        label: "Parent 1 Last Name",
+        type: "text",
+        required: true,
+      },
+      {
+        key: "parent1Relationship",
+        label: "Parent 1 Relationship",
+        type: "select",
+        required: true,
+      },
+      {
+        key: "parent1Email",
+        label: "Parent 1 Email",
+        type: "email",
+        required: true,
+      },
+      {
+        key: "parent1Telephone",
+        label: "Parent 1 Phone",
+        type: "tel",
+        required: true,
+      },
+      {
+        key: "parent2FirstName",
+        label: "Parent 2 First Name",
+        type: "text",
+        required: false,
+      },
+      {
+        key: "parent2LastName",
+        label: "Parent 2 Last Name",
+        type: "text",
+        required: false,
+      },
+      {
+        key: "parent2Relationship",
+        label: "Parent 2 Relationship",
+        type: "select",
+        required: false,
+      },
+      {
+        key: "parent2Email",
+        label: "Parent 2 Email",
+        type: "email",
+        required: false,
+      },
+      {
+        key: "parent2Telephone",
+        label: "Parent 2 Phone",
+        type: "tel",
+        required: false,
+      },
+    ],
+  },
+  {
+    key: "additional",
+    label: "Additional Information",
+    order: 6,
+    fields: [
+      {
+        key: "personSubmitting",
+        label: "Person Submitting",
+        type: "select",
+        required: true,
+      },
+      {
+        key: "howDidYouHear",
+        label: "How Did You Hear About Us",
+        type: "select",
+        required: true,
+      },
+      { key: "needsI20", label: "Needs I-20", type: "select", required: true },
+      { key: "message", label: "Message", type: "textarea", required: false },
+    ],
+  },
+];
+
+/**
  * Submit a new application (authenticated user).
  */
 export const submit = mutation({
@@ -39,18 +287,12 @@ export const submit = mutation({
     applicationCode: v.string(),
   }),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
+    const { user, organization } = await requireOrgAccess(
+      ctx,
+      args.organizationSlug,
+    );
 
-    const organization = await ctx.db
-      .query("organizations")
-      .withIndex("bySlug", (q) => q.eq("slug", args.organizationSlug))
-      .unique();
-
-    if (!organization) {
-      throw new Error("Organization not found");
-    }
-
-    const template = await ctx.db
+    let template = await ctx.db
       .query("formTemplates")
       .withIndex("byOrganization", (q) =>
         q.eq("organizationId", organization._id),
@@ -58,8 +300,21 @@ export const submit = mutation({
       .filter((q) => q.eq(q.field("isPublished"), true))
       .first();
 
+    // Auto-create default form template if none exists
     if (!template) {
-      throw new Error("No published form template found for this organization");
+      const templateId = await ctx.db.insert("formTemplates", {
+        organizationId: organization._id,
+        version: 1,
+        name: "Pre-admission Form",
+        description: "Default pre-admission application form",
+        mode: "base",
+        sections: DEFAULT_FORM_SECTIONS,
+        isPublished: true,
+      });
+      template = await ctx.db.get(templateId);
+      if (!template) {
+        throw new Error("Failed to create form template");
+      }
     }
 
     const applicationCode = generateApplicationCode();
@@ -111,6 +366,7 @@ export const listMine = query({
 
 /**
  * Get applications by organization (admin only).
+ * Returns empty array if organization doesn't exist (handles deleted orgs gracefully).
  */
 export const listByOrganization = query({
   args: {
@@ -119,34 +375,35 @@ export const listByOrganization = query({
   },
   returns: v.array(applicationValidator),
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
-
+    // Find the organization first
     const organization = await ctx.db
       .query("organizations")
       .withIndex("bySlug", (q) => q.eq("slug", args.organizationSlug))
       .unique();
 
+    // Return empty array if org doesn't exist (handles deleted orgs gracefully)
     if (!organization) {
       return [];
     }
 
-    const templates = await ctx.db
-      .query("formTemplates")
-      .withIndex("byOrganization", (q) =>
+    // Check admin access
+    const user = await getCurrentUser(ctx);
+    const isAdmin = await hasOrgAdminAccess(ctx, user._id, organization._id);
+    if (!isAdmin) {
+      return [];
+    }
+
+    const query = ctx.db
+      .query("applications")
+      .withIndex("byOrganizationId", (q) =>
         q.eq("organizationId", organization._id),
       )
-      .collect();
+      .order("desc");
 
-    const templateIds = new Set(templates.map((t) => t._id));
-
-    let applications = await ctx.db.query("applications").order("desc").collect();
-
-    applications = applications.filter((app) =>
-      templateIds.has(app.formTemplateId),
-    );
+    const applications = await query.collect();
 
     if (args.status) {
-      applications = applications.filter((app) => app.status === args.status);
+      return applications.filter((app) => app.status === args.status);
     }
 
     return applications;
@@ -156,7 +413,7 @@ export const listByOrganization = query({
 /**
  * Get a single application by ID.
  * User can only access their own applications.
- * Admins can access any application.
+ * Admins can access any application in their organization.
  */
 export const getById = query({
   args: { applicationId: v.id("applications") },
@@ -169,15 +426,19 @@ export const getById = query({
       return null;
     }
 
-    const userRole = await ctx.db
-      .query("userRoleAssigments")
-      .withIndex("byUserId", (q) => q.eq("userId", user._id))
-      .first();
+    // Owner can always access
+    if (application.userId === user._id) {
+      return application;
+    }
 
-    const isAdmin =
-      userRole?.role === "Admin" || userRole?.role === "SuperAdmin";
+    // Check admin access
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      application.organizationId,
+    );
 
-    if (application.userId !== user._id && !isAdmin) {
+    if (!isAdmin) {
       throw new Error("Unauthorized: Cannot access this application");
     }
 
@@ -205,18 +466,20 @@ export const getByCode = query({
       return null;
     }
 
-    if (application.userId !== user._id) {
-      const userRole = await ctx.db
-        .query("userRoleAssigments")
-        .withIndex("byUserId", (q) => q.eq("userId", user._id))
-        .first();
+    // Owner can always access
+    if (application.userId === user._id) {
+      return application;
+    }
 
-      const isAdmin =
-        userRole?.role === "Admin" || userRole?.role === "SuperAdmin";
+    // Check admin access
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      application.organizationId,
+    );
 
-      if (!isAdmin) {
-        throw new Error("Unauthorized: Cannot access this application");
-      }
+    if (!isAdmin) {
+      throw new Error("Unauthorized: Cannot access this application");
     }
 
     return application;
@@ -233,16 +496,27 @@ export const updateStatus = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const admin = await requireAdmin(ctx);
-
+    const user = await getCurrentUser(ctx);
     const application = await ctx.db.get(args.applicationId);
+
     if (!application) {
       throw new Error("Application not found");
     }
 
+    // Check admin access
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      application.organizationId,
+    );
+
+    if (!isAdmin) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
     await ctx.db.patch(args.applicationId, {
       status: args.status,
-      reviewedBy: admin._id,
+      reviewedBy: user._id,
       reviewedAt: Date.now(),
     });
 
@@ -282,6 +556,7 @@ export const getWithTemplate = query({
         name: v.string(),
         slug: v.string(),
       }),
+      isAdmin: v.boolean(),
     }),
     v.null(),
   ),
@@ -293,15 +568,14 @@ export const getWithTemplate = query({
       return null;
     }
 
-    const userRole = await ctx.db
-      .query("userRoleAssigments")
-      .withIndex("byUserId", (q) => q.eq("userId", user._id))
-      .first();
+    const isOwner = application.userId === user._id;
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      application.organizationId,
+    );
 
-    const isAdmin =
-      userRole?.role === "Admin" || userRole?.role === "SuperAdmin";
-
-    if (application.userId !== user._id && !isAdmin) {
+    if (!isOwner && !isAdmin) {
       throw new Error("Unauthorized");
     }
 
@@ -327,6 +601,7 @@ export const getWithTemplate = query({
         name: organization.name,
         slug: organization.slug,
       },
+      isAdmin,
     };
   },
 });

@@ -18,7 +18,13 @@ export const ROUTES = {
     signUp: "/sign-up",
   },
 
-  onboarding: "/onboarding",
+  tenant: {
+    auth: {
+      signIn: (orgSlug: string) => `/${orgSlug}/sign-in`,
+      signUp: (orgSlug: string) => `/${orgSlug}/sign-up`,
+    },
+    onboarding: (orgSlug: string) => `/${orgSlug}/onboarding`,
+  },
 
   admin: {
     root: "/admin",
@@ -61,7 +67,7 @@ export const ROUTES = {
       list: (orgSlug: string) => `/${orgSlug}/applications`,
       detail: (orgSlug: string, applicationId: string) =>
         `/${orgSlug}/applications/${applicationId}`,
-      create: (orgSlug: string) => `/${orgSlug}/applications/create`,
+      create: (orgSlug: string) => `/${orgSlug}/preadmission`,
     },
 
     members: {

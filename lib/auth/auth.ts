@@ -1,18 +1,9 @@
-import type { auth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 
-export type Auth = Awaited<ReturnType<typeof auth>>;
-
-export function isSuperAdmin(authObject: Auth): boolean {
-  const metadata = authObject.sessionClaims?.metadata as
-    | { isSuperAdmin?: boolean }
-    | undefined;
-  return metadata?.isSuperAdmin === true;
-}
-
-export function getActiveOrgSlug(authObject: Auth): string | null {
-  return authObject.orgSlug ?? null;
-}
-
-export function getActiveOrgRole(authObject: Auth): string | null {
-  return authObject.orgRole ?? null;
+/**
+ * Get the Convex auth token for server-side requests.
+ * Used with preloadQuery, fetchQuery, fetchMutation, etc.
+ */
+export async function getAuthToken() {
+  return (await (await auth()).getToken({ template: "convex" })) ?? undefined;
 }

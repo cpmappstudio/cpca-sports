@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircleIcon } from "@heroicons/react/20/solid";
-import Image from "next/image";
 
 interface SuccessMessageProps {
   applicationCode: string;
@@ -27,22 +26,14 @@ export function SuccessMessage({
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl sm:text-3xl font-bold">
-                {t("title")}
-              </h2>
+              <h2 className="text-2xl sm:text-3xl font-bold">{t("title")}</h2>
               <p className="text-muted-foreground">{t("thanks")}</p>
             </div>
 
             <div className="space-y-4 max-w-lg">
-              <p className="text-sm leading-relaxed">
-                {t("message")}
-              </p>
-              <p className="text-sm leading-relaxed">
-                {t("purpose")}
-              </p>
-              <p className="text-sm leading-relaxed">
-                {t("response")}
-              </p>
+              <p className="text-sm leading-relaxed">{t("message")}</p>
+              <p className="text-sm leading-relaxed">{t("purpose")}</p>
+              <p className="text-sm leading-relaxed">{t("response")}</p>
               <div className="pt-2">
                 <p className="text-sm font-semibold">{t("blessings")}</p>
                 <p className="text-sm font-medium">{t("founders.mrs")}</p>

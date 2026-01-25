@@ -1,9 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Home } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import type { Application } from "@/lib/applications/types";
+import { getFormField } from "@/lib/applications/types";
 
 interface ApplicationAddressCardProps {
   application: Application;
@@ -14,43 +14,42 @@ export function ApplicationAddressCard({
 }: ApplicationAddressCardProps) {
   const t = useTranslations("Applications.detail");
 
-  const fullAddress = [
-    application.streetAddress,
-    application.city,
-    application.state,
-    application.zipCode,
-    application.country,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const { formData } = application;
+  const country = getFormField(formData, "address", "country");
+  const state = getFormField(formData, "address", "state");
+  const city = getFormField(formData, "address", "city");
+  const streetAddress = getFormField(formData, "address", "streetAddress");
+  const zipCode = getFormField(formData, "address", "zipCode");
 
   const rows = [
     {
       label: t("country"),
-      value: application.country,
+      value: country || "-",
     },
     {
       label: t("state"),
-      value: application.state,
+      value: state || "-",
     },
     {
       label: t("city"),
-      value: application.city,
+      value: city || "-",
     },
     {
       label: t("streetAddress"),
-      value: application.streetAddress,
+      value: streetAddress || "-",
     },
     {
       label: t("zipCode"),
-      value: application.zipCode,
+      value: zipCode || "-",
     },
   ];
 
   return (
     <Card>
       <CardContent className="space-y-6">
-        <h3 className="text-base font-bold text-foreground">{t("addressInfo")}</h3>
+        <h3 className="text-base font-bold text-foreground">
+          {t("addressInfo")}
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {rows.map((row, index) => (
             <div key={index} className="flex flex-col gap-2">

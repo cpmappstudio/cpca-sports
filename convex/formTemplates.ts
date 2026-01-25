@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { requireAdmin } from "./lib/auth";
+import { getCurrentUser } from "./lib/auth";
+import { hasOrgAdminAccess } from "./lib/permissions";
 
 const sectionValidator = v.object({
   key: v.string(),
@@ -97,7 +98,13 @@ export const create = mutation({
   },
   returns: v.id("formTemplates"),
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const user = await getCurrentUser(ctx);
+
+    // Check if user has admin access to this organization
+    const isAdmin = await hasOrgAdminAccess(ctx, user._id, args.organizationId);
+    if (!isAdmin) {
+      throw new Error("Admin access required");
+    }
 
     const existingTemplates = await ctx.db
       .query("formTemplates")
@@ -137,11 +144,20 @@ export const update = mutation({
   },
   returns: v.id("formTemplates"),
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
-
+    const user = await getCurrentUser(ctx);
     const template = await ctx.db.get(args.templateId);
     if (!template) {
       throw new Error("Template not found");
+    }
+
+    // Check admin access
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      template.organizationId,
+    );
+    if (!isAdmin) {
+      throw new Error("Admin access required");
     }
 
     if (template.isPublished) {
@@ -176,11 +192,20 @@ export const publish = mutation({
   args: { templateId: v.id("formTemplates") },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
-
+    const user = await getCurrentUser(ctx);
     const template = await ctx.db.get(args.templateId);
     if (!template) {
       throw new Error("Template not found");
+    }
+
+    // Check admin access
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      template.organizationId,
+    );
+    if (!isAdmin) {
+      throw new Error("Admin access required");
     }
 
     const publishedTemplates = await ctx.db

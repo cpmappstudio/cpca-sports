@@ -1,10 +1,10 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-const roles = v.union(
-  v.literal("SuperAdmin"),
-  v.literal("Admin"),
-  v.literal("Member"),
+const orgMemberRole = v.union(
+  v.literal("superadmin"),
+  v.literal("admin"),
+  v.literal("member"),
 );
 
 const mode = v.union(v.literal("base"), v.literal("custom"));
@@ -24,23 +24,33 @@ export default defineSchema({
     lastName: v.string(),
     email: v.string(),
     isActive: v.boolean(),
+    isSuperAdmin: v.boolean(),
   })
-    .index("byClerkdId", ["clerkId"])
+    .index("byClerkId", ["clerkId"])
     .index("byEmail", ["email"])
     .index("activeUsers", ["isActive"]),
 
-  userRoleAssigments: defineTable({
-    userId: v.id("users"),
-    role: roles,
-  })
-    .index("byUserId", ["userId"])
-    .index("byRole", ["role"]),
-
   organizations: defineTable({
-    organizationId: v.string(),
+    clerkOrgId: v.string(),
     name: v.string(),
     slug: v.string(),
-  }).index("bySlug", ["slug"]),
+    imageUrl: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("byClerkOrgId", ["clerkOrgId"])
+    .index("bySlug", ["slug"]),
+
+  organizationMembers: defineTable({
+    userId: v.id("users"),
+    organizationId: v.id("organizations"),
+    clerkMembershipId: v.string(),
+    role: orgMemberRole,
+    createdAt: v.number(),
+  })
+    .index("byUserId", ["userId"])
+    .index("byOrganization", ["organizationId"])
+    .index("byUserAndOrg", ["userId", "organizationId"])
+    .index("byClerkMembershipId", ["clerkMembershipId"]),
 
   formTemplates: defineTable({
     organizationId: v.id("organizations"),
@@ -84,6 +94,7 @@ export default defineSchema({
     reviewedAt: v.optional(v.number()),
   })
     .index("byUserId", ["userId"])
+    .index("byOrganizationId", ["organizationId"])
     .index("byStatus", ["status"])
     .index("byApplicationCode", ["applicationCode"]),
 });

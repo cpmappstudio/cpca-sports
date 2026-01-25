@@ -10,6 +10,7 @@ import {
 } from "@/components/sections/shell/applications/columns";
 import { ROUTES } from "@/lib/navigation/routes";
 import type { Application } from "@/lib/applications/types";
+import { getFormField } from "@/lib/applications/types";
 
 interface ApplicationsTableProps {
   applications: Application[];
@@ -32,7 +33,7 @@ export function ApplicationsTable({
 
   const handleRowClick = (application: Application) => {
     router.push(
-      ROUTES.org.applications.detail(organizationSlug, application._id)
+      ROUTES.org.applications.detail(organizationSlug, application._id),
     );
   };
 
@@ -45,7 +46,7 @@ export function ApplicationsTable({
         const csv = convertToCSV(rows, t);
         downloadCSV(
           csv,
-          `applications-${organizationSlug}-${new Date().toISOString().split("T")[0]}.csv`
+          `applications-${organizationSlug}-${new Date().toISOString().split("T")[0]}.csv`,
         );
       }
     : undefined;
@@ -54,16 +55,14 @@ export function ApplicationsTable({
     <DataTable
       data={applications}
       columns={isAdmin ? adminColumns : clientColumns}
-      filterColumn="firstName"
+      filterColumn="athlete"
       filterPlaceholder={t("searchPlaceholder")}
-      emptyMessage={
-        isAdmin ? t("emptyMessageAdmin") : t("emptyMessageClient")
-      }
+      emptyMessage={isAdmin ? t("emptyMessageAdmin") : t("emptyMessageClient")}
       columnsMenuLabel={tTable("columns")}
       exportButtonLabel={tActions("export")}
       filtersMenuLabel={tTable("filters")}
       filterConfigs={isAdmin ? filters : undefined}
-      initialSorting={[{ id: "createdAt", desc: true }]}
+      initialSorting={[{ id: "_creationTime", desc: true }]}
       onCreate={!isAdmin ? handleCreate : undefined}
       onExport={handleExport}
       onRowClick={handleRowClick}
@@ -73,7 +72,7 @@ export function ApplicationsTable({
 
 function convertToCSV(
   data: Application[],
-  t: ReturnType<typeof useTranslations<"Applications">>
+  t: ReturnType<typeof useTranslations<"Applications">>,
 ): string {
   if (data.length === 0) return "";
 
@@ -96,29 +95,32 @@ function convertToCSV(
     "Fecha Creación",
   ];
 
-  const rows = data.map((app) => [
-    app.applicationCode,
-    app.status,
-    app.firstName,
-    app.lastName,
-    app.email,
-    app.telephone,
-    app.program,
-    app.gradeEntering,
-    app.birthDate,
-    app.countryOfBirth,
-    app.currentSchoolName,
-    app.currentGPA,
-    `${app.parent1FirstName} ${app.parent1LastName}`,
-    app.parent1Email,
-    app.parent1Telephone,
-    new Date(app.createdAt).toLocaleDateString("es-ES"),
-  ]);
+  const rows = data.map((app) => {
+    const { formData } = app;
+    return [
+      app.applicationCode,
+      app.status,
+      getFormField(formData, "athlete", "firstName"),
+      getFormField(formData, "athlete", "lastName"),
+      getFormField(formData, "athlete", "email"),
+      getFormField(formData, "athlete", "telephone"),
+      getFormField(formData, "athlete", "program"),
+      getFormField(formData, "athlete", "gradeEntering"),
+      getFormField(formData, "athlete", "birthDate"),
+      getFormField(formData, "athlete", "countryOfBirth"),
+      getFormField(formData, "school", "currentSchoolName"),
+      getFormField(formData, "school", "currentGPA"),
+      `${getFormField(formData, "parents", "parent1FirstName")} ${getFormField(formData, "parents", "parent1LastName")}`,
+      getFormField(formData, "parents", "parent1Email"),
+      getFormField(formData, "parents", "parent1Telephone"),
+      new Date(app._creationTime).toLocaleDateString("es-ES"),
+    ];
+  });
 
   const csvContent = [
     headers.join(","),
     ...rows.map((row) =>
-      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
     ),
   ].join("\n");
 
