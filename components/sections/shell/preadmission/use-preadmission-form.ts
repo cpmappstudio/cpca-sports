@@ -3,6 +3,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { STEPS, type StepId } from "./steps/steps-navigation";
 import type { FormData as ConvexFormData } from "@/lib/applications/types";
+import { COUNTRIES } from "@/lib/countries/countries";
 
 export interface FormData {
   format: string;
@@ -60,6 +61,14 @@ interface UsePreadmissionFormOptions {
 }
 
 /**
+ * Convert country code to full country name.
+ */
+function getCountryName(countryCode: string): string {
+  const country = COUNTRIES.find((c) => c.value === countryCode);
+  return country ? country.label : countryCode;
+}
+
+/**
  * Convert flat form data to sectioned format for Convex.
  */
 function convertToConvexFormData(data: FormData): ConvexFormData {
@@ -76,8 +85,8 @@ function convertToConvexFormData(data: FormData): ConvexFormData {
       birthDate: data.birthDate,
       email: data.email,
       telephone: data.telephone,
-      countryOfBirth: data.countryOfBirth,
-      countryOfCitizenship: data.countryOfCitizenship,
+      countryOfBirth: getCountryName(data.countryOfBirth),
+      countryOfCitizenship: getCountryName(data.countryOfCitizenship),
       highlightsLink: data.highlightsLink,
       gradeEntering: data.gradeEntering,
       programOfInterest: data.programOfInterest,
@@ -96,7 +105,7 @@ function convertToConvexFormData(data: FormData): ConvexFormData {
       currentGPA: data.currentGPA,
       schoolAddress: data.schoolAddress,
       schoolCity: data.schoolCity,
-      schoolCountry: data.schoolCountry,
+      schoolCountry: getCountryName(data.schoolCountry),
       schoolState: data.schoolState,
       schoolZipCode: data.schoolZipCode,
       referenceFullName: data.referenceFullName,

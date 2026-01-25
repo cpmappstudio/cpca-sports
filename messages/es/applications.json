@@ -9,6 +9,12 @@
   "emptyMessageAdmin": "No hay solicitudes registradas",
   "emptyMessageClient": "No has realizado solicitudes aún",
   "athlete": "Atleta",
+  "fullName": "Nombre Completo",
+  "country": "País",
+  "birth": "Nacimiento",
+  "citizenship": "Ciudadanía",
+  "graduationYear": "Graduación",
+  "visaStatus": "Visa",
   "parent": "Tutor",
   "guardian": "Tutor",
   "date": "Fecha",
@@ -91,7 +97,7 @@
     "country": "País",
     "submittedBy": "Enviado Por",
     "howDidYouHear": "Cómo Nos Conociste",
-    "needsI20": "Necesita I-20",
+    "needsI20": "Necesita I-20?",
     "submittedAt": "Enviado El",
     "message": "Mensaje Adicional"
   }

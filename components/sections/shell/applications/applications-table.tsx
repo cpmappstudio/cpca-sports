@@ -55,7 +55,7 @@ export function ApplicationsTable({
     <DataTable
       data={applications}
       columns={isAdmin ? adminColumns : clientColumns}
-      filterColumn="athlete"
+      filterColumn="fullName"
       filterPlaceholder={t("searchPlaceholder")}
       emptyMessage={isAdmin ? t("emptyMessageAdmin") : t("emptyMessageClient")}
       columnsMenuLabel={tTable("columns")}

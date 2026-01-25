@@ -26,7 +26,8 @@
   "navigation": {
     "back": "Back",
     "next": "Next Step",
-    "submit": "Submit Application"
+    "submit": "Submit Application",
+    "submitting": "Submitting Application"
   },
   "athlete": {
     "format": "Format",

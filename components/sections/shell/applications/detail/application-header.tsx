@@ -246,7 +246,7 @@ export function ApplicationHeader({
             <hr />
             <div className="flex items-center gap-2">
               <IdCard className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">I-20:</span>
+              <span className="font-semibold text-foreground">{t("needsI20")}:</span>
               <span className="text-muted-foreground">
                 {needsI20 === "yes" ? t("yes") : t("no")}
               </span>

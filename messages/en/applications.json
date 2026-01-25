@@ -9,6 +9,12 @@
   "emptyMessageAdmin": "No applications registered",
   "emptyMessageClient": "You haven't submitted any applications yet",
   "athlete": "Athlete",
+  "fullName": "Full Name",
+  "country": "Country",
+  "birth": "Birth",
+  "citizenship": "Citizen",
+  "graduationYear": "Graduation",
+  "visaStatus": "Visa",
   "parent": "Parent",
   "guardian": "Guardian",
   "date": "Date",
@@ -29,18 +35,6 @@
     "volleyball": "Volleyball",
     "baseball": "Baseball",
     "tennis": "Tennis"
-  },
-  "tabs": {
-    "application": "Application",
-    "payments": "Payments",
-    "documents": "Documents"
-  },
-  "sections": {
-    "athlete": "Athlete",
-    "address": "Address",
-    "school": "School",
-    "parents": "Parents",
-    "general": "General"
   },
   "tabs": {
     "application": "Application",
@@ -103,7 +97,7 @@
     "country": "Country",
     "submittedBy": "Submitted By",
     "howDidYouHear": "How Did You Hear About Us",
-    "needsI20": "Needs I-20",
+    "needsI20": "Needs I-20?",
     "submittedAt": "Submitted At",
     "message": "Additional Message"
   }

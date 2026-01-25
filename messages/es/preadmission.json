@@ -26,7 +26,8 @@
   "navigation": {
     "back": "Atrás",
     "next": "Siguiente Paso",
-    "submit": "Enviar Solicitud"
+    "submit": "Enviar Solicitud",
+    "submitting": "Enviando Solicitud"
   },
   "athlete": {
     "format": "Formato",
