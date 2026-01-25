@@ -10,6 +10,7 @@ export const COLOR_SCHEMES = [
   "doom64",
   "clean-slate",
   "twitter",
+  "cpca",
 ] as const;
 
 export type ColorScheme = (typeof COLOR_SCHEMES)[number];
@@ -107,5 +108,13 @@ export const COLOR_SCHEME_REGISTRY: Record<ColorScheme, ColorSchemeConfig> = {
       dark: "oklch(0.6692 0.1607 245.0110)",
     },
     font: `var(${FONT_VARIABLES.openSans}), 'Open Sans', sans-serif`,
+  },
+  cpca: {
+    name: "cpca",
+    label: "CPCA",
+    preview: {
+      light: "oklch(0.4025 0.1539 258.7191)",
+      dark: "oklch(0.8780 0.1660 93.9590)",
+    },
   },
 };

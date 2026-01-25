@@ -27,7 +27,7 @@ export function SidebarHeader({
       {...props}
       className={clsx(
         className,
-        "flex flex-col border-b border-zinc-950/5 p-4 dark:border-white/5 [&>[data-slot=section]+[data-slot=section]]:mt-2.5",
+        "flex flex-col border-b border-sidebar-border p-4 [&>[data-slot=section]+[data-slot=section]]:mt-2.5",
       )}
     />
   );
@@ -57,7 +57,7 @@ export function SidebarFooter({
       {...props}
       className={clsx(
         className,
-        "flex flex-col border-t border-zinc-950/5 p-4 dark:border-white/5 [&>[data-slot=section]+[data-slot=section]]:mt-2.5",
+        "flex flex-col border-t border-sidebar-border p-4 [&>[data-slot=section]+[data-slot=section]]:mt-2.5",
       )}
     />
   );
@@ -89,7 +89,7 @@ export function SidebarDivider({
       {...props}
       className={clsx(
         className,
-        "my-4 border-t border-zinc-950/5 lg:-mx-4 dark:border-white/5",
+        "my-4 border-t border-sidebar-border lg:-mx-4",
       )}
     />
   );
