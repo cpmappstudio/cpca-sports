@@ -66,7 +66,13 @@ export function SidebarAppSidebar() {
           appearance={{
             elements: {
               rootBox: "w-full",
-              organizationSwitcherTrigger: "w-full justify-between",
+              organizationSwitcherTrigger: "w-full justify-between text-left",
+              organizationPreviewMainIdentifier: "text-sidebar-foreground",
+              organizationPreviewSecondaryIdentifier: "text-sidebar-foreground/70",
+              organizationSwitcherTriggerIcon: "text-sidebar-foreground",
+              organizationSwitcherPopoverCard: "bg-popover",
+              organizationSwitcherPopoverActionButton: "hover:bg-accent",
+              organizationSwitcherPopoverActionButtonText: "text-foreground",
             },
           }}
         />
@@ -113,6 +119,8 @@ export function SidebarAppSidebar() {
                 textAlign: "left",
                 maxWidth: "95%",
               },
+              userButtonOuterIdentifier: "text-sidebar-foreground",
+              userButtonTrigger: "text-sidebar-foreground",
             },
           }}
           showName
