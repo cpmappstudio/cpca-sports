@@ -177,8 +177,8 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
         );
         const Icon = getSportIcon(program);
         return (
-          <div className="hidden lg:flex lg:items-center lg:gap-2">
-            <Icon className="h-4 w-4 text-muted-foreground" />
+          <div className="hidden lg:flex lg:items-center lg:gap-2 items-center">
+            <Icon className="h-4 w-4 text-muted-foreground mr-1" />
             <span className="capitalize">{program}</span>
           </div>
         );
@@ -279,12 +279,12 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
         const telephone = getFormField(formData, "parents", "parent1Telephone");
         const email = getFormField(formData, "parents", "parent1Email");
         return (
-          <div className="hidden md:flex md:flex-col font-medium">
-            <div className="hidden md:flex md:flex-row">
+          <div className="hidden md:flex flex-col font-medium">
+            <div className="hidden md:flex md:flex-row items-center">
               <Mail className="h-4 w-4 mr-1" />
               {email}
             </div>
-            <div className="hidden md:flex md:flex-row">
+            <div className="hidden md:flex md:flex-row items-center">
               <Phone className="h-4 w-4 mr-1" />
               {telephone}
             </div>
