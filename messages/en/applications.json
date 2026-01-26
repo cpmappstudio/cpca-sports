@@ -214,5 +214,62 @@
       "registeredBy": "Registered by {name}",
       "registeredByTooltip": "Payment registered by"
     }
+  },
+  "documents": {
+    "title": "Documents",
+    "description": "Upload required documents for this application",
+    "visibility": {
+      "required": "Required",
+      "optional": "Optional",
+      "hidden": "Hidden"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "notUploaded": "Not uploaded"
+    },
+    "actions": {
+      "upload": "Upload file",
+      "replace": "Replace file",
+      "view": "View",
+      "approve": "Approve",
+      "reject": "Reject",
+      "delete": "Delete file",
+      "changeVisibility": "Change visibility",
+      "addDocument": "Add Document",
+      "cancel": "Cancel",
+      "deleteDialog": {
+        "title": "Delete document?",
+        "description": "This will permanently delete this document from the application. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "edit": "Edit",
+      "deleteType": "Delete",
+      "moreOptions": "More options",
+      "editDialog": {
+        "title": "Edit document type",
+        "save": "Save changes",
+        "saving": "Saving..."
+      },
+      "deleteTypeDialog": {
+        "title": "Delete document type?",
+        "description": "This will permanently delete this custom document type. If a file was uploaded, it will also be deleted. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      }
+    },
+    "form": {
+      "documentName": "Document Name",
+      "documentNamePlaceholder": "Enter document name",
+      "description": "Description (optional)",
+      "descriptionPlaceholder": "Enter description",
+      "required": "Required",
+      "adding": "Adding...",
+      "addButton": "Add Document"
+    },
+    "uploadedBy": "Uploaded on {date} by {name}",
+    "rejectionReason": "Rejection reason"
   }
 }
