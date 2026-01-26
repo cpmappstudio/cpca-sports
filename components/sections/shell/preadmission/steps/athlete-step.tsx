@@ -3,6 +3,8 @@
 import { useTranslations } from "next-intl";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PhotoUpload } from "../photo-upload";
+import { Id } from "@/convex/_generated/dataModel";
 import {
   Select,
   SelectContent,
@@ -31,8 +33,9 @@ interface AthleteStepProps {
     gradeEntering: string;
     programOfInterest: string;
     needsI20: string;
+    photo: Id<"_storage"> | null;
   };
-  onChange: (field: string, value: string) => void;
+  onChange: (field: string, value: string | Id<"_storage"> | null) => void;
   errors?: Record<string, string>;
 }
 
@@ -41,6 +44,15 @@ export function AthleteStep({ formData, onChange, errors }: AthleteStepProps) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <PhotoUpload
+        value={formData.photo}
+        onChange={(storageId) => onChange("photo", storageId)}
+        required
+      />
+      {errors?.photo && (
+        <p className="text-sm text-destructive mt-1">{errors.photo}</p>
+      )}
+
       <FieldGroup>
         <div className="grid gap-4 grid-cols-2">
           <Field>

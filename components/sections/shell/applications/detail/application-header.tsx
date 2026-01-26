@@ -14,6 +14,8 @@ import type { Application, ApplicationStatus } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
 import Image from "next/image";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { ApplicationPhoto } from "../application-photo";
+import { Id } from "@/convex/_generated/dataModel";
 import {
   BookOpen,
   GraduationCap,
@@ -72,6 +74,7 @@ export function ApplicationHeader({
     "general",
     "interestedInBoarding",
   );
+  const photoStorageId = formData.athlete?.photo as Id<"_storage"> | undefined;
 
   const statusMap = {
     pending: { label: tStatus("pending"), variant: "outline" as const },
@@ -111,17 +114,21 @@ export function ApplicationHeader({
       <Card>
         <CardContent>
           <div className="space-y-4">
-            {/* Primera fila: Foto + Nombre + Estado */}
             <div className="flex items-start gap-4">
               <div className="w-20 h-20 shrink-0">
-                <AspectRatio ratio={1} className="bg-muted rounded-lg">
-                  <Image
-                    src="/avatars/avatar-1.png"
+                {photoStorageId ? (
+                  <ApplicationPhoto
+                    storageId={photoStorageId}
                     alt={`${firstName} ${lastName}`}
-                    fill
-                    className="rounded-lg object-cover"
                   />
-                </AspectRatio>
+                ) : (
+                  <div className="w-20 h-20 rounded-md bg-primary flex items-center justify-center">
+                    <span className="text-primary-foreground text-2xl font-semibold">
+                      {firstName.charAt(0).toUpperCase()}
+                      {lastName.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col gap-2 flex-1 min-w-0">
                 <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">

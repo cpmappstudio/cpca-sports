@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "giddy-dog-863.convex.cloud",
+        hostname: "*.convex.cloud",
       },
     ],
   },

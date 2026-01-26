@@ -2,7 +2,6 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getCurrentUser } from "./lib/auth";
 import {
-  requireOrgAdmin,
   requireOrgAccess,
   hasOrgAdminAccess,
 } from "./lib/permissions";
@@ -40,6 +39,7 @@ const DEFAULT_FORM_SECTIONS = [
     label: "Athlete Information",
     order: 1,
     fields: [
+      { key: "photo", label: "Photo", type: "string", required: true },
       { key: "firstName", label: "First Name", type: "text", required: true },
       { key: "lastName", label: "Last Name", type: "text", required: true },
       { key: "email", label: "Email", type: "email", required: true },

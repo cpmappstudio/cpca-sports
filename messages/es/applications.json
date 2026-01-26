@@ -34,7 +34,12 @@
     "soccer": "Soccer",
     "volleyball": "Volleyball",
     "baseball": "Baseball",
-    "tennis": "Tennis"
+    "tennis": "Tennis",
+    "golf": "Golf",
+    "softball": "Softball",
+    "hr14Baseball": "HR14 Baseball",
+    "volleyballClub": "Volleyball Club",
+    "pgBasketball": "PG Basketball"
   },
   "tabs": {
     "application": "Aplicación",

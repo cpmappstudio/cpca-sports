@@ -13,6 +13,8 @@ import { PiVolleyball, PiBaseball } from "react-icons/pi";
 import { IoGolfOutline } from "react-icons/io5";
 import type { IconType } from "react-icons";
 import { Mail, Phone, Check, CircleX } from "lucide-react";
+import { ApplicationPhoto } from "./application-photo";
+import { Id } from "@/convex/_generated/dataModel";
 
 const SPORT_ICONS: Record<string, IconType> = {
   baseball: CiBaseball,
@@ -70,7 +72,7 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
 
       accessorFn: (row) => getFormField(row.formData, "athlete", "firstName"),
       cell: ({ row }) => {
-        const { formData, status } = row.original;
+        const { formData } = row.original;
         const firstName = getFormField(formData, "athlete", "firstName");
         const lastName = getFormField(formData, "athlete", "lastName");
         const program = getFormField(formData, "athlete", "program");
@@ -94,27 +96,45 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
         const needsI20 = getFormField(formData, "athlete", "needsI20");
         const hasVisa = needsI20 === "no";
         const Icon = getSportIcon(program);
+        const photoStorageId = formData.athlete?.photo as Id<"_storage"> | undefined;
 
         return (
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="font-medium">
-                {firstName} {lastName}
-              </div>
-              <div className="md:hidden flex items-center gap-1">
-                <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
-                  <a href={`tel:${telephone}`}>
-                    <Phone className="h-2 w-2" />
-                  </a>
-                </Button>
-                <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
-                  <a href={`mailto:${email}`}>
-                    <Mail className="h-2 w-2" />
-                  </a>
-                </Button>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex shrink-0">
+              {photoStorageId ? (
+                <ApplicationPhoto
+                  storageId={photoStorageId}
+                  alt={`${firstName} ${lastName}`}
+                  size="sm"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground text-sm font-semibold">
+                    {firstName.charAt(0).toUpperCase()}
+                    {lastName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
             </div>
-            <div className="lg:hidden flex flex-col gap-0.5 mt-1">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="font-medium">
+                  {firstName} {lastName}
+                </div>
+                <div className="md:hidden flex items-center gap-1">
+                  <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                    <a href={`tel:${telephone}`}>
+                      <Phone className="h-2 w-2" />
+                    </a>
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                    <a href={`mailto:${email}`}>
+                      <Mail className="h-2 w-2" />
+                    </a>
+                  </Button>
+                </div>
+              </div>
+              <div className="lg:hidden flex flex-col gap-0.5 mt-1">
               <div className="inline-flex items-center text-xs">
                 <span className="font-mono uppercase">{t("program")}:</span>
                 <Icon className="ml-1 h-3 w-3 text-muted-foreground" />
@@ -160,6 +180,7 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
                   )}
                 </span>
               </div>
+            </div>
             </div>
           </div>
         );
@@ -364,27 +385,45 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
         const needsI20 = getFormField(formData, "athlete", "needsI20");
         const hasVisa = needsI20 === "no";
         const Icon = getSportIcon(program);
+        const photoStorageId = formData.athlete?.photo as Id<"_storage"> | undefined;
 
         return (
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="font-medium">
-                {firstName} {lastName}
-              </div>
-              <div className="md:hidden flex items-center gap-1">
-                <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
-                  <a href={`tel:${telephone}`}>
-                    <Phone className="h-2 w-2" />
-                  </a>
-                </Button>
-                <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
-                  <a href={`mailto:${email}`}>
-                    <Mail className="h-2 w-2" />
-                  </a>
-                </Button>
-              </div>
+          <div className="flex items-start gap-3">
+            <div className="shrink-0">
+              {photoStorageId ? (
+                <ApplicationPhoto
+                  storageId={photoStorageId}
+                  alt={`${firstName} ${lastName}`}
+                  size="sm"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground text-sm font-semibold">
+                    {firstName.charAt(0).toUpperCase()}
+                    {lastName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
             </div>
-            <div className="lg:hidden flex flex-col gap-0.5 mt-1">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="font-medium">
+                  {firstName} {lastName}
+                </div>
+                <div className="md:hidden flex items-center gap-1">
+                  <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                    <a href={`tel:${telephone}`}>
+                      <Phone className="h-2 w-2" />
+                    </a>
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                    <a href={`mailto:${email}`}>
+                      <Mail className="h-2 w-2" />
+                    </a>
+                  </Button>
+                </div>
+              </div>
+              <div className="lg:hidden flex flex-col gap-0.5 mt-1">
               <div className="inline-flex items-center text-xs">
                 <span className="font-mono uppercase">{t("program")}:</span>
                 <Icon className="ml-1 h-3 w-3 text-muted-foreground" />
@@ -430,6 +469,7 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
                   )}
                 </span>
               </div>
+            </div>
             </div>
           </div>
         );

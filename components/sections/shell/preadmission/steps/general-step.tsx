@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -26,11 +25,6 @@ interface GeneralStepProps {
 
 export function GeneralStep({ formData, onChange, errors }: GeneralStepProps) {
   const t = useTranslations("preadmission.general");
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    onChange("profilePicture", file);
-  };
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -107,25 +101,6 @@ export function GeneralStep({ formData, onChange, errors }: GeneralStepProps) {
               <SelectItem value="no">{t("interestedInBoardingNo")}</SelectItem>
             </SelectContent>
           </Select>
-        </Field>
-      </FieldGroup>
-
-      <FieldGroup>
-        <Field>
-          <FieldLabel>{t("profilePicture")}</FieldLabel>
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="cursor-pointer"
-          />
-          {formData.profilePicture && (
-            <p className="text-sm text-muted-foreground mt-1">
-              {t("profilePictureSelected", {
-                fileName: formData.profilePicture.name,
-              })}
-            </p>
-          )}
         </Field>
       </FieldGroup>
 

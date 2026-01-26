@@ -87,7 +87,13 @@ export default defineSchema({
       v.string(),
       v.record(
         v.string(),
-        v.union(v.string(), v.number(), v.boolean(), v.null()),
+        v.union(
+          v.string(),
+          v.number(),
+          v.boolean(),
+          v.null(),
+          v.id("_storage"),
+        ),
       ),
     ),
     reviewedBy: v.optional(v.id("users")),

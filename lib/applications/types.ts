@@ -9,7 +9,7 @@ export type ApplicationStatus =
 
 export type FormData = Record<
   string,
-  Record<string, string | number | boolean | null>
+  Record<string, string | number | boolean | null | Id<"_storage">>
 >;
 
 export interface Application {

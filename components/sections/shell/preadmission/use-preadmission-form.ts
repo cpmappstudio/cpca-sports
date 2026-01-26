@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { STEPS, type StepId } from "./steps/steps-navigation";
 import type { FormData as ConvexFormData } from "@/lib/applications/types";
 import { COUNTRIES } from "@/lib/countries/countries";
@@ -23,6 +24,7 @@ export interface FormData {
   gradeEntering: string;
   programOfInterest: string;
   needsI20: string;
+  photo: Id<"_storage"> | null;
   country: string;
   state: string;
   city: string;
@@ -74,6 +76,7 @@ function getCountryName(countryCode: string): string {
 function convertToConvexFormData(data: FormData): ConvexFormData {
   return {
     athlete: {
+      photo: data.photo,
       format: data.format,
       program: data.program,
       enrollmentYear: data.enrollmentYear,
@@ -162,6 +165,7 @@ export function usePreadmissionForm({
     gradeEntering: "",
     programOfInterest: "",
     needsI20: "",
+    photo: null,
     country: "",
     state: "",
     city: "",
@@ -196,7 +200,7 @@ export function usePreadmissionForm({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleFieldChange = (field: string, value: string | File | null) => {
+  const handleFieldChange = (field: string, value: string | File | Id<"_storage"> | null) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => {
@@ -236,6 +240,9 @@ export function usePreadmissionForm({
       }
       if (!formData.needsI20) {
         newErrors.needsI20 = "Please select if you need an I-20";
+      }
+      if (!formData.photo) {
+        newErrors.photo = "Photo is required";
       }
     }
 
@@ -403,6 +410,7 @@ export function usePreadmissionForm({
       gradeEntering: "",
       programOfInterest: "",
       needsI20: "",
+      photo: null,
       country: "",
       state: "",
       city: "",
