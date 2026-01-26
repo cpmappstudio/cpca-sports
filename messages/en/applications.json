@@ -58,6 +58,8 @@
     "code": "Code",
     "program": "Program",
     "backToList": "Back to list",
+    "call": "Call",
+    "delete": "Delete",
     "athleteInfo": "Athlete Information",
     "programInfo": "Program Information",
     "schoolInfo": "School Information",
