@@ -164,10 +164,12 @@ export function PaymentActions({
                           className="bg-green-500 hover:bg-green-400"
                           disabled={!hasSelectedFees || isMarkingAsPaid}
                         >
-                          <Banknote className="h-4 w-4 mr-2" />
-                          {isMarkingAsPaid
-                            ? t("actions.markingAsPaid")
-                            : t("actions.markAsPaid")}
+                          <Banknote className="h-4 w-4 md:mr-2" />
+                          <span className="hidden md:inline">
+                            {isMarkingAsPaid
+                              ? t("actions.markingAsPaid")
+                              : t("actions.markAsPaid")}
+                          </span>
                         </Button>
                       </span>
                     </AlertDialogTrigger>
@@ -186,8 +188,13 @@ export function PaymentActions({
                     <AlertDialogTitle>
                       {t("actions.markAsPaidDialog.title")}
                     </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t("actions.markAsPaidDialog.description")}
+                    <AlertDialogDescription asChild>
+                      <div className="space-y-2">
+                        <div>{t("actions.markAsPaidDialog.description")}</div>
+                        <div className="text-muted-foreground text-xs">
+                          {t("actions.markAsPaidDialog.accountability")}
+                        </div>
+                      </div>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -222,8 +229,10 @@ export function PaymentActions({
                           variant="destructive"
                           disabled={!hasSelectedFees}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          {t("actions.delete")}
+                          <Trash2 className="h-4 w-4 md:mr-2" />
+                          <span className="hidden md:inline">
+                            {t("actions.delete")}
+                          </span>
                         </Button>
                       </span>
                     </AlertDialogTrigger>
@@ -269,11 +278,11 @@ export function PaymentActions({
             onClick={() => setIsAddingFee(!isAddingFee)}
           >
             {isAddingFee ? (
-              t("actions.cancel")
+              <span className="hidden md:inline">{t("actions.cancel")}</span>
             ) : (
               <>
-                <Plus className="h-4 w-4 mr-2" />
-                {t("actions.addFee")}
+                <Plus className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">{t("actions.addFee")}</span>
               </>
             )}
           </Button>

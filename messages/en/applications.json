@@ -147,6 +147,7 @@
       "markAsPaidDialog": {
         "title": "Mark as paid in cash?",
         "description": "This will mark the selected fees as fully paid via cash payment. This action cannot be undone.",
+        "accountability": "Your account will be registered as responsible for this cash payment transaction. The system will maintain a record of your account as the person who processed this payment for accountability purposes.",
         "cancel": "Cancel",
         "confirm": "Mark as Paid"
       }

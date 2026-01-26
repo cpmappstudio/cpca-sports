@@ -135,6 +135,7 @@
       "markAsPaidDialog": {
         "title": "¿Marcar como pagado en efectivo?",
         "description": "Esto marcará las tarifas seleccionadas como completamente pagadas mediante pago en efectivo. Esta acción no se puede deshacer.",
+        "accountability": "Su cuenta quedará registrada como responsable de esta transacción de pago en efectivo. El sistema mantendrá un registro de su cuenta como la persona que procesó este pago con fines de rendición de cuentas.",
         "cancel": "Cancelar",
         "confirm": "Marcar como Pagado"
       }
