@@ -119,6 +119,28 @@ export function ApplicationPayments({
     window.location.href = result.paymentUrl;
   }, [selectedFeeIds, applicationId, organizationSlug, onCreatePaymentLink]);
 
+  const handleMarkAsPaid = useCallback(async () => {
+    const feesToMark = fees.filter((fee) => selectedFeeIds.has(fee._id));
+
+    try {
+      await Promise.all(
+        feesToMark.map((fee) => {
+          const remainingAmount = fee.totalAmount - fee.paidAmount;
+          if (remainingAmount > 0) {
+            return onRecordPayment({
+              feeId: fee._id,
+              amount: remainingAmount,
+              method: "cash",
+            });
+          }
+        }),
+      );
+      setSelectedFeeIds(new Set());
+    } catch (error) {
+      console.error("Failed to mark fees as paid:", error);
+    }
+  }, [selectedFeeIds, fees, onRecordPayment]);
+
   return (
     <div className="space-y-6">
       <PaymentActions
@@ -128,6 +150,7 @@ export function ApplicationPayments({
         onAddFee={onAddFee}
         onDeleteSelected={handleDeleteSelected}
         onPay={handlePay}
+        onMarkAsPaid={handleMarkAsPaid}
       />
 
       {pendingFees.length === 0 ? (

@@ -126,11 +126,14 @@
     "actions": {
       "pay": "Pay",
       "processing": "Processing...",
+      "markAsPaid": "Mark as Paid",
+      "markingAsPaid": "Marking as Paid...",
       "delete": "Delete",
       "addFee": "Add Fee",
       "cancel": "Cancel",
       "tooltips": {
         "selectToPay": "Select one or more fees to make a payment",
+        "selectToMarkAsPaid": "Select one or more fees to mark as paid in cash",
         "selectToDelete": "Select one or more fees to delete",
         "editFee": "Edit fee",
         "saveChanges": "Save changes"
@@ -140,6 +143,12 @@
         "description": "This will permanently delete the selected fees. This action cannot be undone.",
         "cancel": "Cancel",
         "confirm": "Delete"
+      },
+      "markAsPaidDialog": {
+        "title": "Mark as paid in cash?",
+        "description": "This will mark the selected fees as fully paid via cash payment. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Mark as Paid"
       }
     },
     "form": {

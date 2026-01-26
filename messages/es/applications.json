@@ -114,11 +114,14 @@
     "actions": {
       "pay": "Pagar",
       "processing": "Procesando...",
+      "markAsPaid": "Marcar como Pagado",
+      "markingAsPaid": "Marcando como Pagado...",
       "delete": "Eliminar",
       "addFee": "Agregar Tarifa",
       "cancel": "Cancelar",
       "tooltips": {
         "selectToPay": "Selecciona una o más tarifas para realizar un pago",
+        "selectToMarkAsPaid": "Selecciona una o más tarifas para marcar como pagadas en efectivo",
         "selectToDelete": "Selecciona una o más tarifas para eliminar",
         "editFee": "Editar tarifa",
         "saveChanges": "Guardar cambios"
@@ -128,6 +131,12 @@
         "description": "Esto eliminará permanentemente las tarifas seleccionadas. Esta acción no se puede deshacer.",
         "cancel": "Cancelar",
         "confirm": "Eliminar"
+      },
+      "markAsPaidDialog": {
+        "title": "¿Marcar como pagado en efectivo?",
+        "description": "Esto marcará las tarifas seleccionadas como completamente pagadas mediante pago en efectivo. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Marcar como Pagado"
       }
     },
     "form": {

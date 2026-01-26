@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, CreditCard, Trash2 } from "lucide-react";
+import { Plus, CreditCard, Trash2, Banknote } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 import { dollarsToCents } from "@/lib/utils/currency";
 import { useTranslations } from "next-intl";
@@ -43,6 +43,7 @@ interface PaymentActionsProps {
   }) => Promise<Id<"fees">>;
   onDeleteSelected: () => void;
   onPay: () => Promise<void>;
+  onMarkAsPaid: () => Promise<void>;
 }
 
 export function PaymentActions({
@@ -52,11 +53,13 @@ export function PaymentActions({
   onAddFee,
   onDeleteSelected,
   onPay,
+  onMarkAsPaid,
 }: PaymentActionsProps) {
   const t = useTranslations("Applications.payments");
   const [isAddingFee, setIsAddingFee] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isMarkingAsPaid, setIsMarkingAsPaid] = useState(false);
 
   const hasSelectedFees = selectedFeeIds.length > 0;
   const [newFee, setNewFee] = useState({
@@ -109,6 +112,19 @@ export function PaymentActions({
     }
   };
 
+  const handleMarkAsPaid = async () => {
+    if (!hasSelectedFees || isMarkingAsPaid) return;
+
+    setIsMarkingAsPaid(true);
+    try {
+      await onMarkAsPaid();
+    } catch (error) {
+      console.error("Failed to mark fees as paid:", error);
+    } finally {
+      setIsMarkingAsPaid(false);
+    }
+  };
+
   return (
     <>
       <div className="flex items-center justify-between">
@@ -136,53 +152,114 @@ export function PaymentActions({
             )}
           </Tooltip>
           {isAdmin && (
-            <AlertDialog>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <AlertDialogTrigger asChild>
-                    <span className="inline-block w-fit">
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        disabled={!hasSelectedFees}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        {t("actions.delete")}
-                      </Button>
-                    </span>
-                  </AlertDialogTrigger>
-                </TooltipTrigger>
-                {!hasSelectedFees && (
-                  <TooltipContent>
-                    <p>{t("actions.tooltips.selectToDelete")}</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-              <AlertDialogContent size="sm">
-                <AlertDialogHeader>
-                  <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
-                    <Trash2 />
-                  </AlertDialogMedia>
-                  <AlertDialogTitle>
-                    {t("actions.deleteDialog.title")}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t("actions.deleteDialog.description")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel variant="outline">
-                    {t("actions.deleteDialog.cancel")}
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    variant="destructive"
-                    onClick={onDeleteSelected}
-                  >
-                    {t("actions.deleteDialog.confirm")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <>
+              <AlertDialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertDialogTrigger asChild>
+                      <span className="inline-block w-fit">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="bg-green-500 hover:bg-green-400"
+                          disabled={!hasSelectedFees || isMarkingAsPaid}
+                        >
+                          <Banknote className="h-4 w-4 mr-2" />
+                          {isMarkingAsPaid
+                            ? t("actions.markingAsPaid")
+                            : t("actions.markAsPaid")}
+                        </Button>
+                      </span>
+                    </AlertDialogTrigger>
+                  </TooltipTrigger>
+                  {!hasSelectedFees && !isMarkingAsPaid && (
+                    <TooltipContent>
+                      <p>{t("actions.tooltips.selectToMarkAsPaid")}</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+                <AlertDialogContent size="sm">
+                  <AlertDialogHeader>
+                    <AlertDialogMedia className="bg-green-500/10 text-green-500 dark:bg-green-500/20 dark:text-green-500">
+                      <Banknote />
+                    </AlertDialogMedia>
+                    <AlertDialogTitle>
+                      {t("actions.markAsPaidDialog.title")}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t("actions.markAsPaidDialog.description")}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel variant="outline">
+                      {t("actions.markAsPaidDialog.cancel")}
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      style={{
+                        backgroundColor: "#22c55e",
+                        color: "white",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#4ade80";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "#22c55e";
+                      }}
+                      onClick={handleMarkAsPaid}
+                    >
+                      {t("actions.markAsPaidDialog.confirm")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <AlertDialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertDialogTrigger asChild>
+                      <span className="inline-block w-fit">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={!hasSelectedFees}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {t("actions.delete")}
+                        </Button>
+                      </span>
+                    </AlertDialogTrigger>
+                  </TooltipTrigger>
+                  {!hasSelectedFees && (
+                    <TooltipContent>
+                      <p>{t("actions.tooltips.selectToDelete")}</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+                <AlertDialogContent size="sm">
+                  <AlertDialogHeader>
+                    <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
+                      <Trash2 />
+                    </AlertDialogMedia>
+                    <AlertDialogTitle>
+                      {t("actions.deleteDialog.title")}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t("actions.deleteDialog.description")}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel variant="outline">
+                      {t("actions.deleteDialog.cancel")}
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      variant="destructive"
+                      onClick={onDeleteSelected}
+                    >
+                      {t("actions.deleteDialog.confirm")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
           )}
         </div>
         {isAdmin && (
