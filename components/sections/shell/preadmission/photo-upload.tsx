@@ -1,13 +1,13 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useImageUpload } from "@/hooks/use-image-upload";
 
 interface PhotoUploadProps {
   value?: Id<"_storage"> | null;
@@ -16,52 +16,19 @@ interface PhotoUploadProps {
 }
 
 export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  const { uploadImage, isUploading, error } = useImageUpload({
+    onSuccess: onChange,
+  });
+
   const photoUrl = useQuery(
     api.files.getUrl,
-    value ? { storageId: value } : "skip"
+    value ? { storageId: value } : "skip",
   );
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File size must be less than 10MB");
-      return;
-    }
-
-    setError(null);
-    setIsUploading(true);
-
-    try {
-      const uploadUrl = await generateUploadUrl();
-
-      const result = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-
-      if (!result.ok) {
-        throw new Error("Upload failed");
-      }
-
-      const { storageId } = await result.json();
-      onChange(storageId);
-    } catch (err) {
-      setError("Failed to upload photo");
-      console.error("[PhotoUpload] Upload error:", err);
-    } finally {
-      setIsUploading(false);
-    }
+    await uploadImage(file);
   };
 
   return (
@@ -105,7 +72,9 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           {value && !isUploading && (
-            <p className="text-sm text-green-600">✓ Photo uploaded successfully</p>
+            <p className="text-sm text-green-600">
+              Photo uploaded successfully
+            </p>
           )}
         </div>
       </div>

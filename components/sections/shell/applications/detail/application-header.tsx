@@ -25,13 +25,14 @@ import {
   FileText,
   User,
   IdCard,
+  Pencil,
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { ApplicationBalanceCard } from "./application-balance-card";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { useImageUpload } from "@/hooks/use-image-upload";
 
 interface ApplicationHeaderProps {
   application: Application;
@@ -56,7 +57,7 @@ export function ApplicationHeader({
   const { formData } = application;
 
   const [status, setStatus] = useState<ApplicationStatus>(application.status);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [currentPhoto, setCurrentPhoto] = useState<Id<"_storage"> | null>(
     (formData.athlete?.photo as Id<"_storage">) || null,
   );
@@ -64,7 +65,30 @@ export function ApplicationHeader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const updateStatus = useMutation(api.applications.updateStatus);
   const updatePhoto = useMutation(api.applications.updatePhoto);
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+
+  const { uploadImage, isUploading } = useImageUpload({
+    onSuccess: async (storageId) => {
+      try {
+        await updatePhoto({
+          applicationId: application._id,
+          photoStorageId: storageId,
+        });
+        setCurrentPhoto(storageId);
+        toast.success("Photo updated successfully");
+      } catch {
+        toast.error("Failed to update photo. Please try again.");
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    onError: (error) => {
+      toast.error(error);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+  });
 
   const firstName = getFormField(formData, "athlete", "firstName");
   const lastName = getFormField(formData, "athlete", "lastName");
@@ -87,7 +111,6 @@ export function ApplicationHeader({
     "general",
     "interestedInBoarding",
   );
-  const photoStorageId = formData.athlete?.photo as Id<"_storage"> | undefined;
 
   const statusMap = {
     pending: { label: tStatus("pending"), variant: "outline" as const },
@@ -105,7 +128,7 @@ export function ApplicationHeader({
   const handleStatusChange = async (newStatus: ApplicationStatus) => {
     if (!isAdmin) return;
 
-    setIsUpdating(true);
+    setIsUpdatingStatus(true);
     try {
       await updateStatus({
         applicationId: application._id,
@@ -116,60 +139,17 @@ export function ApplicationHeader({
       toast.success(
         `Application status updated to: ${statusMap[newStatus].label}`,
       );
-    } catch (error) {
+    } catch {
       toast.error("Failed to update application status. Please try again.");
     } finally {
-      setIsUpdating(false);
+      setIsUpdatingStatus(false);
     }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File size must be less than 10MB");
-      return;
-    }
-
-    setIsUpdating(true);
-
-    try {
-      const uploadUrl = await generateUploadUrl();
-
-      const result = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-
-      if (!result.ok) {
-        throw new Error("Upload failed");
-      }
-
-      const { storageId } = await result.json();
-
-      await updatePhoto({
-        applicationId: application._id,
-        photoStorageId: storageId,
-      });
-
-      setCurrentPhoto(storageId);
-      toast.success("Photo updated successfully");
-    } catch (error) {
-      console.error("Failed to update photo:", error);
-      toast.error("Failed to update photo. Please try again.");
-    } finally {
-      setIsUpdating(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
+    await uploadImage(file);
   };
 
   const calculateAge = (birthDate: string) => {
@@ -185,6 +165,8 @@ export function ApplicationHeader({
     }
     return age;
   };
+
+  const isUpdating = isUpdatingStatus || isUploading;
 
   return (
     <section className="flex flex-col gap-4">
@@ -212,14 +194,14 @@ export function ApplicationHeader({
                   accept="image/*"
                   onChange={handleFileChange}
                   className="hidden"
-                  disabled={isUpdating}
+                  disabled={isUploading}
                 />
                 <Button
                   size="icon"
                   variant="secondary"
                   className="absolute bottom-0 right-0 h-6 w-6 opacity-70 hover:opacity-100 hover:scale-100 transition-all duration-200"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isUpdating}
+                  disabled={isUploading}
                 >
                   <Pencil className="h-2 w-2" />
                 </Button>
