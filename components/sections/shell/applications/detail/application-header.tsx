@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/select";
 import type { Application, ApplicationStatus } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
-import Image from "next/image";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { ApplicationPhoto } from "../application-photo";
 import { Id } from "@/convex/_generated/dataModel";
 import {
@@ -30,6 +28,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { ApplicationBalanceCard } from "./application-balance-card";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { toast } from "sonner"
 
 interface ApplicationHeaderProps {
   application: Application;
@@ -51,6 +52,9 @@ export function ApplicationHeader({
   const t = useTranslations("Applications.detail");
   const tStatus = useTranslations("Applications.statusOptions");
   const [status, setStatus] = useState<ApplicationStatus>(application.status);
+  const [isUpdating, setIsUpdating] = useState(false);
+  
+  const updateStatus = useMutation(api.applications.updateStatus);
 
   const { formData } = application;
   const firstName = getFormField(formData, "athlete", "firstName");
@@ -89,10 +93,23 @@ export function ApplicationHeader({
 
   const statusInfo = statusMap[status];
 
-  const handleStatusChange = (newStatus: typeof status) => {
-    setStatus(newStatus);
-    // TODO: Llamar a la mutación de Convex para actualizar el estado
-    console.log("Status changed to:", newStatus);
+  const handleStatusChange = async (newStatus: ApplicationStatus) => {
+    if (!isAdmin) return;
+    
+    setIsUpdating(true);
+    try {
+      await updateStatus({
+        applicationId: application._id,
+        status: newStatus,
+      });
+      
+      setStatus(newStatus);
+      toast.success(`Application status updated to: ${statusMap[newStatus].label}`);
+    } catch (error) {
+      toast.error("Failed to update application status. Please try again.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const calculateAge = (birthDate: string) => {
@@ -136,7 +153,11 @@ export function ApplicationHeader({
                 </h1>
                 <div className="flex items-start gap-2 mt-1">
                   {isAdmin ? (
-                    <Select value={status} onValueChange={handleStatusChange}>
+                    <Select 
+                      value={status} 
+                      onValueChange={handleStatusChange}
+                      disabled={isUpdating}
+                    >
                       <SelectTrigger className="w-fit h-7 text-xs font-medium">
                         <SelectValue />
                       </SelectTrigger>

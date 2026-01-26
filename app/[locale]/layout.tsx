@@ -34,6 +34,7 @@ const clerkLocalizations = {
 // TODO: generateMetadata depending on locale (https://github.com/amannn/next-intl/blob/main/examples/example-app-router/src/app/%5Blocale%5D/layout.tsx)
 import { rootMetadata } from "@/lib/seo/root";
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 export const metadata: Metadata = rootMetadata;
 
 export default async function LocaleLayout({
@@ -58,6 +59,7 @@ export default async function LocaleLayout({
         <ThemeScript />
       </head>
       <body className={`${fontVariables} antialiased`}>
+        <Toaster position="bottom-right" richColors/>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
