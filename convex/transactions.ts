@@ -26,10 +26,18 @@ const transactionValidator = v.object({
   status: transactionStatus,
   squarePaymentId: v.optional(v.string()),
   squareOrderId: v.optional(v.string()),
+  receiptUrl: v.optional(v.string()),
   reference: v.optional(v.string()),
   registeredBy: v.optional(v.id("users")),
   createdAt: v.number(),
   completedAt: v.optional(v.number()),
+});
+
+const registeredByUserValidator = v.object({
+  _id: v.id("users"),
+  firstName: v.string(),
+  lastName: v.string(),
+  email: v.string(),
 });
 
 /**
@@ -89,6 +97,7 @@ export const getWithFeeDetails = query({
       transaction: transactionValidator,
       feeName: v.string(),
       feeDescription: v.optional(v.string()),
+      registeredByUser: v.optional(registeredByUserValidator),
     }),
   ),
   handler: async (ctx, args) => {
@@ -103,15 +112,44 @@ export const getWithFeeDetails = query({
       .order("desc")
       .collect();
 
-    const result = [];
-    for (const transaction of transactions) {
-      const fee = await ctx.db.get(transaction.feeId);
-      result.push({
+    // Batch fetch fees and users to avoid N+1 queries
+    const feeIds = [...new Set(transactions.map((t) => t.feeId))];
+    const userIds = [
+      ...new Set(
+        transactions
+          .map((t) => t.registeredBy)
+          .filter((id): id is Id<"users"> => id !== undefined),
+      ),
+    ];
+
+    const [fees, users] = await Promise.all([
+      Promise.all(feeIds.map((id) => ctx.db.get(id))),
+      Promise.all(userIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    const feeMap = new Map(fees.filter(Boolean).map((f) => [f!._id, f!]));
+    const userMap = new Map(users.filter(Boolean).map((u) => [u!._id, u!]));
+
+    const result = transactions.map((transaction) => {
+      const fee = feeMap.get(transaction.feeId);
+      const registeredByUser = transaction.registeredBy
+        ? userMap.get(transaction.registeredBy)
+        : undefined;
+
+      return {
         transaction,
         feeName: fee?.name || "Unknown Fee",
         feeDescription: fee?.description,
-      });
-    }
+        registeredByUser: registeredByUser
+          ? {
+              _id: registeredByUser._id,
+              firstName: registeredByUser.firstName,
+              lastName: registeredByUser.lastName,
+              email: registeredByUser.email,
+            }
+          : undefined,
+      };
+    });
 
     return result;
   },

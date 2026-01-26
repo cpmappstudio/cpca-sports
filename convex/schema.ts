@@ -149,6 +149,7 @@ export default defineSchema({
     status: transactionStatus,
     squarePaymentId: v.optional(v.string()),
     squareOrderId: v.optional(v.string()),
+    receiptUrl: v.optional(v.string()),
     reference: v.optional(v.string()),
     registeredBy: v.optional(v.id("users")),
     createdAt: v.number(),

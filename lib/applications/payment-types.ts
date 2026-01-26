@@ -14,16 +14,25 @@ export type Transaction = {
   status: TransactionStatus;
   squarePaymentId?: string;
   squareOrderId?: string;
+  receiptUrl?: string;
   reference?: string;
   registeredBy?: Id<"users">;
   createdAt: number;
   completedAt?: number;
 };
 
+export type RegisteredByUser = {
+  _id: Id<"users">;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
 export type TransactionWithFee = {
   transaction: Transaction;
   feeName: string;
   feeDescription?: string;
+  registeredByUser?: RegisteredByUser;
 };
 
 export type FeeSummary = {

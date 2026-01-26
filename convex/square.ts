@@ -257,6 +257,7 @@ export const handlePaymentCompleted = internalMutation({
     squareOrderId: v.string(),
     squarePaymentId: v.string(),
     amountPaid: v.number(),
+    receiptUrl: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -330,6 +331,7 @@ export const handlePaymentCompleted = internalMutation({
         status: "completed",
         squarePaymentId: args.squarePaymentId,
         squareOrderId: args.squareOrderId,
+        receiptUrl: args.receiptUrl,
         createdAt: Date.now(),
         completedAt: Date.now(),
       });

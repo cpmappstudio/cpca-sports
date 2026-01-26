@@ -59,12 +59,14 @@ export const verifyAndProcessSquareWebhook = internalAction({
         const orderId = payment.order_id;
         const paymentId = payment.id;
         const amountPaid = payment.amount_money?.amount || 0;
+        const receiptUrl = payment.receipt_url;
 
         if (orderId) {
           await ctx.runMutation(internal.square.handlePaymentCompleted, {
             squareOrderId: orderId,
             squarePaymentId: paymentId,
             amountPaid,
+            receiptUrl,
           });
         }
       }

@@ -1,14 +1,9 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, CheckCircle2, Clock } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { formatCurrency } from "@/lib/utils/currency";
 
 interface ApplicationBalanceCardProps {
   totalDue: number;
@@ -43,7 +38,7 @@ export function ApplicationBalanceCard({
               </p>
             </div>
             <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-              ${totalDue.toFixed(2)}
+              {formatCurrency(totalDue)}
             </p>
           </div>
 
@@ -60,7 +55,7 @@ export function ApplicationBalanceCard({
               </p>
             </div>
             <p className="text-lg font-bold text-green-600 dark:text-green-400">
-              ${totalPaid.toFixed(2)}
+              {formatCurrency(totalPaid)}
             </p>
           </div>
 
@@ -77,7 +72,7 @@ export function ApplicationBalanceCard({
               </p>
             </div>
             <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
-              ${totalPending.toFixed(2)}
+              {formatCurrency(totalPending)}
             </p>
           </div>
         </div>

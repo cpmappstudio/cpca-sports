@@ -203,6 +203,11 @@
     "counter": {
       "payment": "pago",
       "payments": "pagos"
+    },
+    "actions": {
+      "viewReceipt": "Ver recibo",
+      "registeredBy": "Registrado por {name}",
+      "registeredByTooltip": "Pago registrado por"
     }
   }
 }

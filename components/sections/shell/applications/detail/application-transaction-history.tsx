@@ -175,7 +175,14 @@ export function ApplicationTransactionHistory({
                     };
                     return (
                       <div key={item.transaction._id}>
-                        <FeeCard fee={fee} />
+                        <FeeCard
+                          fee={fee}
+                          transactionInfo={{
+                            method: item.transaction.method,
+                            receiptUrl: item.transaction.receiptUrl,
+                            registeredByUser: item.registeredByUser,
+                          }}
+                        />
                         {index < array.length - 1 && <Separator />}
                       </div>
                     );

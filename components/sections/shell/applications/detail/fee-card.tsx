@@ -18,7 +18,19 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CheckCircle2, Clock, CreditCard, Pencil, Check } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  Pencil,
+  Check,
+  ExternalLink,
+  User,
+} from "lucide-react";
+import {
+  type PaymentMethod,
+  type RegisteredByUser,
+} from "@/lib/applications/payment-types";
 import { type Fee } from "@/lib/applications/fee-types";
 import {
   formatCurrency,
@@ -28,6 +40,12 @@ import {
 import { format } from "date-fns";
 import { Id } from "@/convex/_generated/dataModel";
 import { useTranslations } from "next-intl";
+
+interface TransactionInfo {
+  method: PaymentMethod;
+  receiptUrl?: string;
+  registeredByUser?: RegisteredByUser;
+}
 
 interface FeeCardProps {
   fee: Fee;
@@ -42,6 +60,7 @@ interface FeeCardProps {
     name: string,
     totalAmount: number,
   ) => Promise<void>;
+  transactionInfo?: TransactionInfo;
 }
 
 const getStatusConfig = (t: any) => ({
@@ -78,7 +97,9 @@ export function FeeCard({
   onRemove,
   onMarkAsPaid,
   onUpdate,
+  transactionInfo,
 }: FeeCardProps) {
+  const tTransactions = useTranslations("Applications.transactions");
   const t = useTranslations("Applications.payments");
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(fee.name);
@@ -331,6 +352,50 @@ export function FeeCard({
               <TooltipContent>{t("actions.tooltips.editFee")}</TooltipContent>
             </Tooltip>
           )}
+        </ItemActions>
+      )}
+
+      {transactionInfo && (
+        <ItemActions>
+          {transactionInfo.method === "online" && transactionInfo.receiptUrl ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={transactionInfo.receiptUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-full size-8 hover:bg-accent hover:text-accent-foreground transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>
+                {tTransactions("actions.viewReceipt")}
+              </TooltipContent>
+            </Tooltip>
+          ) : transactionInfo.registeredByUser ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="inline-flex items-center justify-center rounded-full size-8 text-muted-foreground">
+                  <User className="h-4 w-4" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs">
+                  <div className="font-medium">
+                    {tTransactions("actions.registeredByTooltip")}
+                  </div>
+                  <div>
+                    {transactionInfo.registeredByUser.firstName}{" "}
+                    {transactionInfo.registeredByUser.lastName}
+                  </div>
+                  <div className="text-muted-foreground">
+                    {transactionInfo.registeredByUser.email}
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          ) : null}
         </ItemActions>
       )}
     </div>
