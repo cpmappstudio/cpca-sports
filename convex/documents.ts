@@ -240,7 +240,7 @@ export const updateStatus = mutation({
 });
 
 /**
- * Delete a document (admin only, or the user who uploaded it).
+ * Delete a document (anyone with application access can delete).
  */
 export const remove = mutation({
   args: { documentId: v.id("applicationDocuments") },
@@ -253,17 +253,8 @@ export const remove = mutation({
       throw new Error("Document not found");
     }
 
-    const { isOwner, isAdmin } = await verifyApplicationAccess(
-      ctx,
-      document.applicationId,
-      user._id,
-    );
-
-    // Admin can delete any document, or the user who uploaded it can delete their own
-    const isUploader = document.uploadedBy === user._id;
-    if (!isAdmin && !isUploader) {
-      throw new Error("Unauthorized to delete this document");
-    }
+    // Verify user has access to the application (owner or admin)
+    await verifyApplicationAccess(ctx, document.applicationId, user._id);
 
     // Delete file from storage
     await ctx.storage.delete(document.storageId);
