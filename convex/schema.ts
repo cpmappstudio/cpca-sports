@@ -41,6 +41,18 @@ const paymentLinkStatus = v.union(
   v.literal("expired"),
 );
 
+const documentStatus = v.union(
+  v.literal("pending"),
+  v.literal("approved"),
+  v.literal("rejected"),
+);
+
+const documentVisibility = v.union(
+  v.literal("required"),
+  v.literal("optional"),
+  v.literal("hidden"),
+);
+
 export default defineSchema({
   users: defineTable({
     clerkId: v.string(),
@@ -186,4 +198,37 @@ export default defineSchema({
     eventType: v.string(),
     processedAt: v.number(),
   }).index("byEventId", ["eventId"]),
+
+  applicationDocuments: defineTable({
+    applicationId: v.id("applications"),
+    documentTypeId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    contentType: v.string(),
+    fileSize: v.number(),
+    status: documentStatus,
+    uploadedBy: v.id("users"),
+    uploadedAt: v.number(),
+    reviewedBy: v.optional(v.id("users")),
+    reviewedAt: v.optional(v.number()),
+    rejectionReason: v.optional(v.string()),
+  })
+    .index("byApplication", ["applicationId"])
+    .index("byApplicationAndType", ["applicationId", "documentTypeId"]),
+
+  applicationDocumentConfig: defineTable({
+    applicationId: v.id("applications"),
+    documentTypeId: v.string(),
+    visibility: documentVisibility,
+    updatedAt: v.number(),
+    updatedBy: v.id("users"),
+    // Optional fields for custom document types (created by admin)
+    isCustom: v.optional(v.boolean()),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+  })
+    .index("byApplication", ["applicationId"])
+    .index("byApplicationAndType", ["applicationId", "documentTypeId"]),
 });

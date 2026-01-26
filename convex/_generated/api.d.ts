@@ -10,6 +10,7 @@
 
 import type * as applications from "../applications.js";
 import type * as clerk from "../clerk.js";
+import type * as documents from "../documents.js";
 import type * as fees from "../fees.js";
 import type * as files from "../files.js";
 import type * as formTemplates from "../formTemplates.js";
@@ -42,6 +43,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   applications: typeof applications;
   clerk: typeof clerk;
+  documents: typeof documents;
   fees: typeof fees;
   files: typeof files;
   formTemplates: typeof formTemplates;
