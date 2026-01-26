@@ -45,7 +45,8 @@
   "tabs": {
     "application": "Application",
     "payments": "Payments",
-    "documents": "Documents"
+    "documents": "Documents",
+    "transactions": "Transaction History"
   },
   "sections": {
     "athlete": "Athlete",
@@ -106,5 +107,43 @@
     "needsI20": "Needs I-20",
     "submittedAt": "Submitted At",
     "message": "Additional Message"
+  },
+  "payments": {
+    "summary": {
+      "title": "Payment Summary",
+      "description": "Overview of all fees and payments for this application",
+      "totalDue": "Total Due",
+      "totalPaid": "Total Paid",
+      "pending": "Pending"
+    }
+  },
+  "transactions": {
+    "title": "Transaction History",
+    "description": "All payment transactions for this application",
+    "emptyMessage": "No transactions yet",
+    "searchPlaceholder": "Search by fee, amount, or reference...",
+    "filterMethod": "Method",
+    "filterStatus": "Status",
+    "filterDate": "Filter by date",
+    "table": {
+      "date": "Date",
+      "fee": "Fee",
+      "amount": "Amount",
+      "method": "Method",
+      "status": "Status",
+      "reference": "Reference"
+    },
+    "methods": {
+      "cash": "Cash",
+      "online": "Online"
+    },
+    "statuses": {
+      "completed": "Completed",
+      "pending": "Pending",
+      "failed": "Failed"
+    },
+    "filters": {
+      "all": "All"
+    }
   }
 }

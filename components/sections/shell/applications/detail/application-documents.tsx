@@ -11,7 +11,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Upload, FileIcon, CheckCircle2, XCircle, Eye } from "lucide-react";
-import { APPLICATION_DOCUMENTS, type DocumentType } from "@/lib/applications/document-types";
+import {
+  APPLICATION_DOCUMENTS,
+  type DocumentType,
+} from "@/lib/applications/document-types";
 import { cn } from "@/lib/utils";
 
 type DocumentStatus = "pending" | "uploaded" | "rejected";
@@ -87,7 +90,9 @@ export function ApplicationDocuments({
   };
 
   const getDocumentStatus = (documentId: string): UploadedDocument | null => {
-    return uploadedDocuments.find((doc) => doc.documentId === documentId) || null;
+    return (
+      uploadedDocuments.find((doc) => doc.documentId === documentId) || null
+    );
   };
 
   return (
@@ -151,7 +156,10 @@ function DocumentCard({
     switch (uploadedDocument.status) {
       case "uploaded":
         return (
-          <Badge variant="secondary" className="gap-1 bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20">
+          <Badge
+            variant="secondary"
+            className="gap-1 bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20"
+          >
             <CheckCircle2 className="h-3 w-3" />
             Uploaded
           </Badge>
@@ -179,7 +187,7 @@ function DocumentCard({
         uploadedDocument?.status === "rejected" && "border-destructive",
       )}
     >
-      <CardHeader className="pb-3">
+      <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex flex items-center gap-2">
@@ -267,9 +275,7 @@ function DocumentCard({
                   size="sm"
                   variant="secondary"
                   className="bg-green-500 hover:bg-green-600 text-white"
-                  onClick={() =>
-                    onStatusChange(document.id, "uploaded")
-                  }
+                  onClick={() => onStatusChange(document.id, "uploaded")}
                 >
                   <CheckCircle2 className="h-4 w-4" />
                 </Button>

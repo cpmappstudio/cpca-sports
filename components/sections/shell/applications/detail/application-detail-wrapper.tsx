@@ -11,8 +11,9 @@ import { ApplicationAdditionalCard } from "./pre-admission/application-additiona
 import { ApplicationDocuments } from "./application-documents";
 import { ApplicationPayments } from "./application-payments";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -20,8 +21,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { UserIcon } from "@heroicons/react/20/solid";
-import { CreditCard, File } from "lucide-react";
+import { CreditCard, File, History } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { DEFAULT_APPLICATION_FEES } from "@/lib/applications/fee-types";
+import type {
+  FeePayment,
+  PaymentStatus,
+  PaymentTransaction,
+} from "@/lib/applications/payment-types";
+import { ApplicationTransactionHistory } from "./application-transaction-history";
 
 interface ApplicationDetailWrapperProps {
   preloadedApplication: Preloaded<typeof api.applications.getById>;
@@ -39,6 +47,61 @@ function ApplicationDetailContent({
   const application = usePreloadedQuery(preloadedApplication);
   const t = useTranslations("Applications");
 
+  const [fees, setFees] = useState<FeePayment[]>(
+    DEFAULT_APPLICATION_FEES.map((fee) => ({
+      ...fee,
+      status: "pending" as PaymentStatus,
+      paidAmount: 0,
+      createdAt: Date.now(),
+    })),
+  );
+
+  const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
+
+  const handleAddFee = (fee: FeePayment) => {
+    setFees([...fees, fee]);
+  };
+
+  const handleRemoveFee = (feeId: string) => {
+    setFees(fees.filter((fee) => fee.id !== feeId));
+  };
+
+  const handleUpdateFee = (feeId: string, updates: Partial<FeePayment>) => {
+    setFees(
+      fees.map((fee) => (fee.id === feeId ? { ...fee, ...updates } : fee)),
+    );
+  };
+
+  const handleMarkAsPaid = (feeId: string) => {
+    const fee = fees.find((f) => f.id === feeId);
+    if (!fee) return;
+
+    const amountToPay = fee.totalAmount - fee.paidAmount;
+
+    const transaction: PaymentTransaction = {
+      id: `txn_${Date.now()}`,
+      date: Date.now(),
+      amount: amountToPay,
+      feeId: fee.id,
+      feeName: fee.name,
+      method: "cash",
+      status: "completed",
+      reference: `CASH-${Date.now()}`,
+    };
+
+    setTransactions([transaction, ...transactions]);
+
+    handleUpdateFee(feeId, {
+      status: "paid",
+      paidAmount: fee.totalAmount,
+      paidAt: Date.now(),
+    });
+  };
+
+  const totalDue = fees.reduce((sum, fee) => sum + fee.totalAmount, 0);
+  const totalPaid = fees.reduce((sum, fee) => sum + fee.paidAmount, 0);
+  const totalPending = totalDue - totalPaid;
+
   if (application === null) {
     return null;
   }
@@ -51,35 +114,48 @@ function ApplicationDetailContent({
             application={application}
             organizationSlug={organizationSlug}
             isAdmin={isAdmin}
+            totalDue={totalDue}
+            totalPaid={totalPaid}
+            totalPending={totalPending}
           />
         </div>
       </div>
 
       <div className="lg:col-span-3">
         <Tabs defaultValue="application" className="w-full">
-          <TabsList className="mb-4 h-9">
-            <TabsTrigger
-              value="application"
-              className="gap-1 text-xs md:text-sm px-2 md:px-3"
-            >
-              <UserIcon className="hidden md:block h-4 w-4" />
-              <span>{t("tabs.application")}</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="docs"
-              className="gap-1 text-xs md:text-sm px-2 md:px-3"
-            >
-              <File className="hidden md:block h-4 w-4" />
-              <span>{t("tabs.documents")}</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="payments"
-              className="gap-1 text-xs md:text-sm px-2 md:px-3"
-            >
-              <CreditCard className="hidden md:block h-4 w-4" />
-              <span>{t("tabs.payments")}</span>
-            </TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full whitespace-nowrap">
+            <TabsList className="mb-4 h-9 inline-flex w-auto">
+              <TabsTrigger
+                value="application"
+                className="gap-1 text-xs md:text-sm px-2 md:px-3"
+              >
+                <UserIcon className="hidden md:block h-4 w-4" />
+                <span>{t("tabs.application")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="docs"
+                className="gap-1 text-xs md:text-sm px-2 md:px-3"
+              >
+                <File className="hidden md:block h-4 w-4" />
+                <span>{t("tabs.documents")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="payments"
+                className="gap-1 text-xs md:text-sm px-2 md:px-3"
+              >
+                <CreditCard className="hidden md:block h-4 w-4" />
+                <span>{t("tabs.payments")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="transactions"
+                className="gap-1 text-xs md:text-sm px-2 md:px-3"
+              >
+                <History className="hidden md:block h-4 w-4" />
+                <span>{t("tabs.transactions")}</span>
+              </TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
           <TabsContent value="application" className="mt-0">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="athlete">
@@ -127,8 +203,19 @@ function ApplicationDetailContent({
               <ApplicationPayments
                 applicationId={applicationId}
                 isAdmin={isAdmin}
+                fees={fees}
+                onAddFee={handleAddFee}
+                onRemoveFee={handleRemoveFee}
+                onUpdateFee={handleUpdateFee}
+                onMarkAsPaid={handleMarkAsPaid}
               />
             </Suspense>
+          </TabsContent>
+          <TabsContent value="transactions" className="mt-0">
+            <ApplicationTransactionHistory
+              transactions={transactions}
+              fees={fees}
+            />
           </TabsContent>
         </Tabs>
       </div>
