@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import type { Application, ApplicationStatus } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
@@ -12,7 +13,6 @@ import { PiVolleyball, PiBaseball } from "react-icons/pi";
 import { IoGolfOutline } from "react-icons/io5";
 import type { IconType } from "react-icons";
 import { Mail, Phone, Check, CircleX } from "lucide-react";
-import { Avatar } from "@/components/ui/avatar";
 
 const SPORT_ICONS: Record<string, IconType> = {
   baseball: CiBaseball,
@@ -44,7 +44,6 @@ function useStatusMap() {
 
 export function useAdminApplicationColumns(): ColumnDef<Application>[] {
   const t = useTranslations("Applications");
-  const tDetail = useTranslations("Applications.detail");
   const statusMap = useStatusMap();
 
   return [
@@ -62,14 +61,21 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       id: "fullName",
-      header: tDetail("fullName"),
+      header: () => (
+        <>
+          <div className="hidden lg:block">{t("fullName")}</div>
+          <div className="lg:hidden">{t("athlete")}</div>
+        </>
+      ),
+
       accessorFn: (row) => getFormField(row.formData, "athlete", "firstName"),
       cell: ({ row }) => {
         const { formData, status } = row.original;
         const firstName = getFormField(formData, "athlete", "firstName");
         const lastName = getFormField(formData, "athlete", "lastName");
         const program = getFormField(formData, "athlete", "program");
-        const grade = getFormField(formData, "athlete", "gradeEntering");
+        const telephone = getFormField(formData, "parents", "parent1Telephone");
+        const email = getFormField(formData, "parents", "parent1Email");
         const countryOfBirth = getFormField(
           formData,
           "athlete",
@@ -80,24 +86,42 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
           "athlete",
           "countryOfCitizenship",
         );
-        const statusInfo = statusMap[status];
+        const graduationYear = getFormField(
+          formData,
+          "athlete",
+          "graduationYear",
+        );
+        const needsI20 = getFormField(formData, "athlete", "needsI20");
+        const hasVisa = needsI20 === "no";
         const Icon = getSportIcon(program);
 
         return (
           <div>
-            <div className="font-medium">
-              {firstName} {lastName}
+            <div className="flex items-center gap-2">
+              <div className="font-medium">
+                {firstName} {lastName}
+              </div>
+              <div className="md:hidden flex items-center gap-1">
+                <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                  <a href={`tel:${telephone}`}>
+                    <Phone className="h-2 w-2" />
+                  </a>
+                </Button>
+                <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                  <a href={`mailto:${email}`}>
+                    <Mail className="h-2 w-2" />
+                  </a>
+                </Button>
+              </div>
             </div>
             <div className="lg:hidden flex flex-col gap-0.5 mt-1">
-              <div className="flex flex-row gap-1 items-center">
-                <Icon className="h-3 w-3 mr-1 text-muted-foreground" />
+              <div className="inline-flex items-center text-xs">
+                <span className="font-mono uppercase">{t("program")}:</span>
+                <Icon className="ml-1 h-3 w-3 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground capitalize">
                   {program}
                 </span>
               </div>
-              {grade && (
-                <span className="text-xs text-muted-foreground">{grade}</span>
-              )}
               {countryOfBirth && (
                 <div className="inline-flex items-center text-xs">
                   <span className="font-mono uppercase">{t("birth")}:</span>
@@ -116,12 +140,26 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
                   </span>
                 </div>
               )}
-              <Badge
-                variant={statusInfo.variant}
-                className="sm:hidden text-xs w-fit mt-1"
-              >
-                {statusInfo.label}
-              </Badge>
+              {graduationYear && (
+                <div className="inline-flex items-center text-xs">
+                  <span className="font-mono uppercase">
+                    {t("graduationYear")}:
+                  </span>
+                  <span className="text-muted-foreground ml-1">
+                    {new Date(graduationYear).toLocaleDateString("en-EN")}
+                  </span>
+                </div>
+              )}
+              <div className="inline-flex items-center text-xs">
+                <span className="font-mono uppercase">{t("visaStatus")}:</span>
+                <span className="ml-1">
+                  {hasVisa ? (
+                    <Check className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <CircleX className="h-3 w-3 text-red-600" />
+                  )}
+                </span>
+              </div>
             </div>
           </div>
         );
@@ -235,18 +273,18 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       id: "contact",
-      header: () => <div className="hidden lg:block">{t("contact")}</div>,
+      header: () => <div className="hidden md:block">{t("contact")}</div>,
       cell: ({ row }) => {
         const { formData } = row.original;
         const telephone = getFormField(formData, "parents", "parent1Telephone");
         const email = getFormField(formData, "parents", "parent1Email");
         return (
-          <div className="hidden lg:flex lg:flex-col font-medium">
-            <div className="hidden lg:flex lg:flex-row">
+          <div className="hidden md:flex md:flex-col font-medium">
+            <div className="hidden md:flex md:flex-row">
               <Mail className="h-4 w-4 mr-1" />
               {email}
             </div>
-            <div className="hidden lg:flex lg:flex-row">
+            <div className="hidden md:flex md:flex-row">
               <Phone className="h-4 w-4 mr-1" />
               {telephone}
             </div>
@@ -256,13 +294,13 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       accessorKey: "status",
-      header: () => <div className="hidden sm:block">{t("status")}</div>,
+      header: t("status"),
       cell: ({ row }) => {
         const status = row.getValue("status") as ApplicationStatus;
         const statusInfo = statusMap[status];
 
         return (
-          <div className="hidden sm:block">
+          <div>
             <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
           </div>
         );
@@ -276,7 +314,6 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
 
 export function useClientApplicationColumns(): ColumnDef<Application>[] {
   const t = useTranslations("Applications");
-  const tDetail = useTranslations("Applications.detail");
   const statusMap = useStatusMap();
 
   return [
@@ -294,35 +331,105 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       id: "fullName",
-      header: tDetail("fullName"),
+      header: () => (
+        <>
+          <div className="hidden lg:block">{t("fullName")}</div>
+          <div className="lg:hidden">{t("athlete")}</div>
+        </>
+      ),
+
       accessorFn: (row) => getFormField(row.formData, "athlete", "firstName"),
       cell: ({ row }) => {
-        const { formData } = row.original;
+        const { formData, status } = row.original;
         const firstName = getFormField(formData, "athlete", "firstName");
         const lastName = getFormField(formData, "athlete", "lastName");
         const program = getFormField(formData, "athlete", "program");
-        const grade = getFormField(formData, "athlete", "gradeEntering");
-        const country = getFormField(formData, "athlete", "countryOfBirth");
+        const telephone = getFormField(formData, "parents", "parent1Telephone");
+        const email = getFormField(formData, "parents", "parent1Email");
+        const countryOfBirth = getFormField(
+          formData,
+          "athlete",
+          "countryOfBirth",
+        );
+        const countryOfCitizen = getFormField(
+          formData,
+          "athlete",
+          "countryOfCitizenship",
+        );
+        const graduationYear = getFormField(
+          formData,
+          "athlete",
+          "graduationYear",
+        );
+        const needsI20 = getFormField(formData, "athlete", "needsI20");
+        const hasVisa = needsI20 === "no";
         const Icon = getSportIcon(program);
 
         return (
           <div>
-            <div className="font-medium">
-              {firstName} {lastName}
+            <div className="flex items-center gap-2">
+              <div className="font-medium">
+                {firstName} {lastName}
+              </div>
+              <div className="md:hidden flex items-center gap-1">
+                <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                  <a href={`tel:${telephone}`}>
+                    <Phone className="h-2 w-2" />
+                  </a>
+                </Button>
+                <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                  <a href={`mailto:${email}`}>
+                    <Mail className="h-2 w-2" />
+                  </a>
+                </Button>
+              </div>
             </div>
-            <div className="md:hidden flex flex-col gap-0.5 mt-1">
-              <div className="flex flex-row gap-1 items-center">
-                <Icon className="h-3 w-3 text-muted-foreground" />
+            <div className="lg:hidden flex flex-col gap-0.5 mt-1">
+              <div className="inline-flex items-center text-xs">
+                <span className="font-mono uppercase">{t("program")}:</span>
+                <Icon className="ml-1 h-3 w-3 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground capitalize">
                   {program}
                 </span>
               </div>
-              {grade && (
-                <span className="text-xs text-muted-foreground">{grade}</span>
+              {countryOfBirth && (
+                <div className="inline-flex items-center text-xs">
+                  <span className="font-mono uppercase">{t("birth")}:</span>
+                  <span className="text-muted-foreground ml-1">
+                    {countryOfBirth}
+                  </span>
+                </div>
               )}
-              {country && (
-                <span className="text-xs text-muted-foreground">{country}</span>
+              {countryOfCitizen && (
+                <div className="inline-flex items-center text-xs">
+                  <span className="font-mono uppercase">
+                    {t("citizenship")}:
+                  </span>
+                  <span className="text-muted-foreground ml-1">
+                    {countryOfCitizen}
+                  </span>
+                </div>
               )}
+              {graduationYear && (
+                <div className="inline-flex items-center text-xs">
+                  <span className="font-mono uppercase">
+                    {t("graduationYear")}:
+                  </span>
+                  <span className="text-muted-foreground ml-1">
+                    {new Date(graduationYear).toLocaleDateString("en-EN")}
+                  </span>
+                </div>
+              )}
+              <div className="inline-flex items-center text-xs">
+                <span className="font-mono uppercase">{t("visaStatus")}:</span>
+                <span className="ml-1">
+                  {hasVisa ? (
+                    <Check className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <CircleX className="h-3 w-3 text-red-600" />
+                  )}
+                </span>
+              </div>
             </div>
           </div>
         );
@@ -330,7 +437,7 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       id: "program",
-      header: () => <div className="hidden md:block">{t("program")}</div>,
+      header: () => <div className="hidden lg:block">{t("program")}</div>,
       accessorFn: (row) => getFormField(row.formData, "athlete", "program"),
       cell: ({ row }) => {
         const program = getFormField(
@@ -340,7 +447,7 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
         );
         const Icon = getSportIcon(program);
         return (
-          <div className="hidden md:flex md:items-center md:gap-2">
+          <div className="hidden lg:flex lg:items-center lg:gap-2">
             <Icon className="h-4 w-4 text-muted-foreground" />
             <span className="capitalize">{program}</span>
           </div>
@@ -356,24 +463,117 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
       },
     },
     {
-      id: "gradeEntering",
-      header: () => <div className="hidden md:block">{t("grade")}</div>,
+      id: "country",
+      header: () => <div className="hidden lg:block">{t("country")}</div>,
       accessorFn: (row) =>
-        getFormField(row.formData, "athlete", "gradeEntering"),
-      cell: ({ row }) => (
-        <div className="hidden md:block text-sm">
-          {getFormField(row.original.formData, "athlete", "gradeEntering")}
-        </div>
+        getFormField(row.formData, "athlete", "countryOfBirth"),
+      cell: ({ row }) => {
+        const countryOfBirth = getFormField(
+          row.original.formData,
+          "athlete",
+          "countryOfBirth",
+        );
+        const countryOfCitizen = getFormField(
+          row.original.formData,
+          "athlete",
+          "countryOfCitizenship",
+        );
+        return (
+          <div className="hidden lg:flex lg:flex-col">
+            <div className="inline-flex items-center text-xs">
+              <span className="font-mono uppercase">{t("birth")}:</span>
+              <span className="text-muted-foreground ml-1">
+                {countryOfBirth}
+              </span>
+            </div>
+
+            <div className="inline-flex items-center text-xs">
+              <span className="font-mono uppercase">{t("citizenship")}:</span>
+              <span className="text-muted-foreground ml-1">
+                {countryOfCitizen}
+              </span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "graduationYear",
+      header: () => (
+        <div className="hidden lg:block">{t("graduationYear")}</div>
       ),
+      accessorFn: (row) =>
+        getFormField(row.formData, "athlete", "graduationYear"),
+      cell: ({ row }) => {
+        const graduationYear = getFormField(
+          row.original.formData,
+          "athlete",
+          "graduationYear",
+        );
+        return (
+          <div className="hidden lg:block text-sm">
+            {graduationYear
+              ? new Date(graduationYear).toLocaleDateString("en-EN")
+              : "-"}
+          </div>
+        );
+      },
+    },
+    {
+      id: "visaStatus",
+      header: () => <div className="hidden lg:block">{t("visaStatus")}</div>,
+      accessorFn: (row) => getFormField(row.formData, "athlete", "needsI20"),
+      cell: ({ row }) => {
+        const needsI20 = getFormField(
+          row.original.formData,
+          "athlete",
+          "needsI20",
+        );
+        const hasVisa = needsI20 === "no";
+        return (
+          <div className="hidden lg:flex">
+            {hasVisa ? (
+              <Check className="h-4 w-4 text-green-600" />
+            ) : (
+              <CircleX className="h-4 w-4 text-red-600" />
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: "contact",
+      header: () => <div className="hidden md:block">{t("contact")}</div>,
+      cell: ({ row }) => {
+        const { formData } = row.original;
+        const telephone = getFormField(formData, "parents", "parent1Telephone");
+        const email = getFormField(formData, "parents", "parent1Email");
+        return (
+          <div className="hidden md:flex md:flex-col font-medium">
+            <div className="hidden md:flex md:flex-row">
+              <Mail className="h-4 w-4 mr-1" />
+              {email}
+            </div>
+            <div className="hidden md:flex md:flex-row">
+              <Phone className="h-4 w-4 mr-1" />
+              {telephone}
+            </div>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "status",
-      header: t("status"),
+      header: () => t("status"),
       cell: ({ row }) => {
         const status = row.getValue("status") as ApplicationStatus;
         const statusInfo = statusMap[status];
 
-        return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
+        return (
+          <div>
+            <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+          </div>
+        );
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id));
