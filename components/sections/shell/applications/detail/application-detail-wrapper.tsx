@@ -82,6 +82,9 @@ function ApplicationDetailContent({
   const updateDocumentVisibility = useMutation(api.documents.updateVisibility);
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const removeDocument = useMutation(api.documents.remove);
+  const createCustomDocumentType = useMutation(
+    api.documents.createCustomDocumentType,
+  );
 
   // Actions
   const createPaymentLink = useAction(api.square.createPaymentLink);
@@ -196,6 +199,7 @@ function ApplicationDetailContent({
                   onUpdateVisibility={updateDocumentVisibility}
                   onGenerateUploadUrl={generateUploadUrl}
                   onRemove={removeDocument}
+                  onCreateCustomDocumentType={createCustomDocumentType}
                 />
               )}
             </Suspense>

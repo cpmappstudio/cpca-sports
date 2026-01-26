@@ -237,12 +237,23 @@
       "reject": "Reject",
       "delete": "Delete file",
       "changeVisibility": "Change visibility",
+      "addDocument": "Add Document",
+      "cancel": "Cancel",
       "deleteDialog": {
         "title": "Delete document?",
         "description": "This will permanently delete this document from the application. This action cannot be undone.",
         "cancel": "Cancel",
         "confirm": "Delete"
       }
+    },
+    "form": {
+      "documentName": "Document Name",
+      "documentNamePlaceholder": "Enter document name",
+      "description": "Description (optional)",
+      "descriptionPlaceholder": "Enter description",
+      "required": "Required",
+      "adding": "Adding...",
+      "addButton": "Add Document"
     },
     "uploadedBy": "Uploaded on {date} by {name}",
     "rejectionReason": "Rejection reason"

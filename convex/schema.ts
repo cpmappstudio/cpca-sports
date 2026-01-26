@@ -224,6 +224,10 @@ export default defineSchema({
     visibility: documentVisibility,
     updatedAt: v.number(),
     updatedBy: v.id("users"),
+    // Optional fields for custom document types (created by admin)
+    isCustom: v.optional(v.boolean()),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
   })
     .index("byApplication", ["applicationId"])
     .index("byApplicationAndType", ["applicationId", "documentTypeId"]),

@@ -24,6 +24,9 @@ const documentConfigValidator = v.object({
   visibility: documentVisibility,
   updatedAt: v.number(),
   updatedBy: v.id("users"),
+  isCustom: v.optional(v.boolean()),
+  name: v.optional(v.string()),
+  description: v.optional(v.string()),
 });
 
 const documentValidator = v.object({
@@ -363,6 +366,45 @@ export const updateVisibility = mutation({
       visibility: args.visibility,
       updatedAt: Date.now(),
       updatedBy: user._id,
+    });
+  },
+});
+
+/**
+ * Create a custom document type for an application (admin only).
+ */
+export const createCustomDocumentType = mutation({
+  args: {
+    applicationId: v.id("applications"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    required: v.boolean(),
+  },
+  returns: v.id("applicationDocumentConfig"),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    await verifyApplicationAccess(ctx, args.applicationId, user._id, true);
+
+    // Generate a unique documentTypeId from the name
+    const baseId = args.name
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "");
+    const timestamp = Date.now().toString(36);
+    const documentTypeId = `custom_${baseId}_${timestamp}`;
+
+    // Determine visibility based on required flag
+    const visibility = args.required ? "required" : "optional";
+
+    return await ctx.db.insert("applicationDocumentConfig", {
+      applicationId: args.applicationId,
+      documentTypeId,
+      visibility,
+      updatedAt: Date.now(),
+      updatedBy: user._id,
+      isCustom: true,
+      name: args.name,
+      description: args.description,
     });
   },
 });

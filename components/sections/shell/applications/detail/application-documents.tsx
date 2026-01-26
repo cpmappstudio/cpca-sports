@@ -10,6 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -39,6 +41,7 @@ import {
   XCircle,
   Eye,
   Trash2,
+  Plus,
 } from "lucide-react";
 import {
   APPLICATION_DOCUMENTS,
@@ -78,6 +81,147 @@ interface ApplicationDocumentsProps {
   }) => Promise<Id<"applicationDocumentConfig">>;
   onGenerateUploadUrl: () => Promise<string>;
   onRemove: (args: { documentId: Id<"applicationDocuments"> }) => Promise<null>;
+  onCreateCustomDocumentType: (args: {
+    applicationId: Id<"applications">;
+    name: string;
+    description?: string;
+    required: boolean;
+  }) => Promise<Id<"applicationDocumentConfig">>;
+}
+
+interface DocumentActionsProps {
+  isAdmin: boolean;
+  isAddingDocument: boolean;
+  setIsAddingDocument: (value: boolean) => void;
+}
+
+function DocumentActions({
+  isAdmin,
+  isAddingDocument,
+  setIsAddingDocument,
+}: DocumentActionsProps) {
+  const t = useTranslations("Applications.documents");
+
+  if (!isAdmin) return null;
+
+  return (
+    <div className="flex items-center justify-end">
+      <Button
+        size="sm"
+        variant={isAddingDocument ? "outline" : "default"}
+        onClick={() => setIsAddingDocument(!isAddingDocument)}
+      >
+        {isAddingDocument ? (
+          <span className="hidden md:inline">{t("actions.cancel")}</span>
+        ) : (
+          <>
+            <Plus className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">{t("actions.addDocument")}</span>
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}
+
+interface AddDocumentFormProps {
+  applicationId: Id<"applications">;
+  onAddDocument: (document: {
+    name: string;
+    description?: string;
+    required: boolean;
+  }) => Promise<void>;
+  onClose: () => void;
+}
+
+function AddDocumentForm({
+  applicationId,
+  onAddDocument,
+  onClose,
+}: AddDocumentFormProps) {
+  const t = useTranslations("Applications.documents");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newDocument, setNewDocument] = useState({
+    name: "",
+    description: "",
+    required: false,
+  });
+
+  const handleAdd = async () => {
+    if (!newDocument.name) return;
+
+    setIsSubmitting(true);
+    try {
+      await onAddDocument({
+        name: newDocument.name,
+        description: newDocument.description || undefined,
+        required: newDocument.required,
+      });
+
+      setNewDocument({ name: "", description: "", required: false });
+      onClose();
+    } catch (error) {
+      console.error("Failed to add document:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="document-name">{t("form.documentName")}</Label>
+            <Input
+              id="document-name"
+              placeholder={t("form.documentNamePlaceholder")}
+              value={newDocument.name}
+              onChange={(e) =>
+                setNewDocument({ ...newDocument, name: e.target.value })
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="document-description">
+              {t("form.description")}
+            </Label>
+            <Input
+              id="document-description"
+              placeholder={t("form.descriptionPlaceholder")}
+              value={newDocument.description}
+              onChange={(e) =>
+                setNewDocument({ ...newDocument, description: e.target.value })
+              }
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="document-required"
+              checked={newDocument.required}
+              onChange={(e) =>
+                setNewDocument({ ...newDocument, required: e.target.checked })
+              }
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <Label htmlFor="document-required" className="cursor-pointer">
+              {t("form.required")}
+            </Label>
+          </div>
+        </div>
+        <Button
+          onClick={handleAdd}
+          className="w-full"
+          disabled={isSubmitting || !newDocument.name}
+        >
+          {isSubmitting ? t("form.adding") : t("form.addButton")}
+        </Button>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function ApplicationDocuments({
@@ -90,8 +234,35 @@ export function ApplicationDocuments({
   onUpdateVisibility,
   onGenerateUploadUrl,
   onRemove,
+  onCreateCustomDocumentType,
 }: ApplicationDocumentsProps) {
   const t = useTranslations("Applications.documents");
+  const [isAddingDocument, setIsAddingDocument] = useState(false);
+
+  // Extract custom document types from configs
+  const customDocuments: DocumentType[] = documentConfigs
+    .filter((config) => config.isCustom && config.name)
+    .map((config) => ({
+      id: config.documentTypeId,
+      name: config.name!,
+      description: config.description,
+      required: config.visibility === "required",
+    }));
+
+  const allDocuments = [...APPLICATION_DOCUMENTS, ...customDocuments];
+
+  const handleAddDocument = async (document: {
+    name: string;
+    description?: string;
+    required: boolean;
+  }) => {
+    await onCreateCustomDocumentType({
+      applicationId,
+      name: document.name,
+      description: document.description,
+      required: document.required,
+    });
+  };
 
   const getDocumentVisibility = (
     documentType: DocumentType,
@@ -113,7 +284,7 @@ export function ApplicationDocuments({
     );
   };
 
-  const visibleDocuments = APPLICATION_DOCUMENTS.filter((doc) => {
+  const visibleDocuments = allDocuments.filter((doc) => {
     const visibility = getDocumentVisibility(doc);
     if (visibility === "hidden" && !isAdmin) {
       return false;
@@ -123,6 +294,18 @@ export function ApplicationDocuments({
 
   return (
     <div className="space-y-4">
+      <DocumentActions
+        isAdmin={isAdmin}
+        isAddingDocument={isAddingDocument}
+        setIsAddingDocument={setIsAddingDocument}
+      />
+      {isAddingDocument && (
+        <AddDocumentForm
+          applicationId={applicationId}
+          onAddDocument={handleAddDocument}
+          onClose={() => setIsAddingDocument(false)}
+        />
+      )}
       {visibleDocuments.map((document) => (
         <DocumentCard
           key={document.id}

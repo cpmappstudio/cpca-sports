@@ -19,6 +19,9 @@ export type DocumentConfig = {
   visibility: DocumentVisibility;
   updatedAt: number;
   updatedBy: Id<"users">;
+  isCustom?: boolean;
+  name?: string;
+  description?: string;
 };
 
 export type ApplicationDocument = {
