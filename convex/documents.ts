@@ -10,6 +10,22 @@ const documentStatus = v.union(
   v.literal("rejected"),
 );
 
+const documentVisibility = v.union(
+  v.literal("required"),
+  v.literal("optional"),
+  v.literal("hidden"),
+);
+
+const documentConfigValidator = v.object({
+  _id: v.id("applicationDocumentConfig"),
+  _creationTime: v.number(),
+  applicationId: v.id("applications"),
+  documentTypeId: v.string(),
+  visibility: documentVisibility,
+  updatedAt: v.number(),
+  updatedBy: v.id("users"),
+});
+
 const documentValidator = v.object({
   _id: v.id("applicationDocuments"),
   _creationTime: v.number(),
@@ -202,12 +218,7 @@ export const updateStatus = mutation({
       throw new Error("Document not found");
     }
 
-    await verifyApplicationAccess(
-      ctx,
-      document.applicationId,
-      user._id,
-      true,
-    );
+    await verifyApplicationAccess(ctx, document.applicationId, user._id, true);
 
     if (args.status === "rejected" && !args.rejectionReason) {
       throw new Error("Rejection reason is required");
@@ -226,7 +237,7 @@ export const updateStatus = mutation({
 });
 
 /**
- * Delete a document (admin only, or owner if still pending).
+ * Delete a document (admin only, or the user who uploaded it).
  */
 export const remove = mutation({
   args: { documentId: v.id("applicationDocuments") },
@@ -245,8 +256,9 @@ export const remove = mutation({
       user._id,
     );
 
-    // Only admin can delete, or owner can delete their own pending documents
-    if (!isAdmin && !(isOwner && document.status === "pending")) {
+    // Admin can delete any document, or the user who uploaded it can delete their own
+    const isUploader = document.uploadedBy === user._id;
+    if (!isAdmin && !isUploader) {
       throw new Error("Unauthorized to delete this document");
     }
 
@@ -288,5 +300,69 @@ export const getSummary = query({
       approved: documents.filter((d) => d.status === "approved").length,
       rejected: documents.filter((d) => d.status === "rejected").length,
     };
+  },
+});
+
+/**
+ * Get document visibility configuration for an application.
+ */
+export const getConfigByApplication = query({
+  args: { applicationId: v.id("applications") },
+  returns: v.array(documentConfigValidator),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    await verifyApplicationAccess(ctx, args.applicationId, user._id);
+
+    return await ctx.db
+      .query("applicationDocumentConfig")
+      .withIndex("byApplication", (q) =>
+        q.eq("applicationId", args.applicationId),
+      )
+      .collect();
+  },
+});
+
+/**
+ * Update document visibility for an application (admin only).
+ */
+export const updateVisibility = mutation({
+  args: {
+    applicationId: v.id("applications"),
+    documentTypeId: v.string(),
+    visibility: documentVisibility,
+  },
+  returns: v.id("applicationDocumentConfig"),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    await verifyApplicationAccess(ctx, args.applicationId, user._id, true);
+
+    // Check if config already exists
+    const existing = await ctx.db
+      .query("applicationDocumentConfig")
+      .withIndex("byApplicationAndType", (q) =>
+        q
+          .eq("applicationId", args.applicationId)
+          .eq("documentTypeId", args.documentTypeId),
+      )
+      .unique();
+
+    if (existing) {
+      // Update existing config
+      await ctx.db.patch(existing._id, {
+        visibility: args.visibility,
+        updatedAt: Date.now(),
+        updatedBy: user._id,
+      });
+      return existing._id;
+    }
+
+    // Create new config
+    return await ctx.db.insert("applicationDocumentConfig", {
+      applicationId: args.applicationId,
+      documentTypeId: args.documentTypeId,
+      visibility: args.visibility,
+      updatedAt: Date.now(),
+      updatedBy: user._id,
+    });
   },
 });

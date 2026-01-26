@@ -214,5 +214,37 @@
       "registeredBy": "Registered by {name}",
       "registeredByTooltip": "Payment registered by"
     }
+  },
+  "documents": {
+    "title": "Documents",
+    "description": "Upload required documents for this application",
+    "visibility": {
+      "required": "Required",
+      "optional": "Optional",
+      "hidden": "Hidden"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "notUploaded": "Not uploaded"
+    },
+    "actions": {
+      "upload": "Upload file",
+      "replace": "Replace file",
+      "view": "View",
+      "approve": "Approve",
+      "reject": "Reject",
+      "delete": "Delete file",
+      "changeVisibility": "Change visibility",
+      "deleteDialog": {
+        "title": "Delete document?",
+        "description": "This will permanently delete this document from the application. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      }
+    },
+    "uploadedBy": "Uploaded on {date} by {name}",
+    "rejectionReason": "Rejection reason"
   }
 }

@@ -62,11 +62,26 @@ function ApplicationDetailContent({
     applicationId: convexApplicationId,
   });
 
+  // Fetch documents from Convex
+  const documents = useQuery(api.documents.getByApplication, {
+    applicationId: convexApplicationId,
+  });
+  const documentConfigs = useQuery(api.documents.getConfigByApplication, {
+    applicationId: convexApplicationId,
+  });
+
   // Mutations
   const createFee = useMutation(api.fees.create);
   const removeFee = useMutation(api.fees.remove);
   const recordManualPayment = useMutation(api.fees.recordManualPayment);
   const updateFee = useMutation(api.fees.update);
+
+  // Document mutations
+  const uploadDocument = useMutation(api.documents.upload);
+  const updateDocumentStatus = useMutation(api.documents.updateStatus);
+  const updateDocumentVisibility = useMutation(api.documents.updateVisibility);
+  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
+  const removeDocument = useMutation(api.documents.remove);
 
   // Actions
   const createPaymentLink = useAction(api.square.createPaymentLink);
@@ -168,10 +183,21 @@ function ApplicationDetailContent({
           </TabsContent>
           <TabsContent value="docs" className="mt-0">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <ApplicationDocuments
-                applicationId={applicationId}
-                isAdmin={isAdmin}
-              />
+              {documents === undefined || documentConfigs === undefined ? (
+                <Skeleton className="h-96 w-full" />
+              ) : (
+                <ApplicationDocuments
+                  applicationId={convexApplicationId}
+                  isAdmin={isAdmin}
+                  documents={documents}
+                  documentConfigs={documentConfigs}
+                  onUpload={uploadDocument}
+                  onUpdateStatus={updateDocumentStatus}
+                  onUpdateVisibility={updateDocumentVisibility}
+                  onGenerateUploadUrl={generateUploadUrl}
+                  onRemove={removeDocument}
+                />
+              )}
             </Suspense>
           </TabsContent>
           <TabsContent value="payments" className="mt-0">

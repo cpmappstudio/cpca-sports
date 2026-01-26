@@ -9,6 +9,18 @@ export type DocumentType = {
 
 export type DocumentStatus = "pending" | "approved" | "rejected";
 
+export type DocumentVisibility = "required" | "optional" | "hidden";
+
+export type DocumentConfig = {
+  _id: Id<"applicationDocumentConfig">;
+  _creationTime: number;
+  applicationId: Id<"applications">;
+  documentTypeId: string;
+  visibility: DocumentVisibility;
+  updatedAt: number;
+  updatedBy: Id<"users">;
+};
+
 export type ApplicationDocument = {
   _id: Id<"applicationDocuments">;
   _creationTime: number;

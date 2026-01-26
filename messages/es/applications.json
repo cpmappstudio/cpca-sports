@@ -214,5 +214,37 @@
       "registeredBy": "Registrado por {name}",
       "registeredByTooltip": "Pago registrado por"
     }
+  },
+  "documents": {
+    "title": "Documentos",
+    "description": "Sube los documentos requeridos para esta solicitud",
+    "visibility": {
+      "required": "Requerido",
+      "optional": "Opcional",
+      "hidden": "Oculto"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "approved": "Aprobado",
+      "rejected": "Rechazado",
+      "notUploaded": "Sin subir"
+    },
+    "actions": {
+      "upload": "Subir archivo",
+      "replace": "Reemplazar archivo",
+      "view": "Ver",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "delete": "Eliminar archivo",
+      "changeVisibility": "Cambiar visibilidad",
+      "deleteDialog": {
+        "title": "¿Eliminar documento?",
+        "description": "Esto eliminará permanentemente el archivo subido. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
+      }
+    },
+    "uploadedBy": "Subido el {date} por {name}",
+    "rejectionReason": "Motivo del rechazo"
   }
 }
