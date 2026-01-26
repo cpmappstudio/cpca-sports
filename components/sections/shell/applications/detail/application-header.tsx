@@ -26,7 +26,14 @@ import {
   User,
   IdCard,
   Trash2,
+  MoreVertical,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useState, useRef } from "react";
 import {
   AlertDialog,
@@ -74,6 +81,7 @@ export function ApplicationHeader({
   const [currentPhoto, setCurrentPhoto] = useState<Id<"_storage"> | null>(
     (formData.athlete?.photo as Id<"_storage">) || null,
   );
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -268,45 +276,16 @@ export function ApplicationHeader({
                     {firstName} {lastName}
                   </h1>
                   {isAdmin && (
-                    <CardAction>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="destructive"
-                            className="h-9 w-9"
-                            disabled={isUpdating}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent size="sm">
-                          <AlertDialogHeader>
-                            <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
-                              <Trash2 />
-                            </AlertDialogMedia>
-                            <AlertDialogTitle>
-                              Delete application?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete this application and
-                              all its associated data. This action cannot be
-                              undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel variant="outline">
-                              Cancel
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                              variant="destructive"
-                              onClick={handleDeleteApplication}
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                    <CardAction className="hidden md:block">
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="h-9 w-9"
+                        disabled={isUpdating}
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </CardAction>
                   )}
                 </div>
@@ -345,26 +324,64 @@ export function ApplicationHeader({
                   )}
                   {isAdmin && (
                     <>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="h-9 w-9"
-                        asChild
-                      >
-                        <a href={`tel:${telephone}`}>
-                          <Phone className="h-4 w-4" />
-                        </a>
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="h-9 w-9"
-                        asChild
-                      >
-                        <a href={`mailto:${email}`}>
-                          <Mail className="h-4 w-4" />
-                        </a>
-                      </Button>
+                      {/* Vista móvil: Dropdown con todas las acciones */}
+                      <div className="md:hidden">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="h-9 w-9"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <a href={`tel:${telephone}`} className="flex items-center gap-2">
+                                <Phone className="h-4 w-4" />
+                                <span>{t("call")}</span>
+                              </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <a href={`mailto:${email}`} className="flex items-center gap-2">
+                                <Mail className="h-4 w-4" />
+                                <span>{t("email")}</span>
+                              </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => setIsDeleteDialogOpen(true)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span>{t("delete")}</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      {/* Vista medium y large: Botones individuales */}
+                      <div className="hidden md:flex gap-2">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-9 w-9"
+                          asChild
+                        >
+                          <a href={`tel:${telephone}`}>
+                            <Phone className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-9 w-9"
+                          asChild
+                        >
+                          <a href={`mailto:${email}`}>
+                            <Mail className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
                     </>
                   )}
                 </div>
@@ -466,6 +483,36 @@ export function ApplicationHeader({
         totalPaid={totalPaid}
         totalPending={totalPending}
       />
+      
+      {/* Alert Dialog compartido para eliminar */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
+              <Trash2 />
+            </AlertDialogMedia>
+            <AlertDialogTitle>
+              Delete application?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this application and
+              all its associated data. This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel variant="outline">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDeleteApplication}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }

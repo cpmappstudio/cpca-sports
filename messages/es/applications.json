@@ -58,6 +58,8 @@
     "code": "Código",
     "program": "Programa",
     "backToList": "Volver a la lista",
+    "call": "Llamar",
+    "delete": "Eliminar",
     "athleteInfo": "Información del Atleta",
     "programInfo": "Información del Programa",
     "schoolInfo": "Información Escolar",
