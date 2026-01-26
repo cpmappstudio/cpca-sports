@@ -39,7 +39,8 @@
   "tabs": {
     "application": "Aplicación",
     "payments": "Pagos",
-    "documents": "Documentos"
+    "documents": "Documentos",
+    "transactions": "Historial de Transacciones"
   },
   "sections": {
     "athlete": "Atleta",
@@ -100,5 +101,43 @@
     "needsI20": "Necesita I-20?",
     "submittedAt": "Enviado El",
     "message": "Mensaje Adicional"
+  },
+  "payments": {
+    "summary": {
+      "title": "Resumen de Pagos",
+      "description": "Resumen de todas las tarifas y pagos de esta solicitud",
+      "totalDue": "Total a Pagar",
+      "totalPaid": "Total Pagado",
+      "pending": "Pendiente"
+    }
+  },
+  "transactions": {
+    "title": "Historial de Transacciones",
+    "description": "Todas las transacciones de pago para esta solicitud",
+    "emptyMessage": "No hay transacciones aún",
+    "searchPlaceholder": "Buscar por tarifa, monto o referencia...",
+    "filterMethod": "Método",
+    "filterStatus": "Estado",
+    "filterDate": "Filtrar por fecha",
+    "table": {
+      "date": "Fecha",
+      "fee": "Tarifa",
+      "amount": "Monto",
+      "method": "Método",
+      "status": "Estado",
+      "reference": "Referencia"
+    },
+    "methods": {
+      "cash": "Efectivo",
+      "online": "En línea"
+    },
+    "statuses": {
+      "completed": "Completado",
+      "pending": "Pendiente",
+      "failed": "Fallido"
+    },
+    "filters": {
+      "all": "Todos"
+    }
   }
 }

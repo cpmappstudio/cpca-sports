@@ -27,17 +27,24 @@ import {
   IdCard,
 } from "lucide-react";
 import { useState } from "react";
+import { ApplicationBalanceCard } from "./application-balance-card";
 
 interface ApplicationHeaderProps {
   application: Application;
   organizationSlug: string;
   isAdmin: boolean;
+  totalDue: number;
+  totalPaid: number;
+  totalPending: number;
 }
 
 export function ApplicationHeader({
   application,
   organizationSlug,
   isAdmin,
+  totalDue,
+  totalPaid,
+  totalPending,
 }: ApplicationHeaderProps) {
   const t = useTranslations("Applications.detail");
   const tStatus = useTranslations("Applications.statusOptions");
@@ -100,169 +107,176 @@ export function ApplicationHeader({
   };
 
   return (
-    <Card>
-      <CardContent>
-        <div className="space-y-4">
-          {/* Primera fila: Foto + Nombre + Estado */}
-          <div className="flex items-start gap-4">
-            <div className="w-20 h-20 shrink-0">
-              <AspectRatio ratio={1} className="bg-muted rounded-lg">
-                <Image
-                  src="/avatars/avatar-1.png"
-                  alt={`${firstName} ${lastName}`}
-                  fill
-                  className="rounded-lg object-cover"
-                />
-              </AspectRatio>
+    <section className="flex flex-col gap-4">
+      <Card>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Primera fila: Foto + Nombre + Estado */}
+            <div className="flex items-start gap-4">
+              <div className="w-20 h-20 shrink-0">
+                <AspectRatio ratio={1} className="bg-muted rounded-lg">
+                  <Image
+                    src="/avatars/avatar-1.png"
+                    alt={`${firstName} ${lastName}`}
+                    fill
+                    className="rounded-lg object-cover"
+                  />
+                </AspectRatio>
+              </div>
+              <div className="flex flex-col gap-2 flex-1 min-w-0">
+                <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+                  {firstName} {lastName}
+                </h1>
+                <div className="flex items-start gap-2 mt-1">
+                  {isAdmin ? (
+                    <Select value={status} onValueChange={handleStatusChange}>
+                      <SelectTrigger className="w-fit h-7 text-xs font-medium">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">
+                          {tStatus("pending")}
+                        </SelectItem>
+                        <SelectItem value="reviewing">
+                          {tStatus("reviewing")}
+                        </SelectItem>
+                        <SelectItem value="pre-admitted">
+                          {tStatus("pre-admitted")}
+                        </SelectItem>
+                        <SelectItem value="admitted">
+                          {tStatus("admitted")}
+                        </SelectItem>
+                        <SelectItem value="denied">
+                          {tStatus("denied")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Badge variant={statusInfo.variant} className="w-fit">
+                      {statusInfo.label}
+                    </Badge>
+                  )}
+                  {isAdmin && (
+                    <>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-9 w-9"
+                        asChild
+                      >
+                        <a href={`tel:${telephone}`}>
+                          <Phone className="h-4 w-4" />
+                        </a>
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-9 w-9"
+                        asChild
+                      >
+                        <a href={`mailto:${email}`}>
+                          <Mail className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col gap-2 flex-1 min-w-0">
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-                {firstName} {lastName}
-              </h1>
-              <div className="flex items-start gap-2 mt-1">
-                {isAdmin ? (
-                  <Select value={status} onValueChange={handleStatusChange}>
-                    <SelectTrigger className="w-fit h-7 text-xs font-medium">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">
-                        {tStatus("pending")}
-                      </SelectItem>
-                      <SelectItem value="reviewing">
-                        {tStatus("reviewing")}
-                      </SelectItem>
-                      <SelectItem value="pre-admitted">
-                        {tStatus("pre-admitted")}
-                      </SelectItem>
-                      <SelectItem value="admitted">
-                        {tStatus("admitted")}
-                      </SelectItem>
-                      <SelectItem value="denied">
-                        {tStatus("denied")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Badge variant={statusInfo.variant} className="w-fit">
-                    {statusInfo.label}
-                  </Badge>
-                )}
-                {isAdmin && (
-                  <>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-9 w-9"
-                      asChild
-                    >
-                      <a href={`tel:${telephone}`}>
-                        <Phone className="h-4 w-4" />
-                      </a>
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-9 w-9"
-                      asChild
-                    >
-                      <a href={`mailto:${email}`}>
-                        <Mail className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  </>
-                )}
+
+            {/* Divider */}
+            <hr />
+
+            {/* Segunda fila: Grid con campos clave */}
+            <div className="grid grid-cols-1 gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-semibold text-foreground">Age:</span>
+                <span className="text-muted-foreground">
+                  {birthDate ? `${calculateAge(birthDate)} years` : "-"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-semibold text-foreground">
+                  {t("birthCountry")}:
+                </span>
+                <span className="text-muted-foreground">
+                  {countryOfBirth || "-"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-semibold text-foreground">
+                  {t("citizenship")}:
+                </span>
+                <span className="text-muted-foreground">
+                  {countryOfCitizenship || "-"}
+                </span>
+              </div>
+              <hr />
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-semibold text-foreground">
+                  {t("format")}:
+                </span>
+                <span className="text-muted-foreground capitalize">
+                  {format || "-"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-semibold text-foreground">
+                  {t("program")}:
+                </span>
+                <span className="text-muted-foreground capitalize">
+                  {program || "-"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-semibold text-foreground">
+                  {t("gradeEntering")}:
+                </span>
+                <span className="text-muted-foreground">
+                  {gradeEntering || "-"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-semibold text-foreground">
+                  {t("enrollmentYear")}:
+                </span>
+                <span className="text-muted-foreground">
+                  {enrollmentYear || "-"}
+                </span>
+              </div>
+              <hr />
+              <div className="flex items-center gap-2">
+                <IdCard className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-semibold text-foreground">I-20:</span>
+                <span className="text-muted-foreground">
+                  {needsI20 === "yes" ? t("yes") : t("no")}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Home className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-semibold text-foreground">
+                  {t("boarding")}:
+                </span>
+                <span className="text-muted-foreground">
+                  {interestedInBoarding === "yes" ? t("yes") : t("no")}
+                </span>
               </div>
             </div>
           </div>
-
-          {/* Divider */}
-          <hr />
-
-          {/* Segunda fila: Grid con campos clave */}
-          <div className="grid grid-cols-1 gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">Age:</span>
-              <span className="text-muted-foreground">
-                {birthDate ? `${calculateAge(birthDate)} years` : "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("birthCountry")}:
-              </span>
-              <span className="text-muted-foreground">
-                {countryOfBirth || "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("citizenship")}:
-              </span>
-              <span className="text-muted-foreground">
-                {countryOfCitizenship || "-"}
-              </span>
-            </div>
-            <hr />
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("format")}:
-              </span>
-              <span className="text-muted-foreground capitalize">
-                {format || "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("program")}:
-              </span>
-              <span className="text-muted-foreground capitalize">
-                {program || "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("gradeEntering")}:
-              </span>
-              <span className="text-muted-foreground">
-                {gradeEntering || "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("enrollmentYear")}:
-              </span>
-              <span className="text-muted-foreground">
-                {enrollmentYear || "-"}
-              </span>
-            </div>
-            <hr />
-            <div className="flex items-center gap-2">
-              <IdCard className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">{t("needsI20")}:</span>
-              <span className="text-muted-foreground">
-                {needsI20 === "yes" ? t("yes") : t("no")}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Home className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("boarding")}:
-              </span>
-              <span className="text-muted-foreground">
-                {interestedInBoarding === "yes" ? t("yes") : t("no")}
-              </span>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      <ApplicationBalanceCard
+        totalDue={totalDue}
+        totalPaid={totalPaid}
+        totalPending={totalPending}
+      />
+    </section>
   );
 }
