@@ -35,6 +35,21 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Upload,
   FileIcon,
   CheckCircle2,
@@ -42,6 +57,8 @@ import {
   Eye,
   Trash2,
   Plus,
+  MoreHorizontal,
+  Pencil,
 } from "lucide-react";
 import {
   APPLICATION_DOCUMENTS,
@@ -87,6 +104,15 @@ interface ApplicationDocumentsProps {
     description?: string;
     required: boolean;
   }) => Promise<Id<"applicationDocumentConfig">>;
+  onUpdateCustomDocumentType: (args: {
+    configId: Id<"applicationDocumentConfig">;
+    name: string;
+    description?: string;
+    required: boolean;
+  }) => Promise<null>;
+  onDeleteCustomDocumentType: (args: {
+    configId: Id<"applicationDocumentConfig">;
+  }) => Promise<null>;
 }
 
 interface DocumentActionsProps {
@@ -235,19 +261,39 @@ export function ApplicationDocuments({
   onGenerateUploadUrl,
   onRemove,
   onCreateCustomDocumentType,
+  onUpdateCustomDocumentType,
+  onDeleteCustomDocumentType,
 }: ApplicationDocumentsProps) {
   const t = useTranslations("Applications.documents");
   const [isAddingDocument, setIsAddingDocument] = useState(false);
 
-  // Extract custom document types from configs
-  const customDocuments: DocumentType[] = documentConfigs
+  // Extract custom document types from configs with their configId
+  const customDocumentsWithConfig = documentConfigs
     .filter((config) => config.isCustom && config.name)
     .map((config) => ({
       id: config.documentTypeId,
       name: config.name!,
       description: config.description,
       required: config.visibility === "required",
+      configId: config._id,
     }));
+
+  const customDocuments: DocumentType[] = customDocumentsWithConfig.map(
+    ({ configId, ...doc }) => doc,
+  );
+
+  const getCustomConfigId = (
+    documentTypeId: string,
+  ): Id<"applicationDocumentConfig"> | null => {
+    const custom = customDocumentsWithConfig.find(
+      (c) => c.id === documentTypeId,
+    );
+    return custom?.configId ?? null;
+  };
+
+  const isCustomDocument = (documentTypeId: string): boolean => {
+    return customDocumentsWithConfig.some((c) => c.id === documentTypeId);
+  };
 
   const allDocuments = [...APPLICATION_DOCUMENTS, ...customDocuments];
 
@@ -314,11 +360,15 @@ export function ApplicationDocuments({
           uploadedDocument={getUploadedDocument(document.id)}
           visibility={getDocumentVisibility(document)}
           isAdmin={isAdmin}
+          isCustom={isCustomDocument(document.id)}
+          customConfigId={getCustomConfigId(document.id)}
           onUpload={onUpload}
           onUpdateStatus={onUpdateStatus}
           onUpdateVisibility={onUpdateVisibility}
           onGenerateUploadUrl={onGenerateUploadUrl}
           onRemove={onRemove}
+          onUpdateCustomDocumentType={onUpdateCustomDocumentType}
+          onDeleteCustomDocumentType={onDeleteCustomDocumentType}
         />
       ))}
     </div>
@@ -331,11 +381,15 @@ interface DocumentCardProps {
   uploadedDocument: ApplicationDocumentWithUser | null;
   visibility: DocumentVisibility;
   isAdmin: boolean;
+  isCustom: boolean;
+  customConfigId: Id<"applicationDocumentConfig"> | null;
   onUpload: ApplicationDocumentsProps["onUpload"];
   onUpdateStatus: ApplicationDocumentsProps["onUpdateStatus"];
   onUpdateVisibility: ApplicationDocumentsProps["onUpdateVisibility"];
   onGenerateUploadUrl: ApplicationDocumentsProps["onGenerateUploadUrl"];
   onRemove: ApplicationDocumentsProps["onRemove"];
+  onUpdateCustomDocumentType: ApplicationDocumentsProps["onUpdateCustomDocumentType"];
+  onDeleteCustomDocumentType: ApplicationDocumentsProps["onDeleteCustomDocumentType"];
 }
 
 function DocumentCard({
@@ -344,17 +398,57 @@ function DocumentCard({
   uploadedDocument,
   visibility,
   isAdmin,
+  isCustom,
+  customConfigId,
   onUpload,
   onUpdateStatus,
   onUpdateVisibility,
   onGenerateUploadUrl,
   onRemove,
+  onUpdateCustomDocumentType,
+  onDeleteCustomDocumentType,
 }: DocumentCardProps) {
   const t = useTranslations("Applications.documents");
   const [isUploading, setIsUploading] = useState(false);
   const [visibilityPopoverOpen, setVisibilityPopoverOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: document.name,
+    description: document.description || "",
+    required: visibility === "required",
+  });
 
   const canDelete = !!uploadedDocument;
+
+  const handleEditSave = async () => {
+    if (!customConfigId || !editForm.name) return;
+    setIsSavingEdit(true);
+    try {
+      await onUpdateCustomDocumentType({
+        configId: customConfigId,
+        name: editForm.name,
+        description: editForm.description || undefined,
+        required: editForm.required,
+      });
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to update document type:", error);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleDeleteType = async () => {
+    if (!customConfigId) return;
+    try {
+      await onDeleteCustomDocumentType({ configId: customConfigId });
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to delete document type:", error);
+    }
+  };
 
   const handleRemove = async () => {
     if (!uploadedDocument) return;
@@ -548,9 +642,132 @@ function DocumentCard({
               </CardDescription>
             )}
           </div>
-          {getStatusBadge()}
+          <div className="flex items-center gap-2">
+            {getStatusBadge()}
+            {isAdmin && isCustom && customConfigId && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    aria-label={t("actions.moreOptions")}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+                      <Pencil className="h-4 w-4" />
+                      {t("actions.edit")}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {t("actions.deleteType")}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
       </CardHeader>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("actions.editDialog.title")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">{t("form.documentName")}</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, name: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">{t("form.description")}</Label>
+              <Input
+                id="edit-description"
+                value={editForm.description}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, description: e.target.value })
+                }
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="edit-required"
+                checked={editForm.required}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, required: e.target.checked })
+                }
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="edit-required" className="cursor-pointer">
+                {t("form.required")}
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
+              {t("actions.cancel")}
+            </Button>
+            <Button
+              onClick={handleEditSave}
+              disabled={isSavingEdit || !editForm.name}
+            >
+              {isSavingEdit
+                ? t("actions.editDialog.saving")
+                : t("actions.editDialog.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Type Dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
+              <Trash2 />
+            </AlertDialogMedia>
+            <AlertDialogTitle>
+              {t("actions.deleteTypeDialog.title")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("actions.deleteTypeDialog.description")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel variant="outline">
+              {t("actions.deleteTypeDialog.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDeleteType}>
+              {t("actions.deleteTypeDialog.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <CardContent className="space-y-3">
         {uploadedDocument && (

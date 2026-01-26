@@ -408,3 +408,87 @@ export const createCustomDocumentType = mutation({
     });
   },
 });
+
+/**
+ * Update a custom document type (admin only).
+ */
+export const updateCustomDocumentType = mutation({
+  args: {
+    configId: v.id("applicationDocumentConfig"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    required: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const config = await ctx.db.get(args.configId);
+
+    if (!config) {
+      throw new Error("Document type not found");
+    }
+
+    if (!config.isCustom) {
+      throw new Error("Cannot edit non-custom document types");
+    }
+
+    await verifyApplicationAccess(ctx, config.applicationId, user._id, true);
+
+    const visibility = args.required ? "required" : "optional";
+
+    await ctx.db.patch(args.configId, {
+      name: args.name,
+      description: args.description,
+      visibility,
+      updatedAt: Date.now(),
+      updatedBy: user._id,
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Delete a custom document type (admin only).
+ */
+export const deleteCustomDocumentType = mutation({
+  args: {
+    configId: v.id("applicationDocumentConfig"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const config = await ctx.db.get(args.configId);
+
+    if (!config) {
+      throw new Error("Document type not found");
+    }
+
+    if (!config.isCustom) {
+      throw new Error("Cannot delete non-custom document types");
+    }
+
+    await verifyApplicationAccess(ctx, config.applicationId, user._id, true);
+
+    // Check if there are uploaded documents for this type
+    const uploadedDoc = await ctx.db
+      .query("applicationDocuments")
+      .withIndex("byApplicationAndType", (q) =>
+        q
+          .eq("applicationId", config.applicationId)
+          .eq("documentTypeId", config.documentTypeId),
+      )
+      .first();
+
+    if (uploadedDoc) {
+      // Delete the uploaded document and its storage
+      await ctx.storage.delete(uploadedDoc.storageId);
+      await ctx.db.delete(uploadedDoc._id);
+    }
+
+    // Delete the config
+    await ctx.db.delete(args.configId);
+
+    return null;
+  },
+});

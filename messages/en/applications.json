@@ -244,6 +244,20 @@
         "description": "This will permanently delete this document from the application. This action cannot be undone.",
         "cancel": "Cancel",
         "confirm": "Delete"
+      },
+      "edit": "Edit",
+      "deleteType": "Delete",
+      "moreOptions": "More options",
+      "editDialog": {
+        "title": "Edit document type",
+        "save": "Save changes",
+        "saving": "Saving..."
+      },
+      "deleteTypeDialog": {
+        "title": "Delete document type?",
+        "description": "This will permanently delete this custom document type. If a file was uploaded, it will also be deleted. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
       }
     },
     "form": {

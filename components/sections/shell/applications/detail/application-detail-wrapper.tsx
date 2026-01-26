@@ -85,6 +85,12 @@ function ApplicationDetailContent({
   const createCustomDocumentType = useMutation(
     api.documents.createCustomDocumentType,
   );
+  const updateCustomDocumentType = useMutation(
+    api.documents.updateCustomDocumentType,
+  );
+  const deleteCustomDocumentType = useMutation(
+    api.documents.deleteCustomDocumentType,
+  );
 
   // Actions
   const createPaymentLink = useAction(api.square.createPaymentLink);
@@ -200,6 +206,8 @@ function ApplicationDetailContent({
                   onGenerateUploadUrl={generateUploadUrl}
                   onRemove={removeDocument}
                   onCreateCustomDocumentType={createCustomDocumentType}
+                  onUpdateCustomDocumentType={updateCustomDocumentType}
+                  onDeleteCustomDocumentType={deleteCustomDocumentType}
                 />
               )}
             </Suspense>

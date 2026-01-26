@@ -244,6 +244,20 @@
         "description": "Esto eliminará permanentemente el archivo subido. Esta acción no se puede deshacer.",
         "cancel": "Cancelar",
         "confirm": "Eliminar"
+      },
+      "edit": "Editar",
+      "deleteType": "Eliminar",
+      "moreOptions": "Más opciones",
+      "editDialog": {
+        "title": "Editar tipo de documento",
+        "save": "Guardar cambios",
+        "saving": "Guardando..."
+      },
+      "deleteTypeDialog": {
+        "title": "¿Eliminar tipo de documento?",
+        "description": "Esto eliminará permanentemente este tipo de documento personalizado. Si se subió un archivo, también será eliminado. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
       }
     },
     "form": {
