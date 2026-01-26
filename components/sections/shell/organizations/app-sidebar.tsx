@@ -58,12 +58,16 @@ export function SidebarAppSidebar() {
             elements: {
               rootBox: "w-full",
               organizationSwitcherTrigger: "w-full justify-between text-left",
-              organizationPreviewMainIdentifier: "text-sidebar-foreground",
-              organizationPreviewSecondaryIdentifier: "text-sidebar-foreground/70",
+              organizationPreviewMainIdentifier:
+                "text-sidebar-foreground text-lg font-semibold",
+              organizationPreviewSecondaryIdentifier:
+                "text-sidebar-foreground/70",
               organizationSwitcherTriggerIcon: "text-sidebar-foreground",
               organizationSwitcherPopoverCard: "bg-popover",
               organizationSwitcherPopoverActionButton: "hover:bg-accent",
               organizationSwitcherPopoverActionButtonText: "text-foreground",
+              avatarBox: "size-12",
+              organizationPreviewAvatarBox: "size-12",
             },
           }}
         />

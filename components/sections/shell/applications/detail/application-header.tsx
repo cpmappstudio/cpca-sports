@@ -52,15 +52,15 @@ export function ApplicationHeader({
 }: ApplicationHeaderProps) {
   const t = useTranslations("Applications.detail");
   const tStatus = useTranslations("Applications.statusOptions");
-  
+
   const { formData } = application;
-  
+
   const [status, setStatus] = useState<ApplicationStatus>(application.status);
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentPhoto, setCurrentPhoto] = useState<Id<"_storage"> | null>(
-    (formData.athlete?.photo as Id<"_storage">) || null
+    (formData.athlete?.photo as Id<"_storage">) || null,
   );
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const updateStatus = useMutation(api.applications.updateStatus);
   const updatePhoto = useMutation(api.applications.updatePhoto);
@@ -104,16 +104,18 @@ export function ApplicationHeader({
 
   const handleStatusChange = async (newStatus: ApplicationStatus) => {
     if (!isAdmin) return;
-    
+
     setIsUpdating(true);
     try {
       await updateStatus({
         applicationId: application._id,
         status: newStatus,
       });
-      
+
       setStatus(newStatus);
-      toast.success(`Application status updated to: ${statusMap[newStatus].label}`);
+      toast.success(
+        `Application status updated to: ${statusMap[newStatus].label}`,
+      );
     } catch (error) {
       toast.error("Failed to update application status. Please try again.");
     } finally {
@@ -123,7 +125,7 @@ export function ApplicationHeader({
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !isAdmin) return;
+    if (!file) return;
 
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
@@ -151,12 +153,12 @@ export function ApplicationHeader({
       }
 
       const { storageId } = await result.json();
-      
+
       await updatePhoto({
         applicationId: application._id,
         photoStorageId: storageId,
       });
-      
+
       setCurrentPhoto(storageId);
       toast.success("Photo updated successfully");
     } catch (error) {
@@ -204,27 +206,23 @@ export function ApplicationHeader({
                     </span>
                   </div>
                 )}
-                {isAdmin && (
-                  <>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                      disabled={isUpdating}
-                    />
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="absolute bottom-0 right-0 h-6 w-6 opacity-70 hover:opacity-100 hover:scale-100 transition-all duration-200"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUpdating}
-                    >
-                      <Pencil className="h-2 w-2" />
-                    </Button>
-                  </>
-                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  disabled={isUpdating}
+                />
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="absolute bottom-0 right-0 h-6 w-6 opacity-70 hover:opacity-100 hover:scale-100 transition-all duration-200"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUpdating}
+                >
+                  <Pencil className="h-2 w-2" />
+                </Button>
               </div>
               <div className="flex flex-col gap-2 flex-1 min-w-0">
                 <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
@@ -232,8 +230,8 @@ export function ApplicationHeader({
                 </h1>
                 <div className="flex items-start gap-2 mt-1">
                   {isAdmin ? (
-                    <Select 
-                      value={status} 
+                    <Select
+                      value={status}
                       onValueChange={handleStatusChange}
                       disabled={isUpdating}
                     >

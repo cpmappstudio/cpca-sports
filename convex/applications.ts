@@ -1,10 +1,8 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 import { getCurrentUser } from "./lib/auth";
-import {
-  requireOrgAccess,
-  hasOrgAdminAccess,
-} from "./lib/permissions";
+import { requireOrgAccess, hasOrgAdminAccess } from "./lib/permissions";
 import { formDataValidator, applicationStatus } from "./lib/validators";
 
 const applicationValidator = v.object({
@@ -525,7 +523,7 @@ export const updateStatus = mutation({
 });
 
 /**
- * Update application photo (admin only).
+ * Update application photo (owner or admin can update).
  */
 export const updatePhoto = mutation({
   args: {
@@ -541,15 +539,24 @@ export const updatePhoto = mutation({
       throw new Error("Application not found");
     }
 
-    // Check admin access
+    // Check access: owner or admin
+    const isOwner = application.userId === user._id;
     const isAdmin = await hasOrgAdminAccess(
       ctx,
       user._id,
       application.organizationId,
     );
 
-    if (!isAdmin) {
-      throw new Error("Unauthorized: Admin access required");
+    if (!isOwner && !isAdmin) {
+      throw new Error("Unauthorized: Access required");
+    }
+
+    // Delete old photo from storage if it exists
+    const oldPhotoId = application.formData.athlete?.photo as
+      | Id<"_storage">
+      | undefined;
+    if (oldPhotoId) {
+      await ctx.storage.delete(oldPhotoId);
     }
 
     // Update photo in formData
