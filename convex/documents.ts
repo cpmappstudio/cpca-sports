@@ -1,0 +1,292 @@
+import { query, mutation, QueryCtx, MutationCtx } from "./_generated/server";
+import { v } from "convex/values";
+import { getCurrentUser } from "./lib/auth";
+import { hasOrgAdminAccess } from "./lib/permissions";
+import { Id } from "./_generated/dataModel";
+
+const documentStatus = v.union(
+  v.literal("pending"),
+  v.literal("approved"),
+  v.literal("rejected"),
+);
+
+const documentValidator = v.object({
+  _id: v.id("applicationDocuments"),
+  _creationTime: v.number(),
+  applicationId: v.id("applications"),
+  documentTypeId: v.string(),
+  name: v.string(),
+  description: v.optional(v.string()),
+  storageId: v.id("_storage"),
+  fileName: v.string(),
+  contentType: v.string(),
+  fileSize: v.number(),
+  status: documentStatus,
+  uploadedBy: v.id("users"),
+  uploadedAt: v.number(),
+  reviewedBy: v.optional(v.id("users")),
+  reviewedAt: v.optional(v.number()),
+  rejectionReason: v.optional(v.string()),
+});
+
+const uploadedByUserValidator = v.object({
+  _id: v.id("users"),
+  firstName: v.string(),
+  lastName: v.string(),
+  email: v.string(),
+});
+
+/**
+ * Helper to verify user has access to an application.
+ */
+async function verifyApplicationAccess(
+  ctx: QueryCtx | MutationCtx,
+  applicationId: Id<"applications">,
+  userId: Id<"users">,
+  requireAdmin: boolean = false,
+) {
+  const application = await ctx.db.get(applicationId);
+  if (!application) {
+    throw new Error("Application not found");
+  }
+
+  const isOwner = application.userId === userId;
+  const isAdmin = await hasOrgAdminAccess(
+    ctx,
+    userId,
+    application.organizationId,
+  );
+
+  if (requireAdmin && !isAdmin) {
+    throw new Error("Admin access required");
+  }
+
+  if (!isOwner && !isAdmin) {
+    throw new Error("Unauthorized");
+  }
+
+  return { application, isOwner, isAdmin };
+}
+
+/**
+ * Generate an upload URL for file storage.
+ */
+export const generateUploadUrl = mutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx): Promise<string> => {
+    await getCurrentUser(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/**
+ * Get all documents for an application with file URLs.
+ */
+export const getByApplication = query({
+  args: { applicationId: v.id("applications") },
+  returns: v.array(
+    v.object({
+      ...documentValidator.fields,
+      url: v.union(v.string(), v.null()),
+      uploadedByUser: v.optional(uploadedByUserValidator),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    await verifyApplicationAccess(ctx, args.applicationId, user._id);
+
+    const documents = await ctx.db
+      .query("applicationDocuments")
+      .withIndex("byApplication", (q) =>
+        q.eq("applicationId", args.applicationId),
+      )
+      .collect();
+
+    // Batch fetch users and URLs to avoid N+1 queries
+    const userIds = [...new Set(documents.map((d) => d.uploadedBy))];
+    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
+    const userMap = new Map(users.filter(Boolean).map((u) => [u!._id, u!]));
+
+    const result = await Promise.all(
+      documents.map(async (doc) => {
+        const url = await ctx.storage.getUrl(doc.storageId);
+        const uploadedByUser = userMap.get(doc.uploadedBy);
+
+        return {
+          ...doc,
+          url,
+          uploadedByUser: uploadedByUser
+            ? {
+                _id: uploadedByUser._id,
+                firstName: uploadedByUser.firstName,
+                lastName: uploadedByUser.lastName,
+                email: uploadedByUser.email,
+              }
+            : undefined,
+        };
+      }),
+    );
+
+    return result;
+  },
+});
+
+/**
+ * Upload a new document for an application.
+ */
+export const upload = mutation({
+  args: {
+    applicationId: v.id("applications"),
+    documentTypeId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    contentType: v.string(),
+    fileSize: v.number(),
+  },
+  returns: v.id("applicationDocuments"),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    await verifyApplicationAccess(ctx, args.applicationId, user._id);
+
+    // Check if a document of this type already exists
+    const existing = await ctx.db
+      .query("applicationDocuments")
+      .withIndex("byApplicationAndType", (q) =>
+        q
+          .eq("applicationId", args.applicationId)
+          .eq("documentTypeId", args.documentTypeId),
+      )
+      .unique();
+
+    // If exists, delete the old file from storage and the document record
+    if (existing) {
+      await ctx.storage.delete(existing.storageId);
+      await ctx.db.delete(existing._id);
+    }
+
+    // Create new document record
+    return await ctx.db.insert("applicationDocuments", {
+      applicationId: args.applicationId,
+      documentTypeId: args.documentTypeId,
+      name: args.name,
+      description: args.description,
+      storageId: args.storageId,
+      fileName: args.fileName,
+      contentType: args.contentType,
+      fileSize: args.fileSize,
+      status: "pending",
+      uploadedBy: user._id,
+      uploadedAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Update document status (admin only).
+ */
+export const updateStatus = mutation({
+  args: {
+    documentId: v.id("applicationDocuments"),
+    status: v.union(v.literal("approved"), v.literal("rejected")),
+    rejectionReason: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const document = await ctx.db.get(args.documentId);
+
+    if (!document) {
+      throw new Error("Document not found");
+    }
+
+    await verifyApplicationAccess(
+      ctx,
+      document.applicationId,
+      user._id,
+      true,
+    );
+
+    if (args.status === "rejected" && !args.rejectionReason) {
+      throw new Error("Rejection reason is required");
+    }
+
+    await ctx.db.patch(args.documentId, {
+      status: args.status,
+      reviewedBy: user._id,
+      reviewedAt: Date.now(),
+      rejectionReason:
+        args.status === "rejected" ? args.rejectionReason : undefined,
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Delete a document (admin only, or owner if still pending).
+ */
+export const remove = mutation({
+  args: { documentId: v.id("applicationDocuments") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const document = await ctx.db.get(args.documentId);
+
+    if (!document) {
+      throw new Error("Document not found");
+    }
+
+    const { isOwner, isAdmin } = await verifyApplicationAccess(
+      ctx,
+      document.applicationId,
+      user._id,
+    );
+
+    // Only admin can delete, or owner can delete their own pending documents
+    if (!isAdmin && !(isOwner && document.status === "pending")) {
+      throw new Error("Unauthorized to delete this document");
+    }
+
+    // Delete file from storage
+    await ctx.storage.delete(document.storageId);
+
+    // Delete document record
+    await ctx.db.delete(args.documentId);
+
+    return null;
+  },
+});
+
+/**
+ * Get document summary for an application.
+ */
+export const getSummary = query({
+  args: { applicationId: v.id("applications") },
+  returns: v.object({
+    total: v.number(),
+    pending: v.number(),
+    approved: v.number(),
+    rejected: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    await verifyApplicationAccess(ctx, args.applicationId, user._id);
+
+    const documents = await ctx.db
+      .query("applicationDocuments")
+      .withIndex("byApplication", (q) =>
+        q.eq("applicationId", args.applicationId),
+      )
+      .collect();
+
+    return {
+      total: documents.length,
+      pending: documents.filter((d) => d.status === "pending").length,
+      approved: documents.filter((d) => d.status === "approved").length,
+      rejected: documents.filter((d) => d.status === "rejected").length,
+    };
+  },
+});
