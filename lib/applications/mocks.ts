@@ -1,6 +1,8 @@
 import type { Application } from "./types";
 
-export const MOCK_APPLICATIONS: Application[] = [
+// Note: These mocks use string IDs cast to Convex Id types for development/testing
+// In production, real Convex IDs would be used
+export const MOCK_APPLICATIONS = [
   {
     _id: "app_001",
     applicationCode: "APP-2026-001",
@@ -55,7 +57,8 @@ export const MOCK_APPLICATIONS: Application[] = [
     personSubmitting: "parent",
     howDidYouHear: "socialMedia",
     interestedInBoarding: "yes",
-    message: "My son is very passionate about basketball and dreams of playing professionally.",
+    message:
+      "My son is very passionate about basketball and dreams of playing professionally.",
   },
   {
     _id: "app_002",
@@ -111,7 +114,8 @@ export const MOCK_APPLICATIONS: Application[] = [
     personSubmitting: "self",
     howDidYouHear: "friend",
     interestedInBoarding: "no",
-    message: "I have been playing soccer since I was 5 and want to take my skills to the next level.",
+    message:
+      "I have been playing soccer since I was 5 and want to take my skills to the next level.",
   },
   {
     _id: "app_003",
@@ -230,7 +234,7 @@ export const MOCK_APPLICATIONS: Application[] = [
 export const CURRENT_USER_ID = "user_client_123";
 export const IS_ADMIN = true;
 
-export function getApplicationsByRole(isAdmin: boolean, userId: string): Application[] {
+export function getApplicationsByRole(isAdmin: boolean, userId: string) {
   if (isAdmin) {
     return MOCK_APPLICATIONS;
   }

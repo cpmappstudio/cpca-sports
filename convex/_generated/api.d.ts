@@ -10,6 +10,7 @@
 
 import type * as applications from "../applications.js";
 import type * as clerk from "../clerk.js";
+import type * as fees from "../fees.js";
 import type * as files from "../files.js";
 import type * as formTemplates from "../formTemplates.js";
 import type * as http from "../http.js";
@@ -19,6 +20,9 @@ import type * as lib_permissions from "../lib/permissions.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as members from "../members.js";
 import type * as organizations from "../organizations.js";
+import type * as square from "../square.js";
+import type * as square_webhook from "../square_webhook.js";
+import type * as transactions from "../transactions.js";
 import type * as users from "../users.js";
 
 import type {
@@ -38,6 +42,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   applications: typeof applications;
   clerk: typeof clerk;
+  fees: typeof fees;
   files: typeof files;
   formTemplates: typeof formTemplates;
   http: typeof http;
@@ -47,6 +52,9 @@ declare const fullApi: ApiFromModules<{
   "lib/validators": typeof lib_validators;
   members: typeof members;
   organizations: typeof organizations;
+  square: typeof square;
+  square_webhook: typeof square_webhook;
+  transactions: typeof transactions;
   users: typeof users;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

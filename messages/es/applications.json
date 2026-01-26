@@ -74,6 +74,7 @@
     "height": "Altura",
     "birthCountry": "País de Nacimiento",
     "citizenship": "Ciudadanía",
+    "age": "Edad",
     "highlights": "Video de Destacados",
     "format": "Formato",
     "fullTime": "Tiempo completo",
@@ -114,6 +115,66 @@
       "totalDue": "Total a Pagar",
       "totalPaid": "Total Pagado",
       "pending": "Pendiente"
+    },
+    "actions": {
+      "pay": "Pagar",
+      "processing": "Procesando...",
+      "markAsPaid": "Marcar como Pagado",
+      "markingAsPaid": "Marcando como Pagado...",
+      "delete": "Eliminar",
+      "addFee": "Agregar Tarifa",
+      "cancel": "Cancelar",
+      "tooltips": {
+        "selectToPay": "Selecciona una o más tarifas para realizar un pago",
+        "selectToMarkAsPaid": "Selecciona una o más tarifas para marcar como pagadas en efectivo",
+        "selectToDelete": "Selecciona una o más tarifas para eliminar",
+        "editFee": "Editar tarifa",
+        "saveChanges": "Guardar cambios"
+      },
+      "deleteDialog": {
+        "title": "¿Eliminar tarifas?",
+        "description": "Esto eliminará permanentemente las tarifas seleccionadas. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
+      },
+      "markAsPaidDialog": {
+        "title": "¿Marcar como pagado en efectivo?",
+        "description": "Esto marcará las tarifas seleccionadas como completamente pagadas mediante pago en efectivo. Esta acción no se puede deshacer.",
+        "accountability": "Su cuenta quedará registrada como responsable de esta transacción de pago en efectivo. El sistema mantendrá un registro de su cuenta como la persona que procesó este pago con fines de rendición de cuentas.",
+        "cancel": "Cancelar",
+        "confirm": "Marcar como Pagado"
+      }
+    },
+    "form": {
+      "feeName": "Nombre de la Tarifa",
+      "feeNamePlaceholder": "Ingresa el nombre de la tarifa",
+      "totalAmount": "Monto Total ($)",
+      "amountPlaceholder": "0.00",
+      "refundable": "Reembolsable",
+      "included": "Incluido",
+      "required": "Requerido",
+      "adding": "Agregando...",
+      "addButton": "Agregar Tarifa"
+    },
+    "emptyState": "Todas las tarifas han sido pagadas. Consulta la pestaña de Historial de Transacciones para ver los registros de pago.",
+    "feeStatuses": {
+      "paid": "Pagado",
+      "partiallyPaid": "Parcialmente Pagado",
+      "pending": "Pendiente"
+    },
+    "feeBadges": {
+      "required": "Requerido",
+      "default": "Predeterminado",
+      "refundable": "Reembolsable",
+      "included": "Incluido"
+    },
+    "feeProgress": {
+      "progress": "Progreso",
+      "remaining": "Restante"
+    },
+    "feeTooltips": {
+      "created": "Creado",
+      "paid": "Pagado"
     }
   },
   "transactions": {
@@ -143,6 +204,15 @@
     },
     "filters": {
       "all": "Todos"
+    },
+    "counter": {
+      "payment": "pago",
+      "payments": "pagos"
+    },
+    "actions": {
+      "viewReceipt": "Ver recibo",
+      "registeredBy": "Registrado por {name}",
+      "registeredByTooltip": "Pago registrado por"
     }
   }
 }

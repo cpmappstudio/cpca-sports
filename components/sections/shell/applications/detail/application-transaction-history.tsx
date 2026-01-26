@@ -6,90 +6,67 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Search, CalendarIcon } from "lucide-react";
-import type {
-  PaymentTransaction,
-  FeePayment,
-} from "@/lib/applications/payment-types";
+import { FeeCard } from "./fee-card";
 import { useTranslations } from "next-intl";
 import { format, isWithinInterval } from "date-fns";
 import { type DateRange } from "react-day-picker";
-import { FeeCard } from "./fee-card";
+import { type TransactionWithFee } from "@/lib/applications/payment-types";
+import { type Fee } from "@/lib/applications/fee-types";
+import { formatCurrency } from "@/lib/utils/currency";
+import { Id } from "@/convex/_generated/dataModel";
 
 interface ApplicationTransactionHistoryProps {
-  transactions: PaymentTransaction[];
-  fees: FeePayment[];
+  transactionsWithFees: TransactionWithFee[];
 }
 
 export function ApplicationTransactionHistory({
-  transactions,
-  fees,
+  transactionsWithFees,
 }: ApplicationTransactionHistoryProps) {
   const t = useTranslations("Applications.transactions");
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
-  const paidFees = useMemo(() => {
-    const feeMap = new Map(fees.map((fee) => [fee.id, fee]));
+  const filteredTransactions = useMemo(() => {
+    return transactionsWithFees.filter((item) => {
+      const matchesSearch =
+        searchQuery === "" ||
+        item.feeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.transaction.amount.toString().includes(searchQuery) ||
+        (item.transaction.reference
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ??
+          false);
 
-    return transactions
-      .filter((txn) => {
-        const matchesSearch =
-          searchQuery === "" ||
-          txn.feeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          txn.amount.toString().includes(searchQuery) ||
-          (txn.reference?.toLowerCase().includes(searchQuery.toLowerCase()) ??
-            false);
+      const matchesDateRange =
+        !dateRange?.from ||
+        !dateRange?.to ||
+        isWithinInterval(new Date(item.transaction.createdAt), {
+          start: dateRange.from,
+          end: dateRange.to,
+        });
 
-        const matchesDateRange =
-          !dateRange?.from ||
-          !dateRange?.to ||
-          isWithinInterval(new Date(txn.date), {
-            start: dateRange.from,
-            end: dateRange.to,
-          });
-
-        return matchesSearch && matchesDateRange;
-      })
-      .map((txn) => {
-        const originalFee = feeMap.get(txn.feeId);
-        const fee: FeePayment = {
-          id: txn.id,
-          name: txn.feeName,
-          description: originalFee?.description,
-          downPayment: 0,
-          totalAmount: txn.amount,
-          isRefundable: originalFee?.isRefundable ?? false,
-          isIncluded: originalFee?.isIncluded ?? false,
-          isDefault: originalFee?.isDefault ?? false,
-          isRequired: originalFee?.isRequired ?? false,
-          status: "paid",
-          paidAmount: txn.amount,
-          createdAt: originalFee?.createdAt,
-          paidAt: txn.date,
-        };
-        return {
-          fee,
-          date: txn.date,
-          method: txn.method,
-          reference: txn.reference,
-        };
-      });
-  }, [transactions, fees, searchQuery, dateRange]);
+      return matchesSearch && matchesDateRange;
+    });
+  }, [transactionsWithFees, searchQuery, dateRange]);
 
   const groupedByMonth = useMemo(() => {
-    const groups = new Map<string, typeof paidFees>();
+    const groups = new Map<string, typeof filteredTransactions>();
 
-    paidFees.forEach((item) => {
-      const monthKey = format(new Date(item.date), "MMMM yyyy");
+    filteredTransactions.forEach((item) => {
+      const monthKey = format(
+        new Date(item.transaction.createdAt),
+        "MMMM yyyy",
+      );
       if (!groups.has(monthKey)) {
         groups.set(monthKey, []);
       }
@@ -97,17 +74,11 @@ export function ApplicationTransactionHistory({
     });
 
     return Array.from(groups.entries()).sort((a, b) => {
-      const dateA = new Date(
-        paidFees.find((f) => format(new Date(f.date), "MMMM yyyy") === a[0])
-          ?.date ?? 0,
-      );
-      const dateB = new Date(
-        paidFees.find((f) => format(new Date(f.date), "MMMM yyyy") === b[0])
-          ?.date ?? 0,
-      );
+      const dateA = new Date(a[1][0]?.transaction.createdAt ?? 0);
+      const dateB = new Date(b[1][0]?.transaction.createdAt ?? 0);
       return dateB.getTime() - dateA.getTime();
     });
-  }, [paidFees]);
+  }, [filteredTransactions]);
 
   return (
     <div className="space-y-6">
@@ -167,18 +138,57 @@ export function ApplicationTransactionHistory({
               <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 pb-2">
                 <h3 className="text-lg font-semibold">{month}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {items.length} {items.length === 1 ? "payment" : "payments"}
+                  {items.length}{" "}
+                  {items.length === 1
+                    ? t("counter.payment")
+                    : t("counter.payments")}{" "}
+                  -{" "}
+                  {formatCurrency(
+                    items.reduce(
+                      (sum, item) => sum + item.transaction.amount,
+                      0,
+                    ),
+                  )}
                 </p>
               </div>
-              <div className="space-y-4">
-                {items.map((item) => (
-                  <FeeCard
-                    key={item.fee.id}
-                    fee={item.fee}
-                    showActions={false}
-                  />
-                ))}
-              </div>
+              <Card className="py-0">
+                <CardContent className="p-0">
+                  {items.map((item, index, array) => {
+                    const fee: Fee = {
+                      _id: item.transaction.feeId,
+                      _creationTime: item.transaction.createdAt,
+                      applicationId: item.transaction.applicationId,
+                      name: item.feeName,
+                      description: item.feeDescription,
+                      totalAmount: item.transaction.amount,
+                      downPaymentPercent: 0,
+                      isRefundable: false,
+                      isIncluded: false,
+                      isDefault: false,
+                      isRequired: false,
+                      status: "paid",
+                      paidAmount: item.transaction.amount,
+                      createdAt: item.transaction.createdAt,
+                      paidAt: item.transaction.createdAt,
+                      createdBy:
+                        item.transaction.registeredBy ?? ("" as Id<"users">),
+                    };
+                    return (
+                      <div key={item.transaction._id}>
+                        <FeeCard
+                          fee={fee}
+                          transactionInfo={{
+                            method: item.transaction.method,
+                            receiptUrl: item.transaction.receiptUrl,
+                            registeredByUser: item.registeredByUser,
+                          }}
+                        />
+                        {index < array.length - 1 && <Separator />}
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
             </div>
           ))}
         </div>

@@ -198,7 +198,9 @@ export function ApplicationHeader({
             <div className="grid grid-cols-1 gap-3 text-sm">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">Age:</span>
+                <span className="font-semibold text-foreground">
+                  {t("age")}:
+                </span>
                 <span className="text-muted-foreground">
                   {birthDate ? `${calculateAge(birthDate)} years` : "-"}
                 </span>

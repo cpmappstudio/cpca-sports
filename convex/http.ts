@@ -5,8 +5,9 @@ import { WebhookEvent } from "@clerk/backend";
 import { internal } from "./_generated/api";
 import { clerkClient } from "./clerk";
 
-// Centralized webhook endpoint path - change here if the Clerk webhook URL changes
+// Centralized webhook endpoint paths
 const CLERK_WEBHOOK_PATH = "/clerk-webhook";
+const SQUARE_WEBHOOK_PATH = "/square-webhook";
 
 const handleClerkWebhook = httpAction(async (ctx, request) => {
   const event = await validateClerkRequest(request);
@@ -127,11 +128,67 @@ const handleClerkWebhook = httpAction(async (ctx, request) => {
   }
 });
 
+const handleSquareWebhook = httpAction(async (ctx, request) => {
+  const body = await request.text();
+  const signature = request.headers.get("x-square-hmacsha256-signature");
+
+  if (!signature) {
+    return new Response("Missing signature", { status: 401 });
+  }
+
+  const notificationUrl = process.env.CONVEX_SITE_URL + SQUARE_WEBHOOK_PATH;
+
+  try {
+    // Use Node.js action to verify signature and process webhook
+    const result = await ctx.runAction(
+      internal.square_webhook.verifyAndProcessSquareWebhook,
+      {
+        body,
+        signature,
+        notificationUrl,
+      },
+    );
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    const err = error as Error;
+    console.error(`Square webhook error: ${err.message}`);
+
+    // Return appropriate error status
+    if (err.message === "Invalid signature") {
+      return new Response("Invalid signature", { status: 401 });
+    }
+
+    if (err.message === "SQUARE_WEBHOOK_SIGNATURE_KEY not configured") {
+      return new Response("Webhook not configured", { status: 500 });
+    }
+
+    // Return 200 for other errors to prevent Square from retrying infinitely
+    return new Response(
+      JSON.stringify({ status: "error", message: err.message }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+});
+
 const http = httpRouter();
+
 http.route({
   path: CLERK_WEBHOOK_PATH,
   method: "POST",
   handler: handleClerkWebhook,
+});
+
+http.route({
+  path: SQUARE_WEBHOOK_PATH,
+  method: "POST",
+  handler: handleSquareWebhook,
 });
 
 async function validateClerkRequest(

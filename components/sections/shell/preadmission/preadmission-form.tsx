@@ -36,7 +36,7 @@ export function PreAdmissionForm() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
+      <div className="max-w-5xl mx-auto ">
         <StepsNavigation
           currentStep={form.currentStep}
           completedSteps={form.completedSteps}

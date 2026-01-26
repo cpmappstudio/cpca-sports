@@ -190,7 +190,7 @@ function DocumentCard({
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <div className="flex flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <CardTitle className="text-base">{document.name}</CardTitle>
               {document.required && (
                 <Badge variant="secondary" className="text-xs">

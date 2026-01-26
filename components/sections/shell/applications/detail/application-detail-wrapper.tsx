@@ -1,7 +1,15 @@
 "use client";
 
-import { Authenticated, Preloaded, usePreloadedQuery } from "convex/react";
+import {
+  Authenticated,
+  Preloaded,
+  usePreloadedQuery,
+  useQuery,
+  useMutation,
+  useAction,
+} from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { ApplicationHeader } from "./application-header";
 import { ApplicationOverviewCard } from "./pre-admission/application-overview-card";
 import { ApplicationSchoolCard } from "./pre-admission/application-school-card";
@@ -13,7 +21,7 @@ import { ApplicationPayments } from "./application-payments";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -23,12 +31,6 @@ import {
 import { UserIcon } from "@heroicons/react/20/solid";
 import { CreditCard, File, History } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { DEFAULT_APPLICATION_FEES } from "@/lib/applications/fee-types";
-import type {
-  FeePayment,
-  PaymentStatus,
-  PaymentTransaction,
-} from "@/lib/applications/payment-types";
 import { ApplicationTransactionHistory } from "./application-transaction-history";
 
 interface ApplicationDetailWrapperProps {
@@ -47,60 +49,34 @@ function ApplicationDetailContent({
   const application = usePreloadedQuery(preloadedApplication);
   const t = useTranslations("Applications");
 
-  const [fees, setFees] = useState<FeePayment[]>(
-    DEFAULT_APPLICATION_FEES.map((fee) => ({
-      ...fee,
-      status: "pending" as PaymentStatus,
-      paidAmount: 0,
-      createdAt: Date.now(),
-    })),
-  );
+  const convexApplicationId = applicationId as Id<"applications">;
 
-  const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
+  // Fetch fees and transactions from Convex
+  const fees = useQuery(api.fees.getByApplication, {
+    applicationId: convexApplicationId,
+  });
+  const summary = useQuery(api.fees.getSummary, {
+    applicationId: convexApplicationId,
+  });
+  const transactionsWithFees = useQuery(api.transactions.getWithFeeDetails, {
+    applicationId: convexApplicationId,
+  });
 
-  const handleAddFee = (fee: FeePayment) => {
-    setFees([...fees, fee]);
-  };
+  // Mutations
+  const createFee = useMutation(api.fees.create);
+  const removeFee = useMutation(api.fees.remove);
+  const recordManualPayment = useMutation(api.fees.recordManualPayment);
+  const updateFee = useMutation(api.fees.update);
 
-  const handleRemoveFee = (feeId: string) => {
-    setFees(fees.filter((fee) => fee.id !== feeId));
-  };
+  // Actions
+  const createPaymentLink = useAction(api.square.createPaymentLink);
 
-  const handleUpdateFee = (feeId: string, updates: Partial<FeePayment>) => {
-    setFees(
-      fees.map((fee) => (fee.id === feeId ? { ...fee, ...updates } : fee)),
-    );
-  };
+  // Loading state
+  const isLoading = fees === undefined || summary === undefined;
 
-  const handleMarkAsPaid = (feeId: string) => {
-    const fee = fees.find((f) => f.id === feeId);
-    if (!fee) return;
-
-    const amountToPay = fee.totalAmount - fee.paidAmount;
-
-    const transaction: PaymentTransaction = {
-      id: `txn_${Date.now()}`,
-      date: Date.now(),
-      amount: amountToPay,
-      feeId: fee.id,
-      feeName: fee.name,
-      method: "cash",
-      status: "completed",
-      reference: `CASH-${Date.now()}`,
-    };
-
-    setTransactions([transaction, ...transactions]);
-
-    handleUpdateFee(feeId, {
-      status: "paid",
-      paidAmount: fee.totalAmount,
-      paidAt: Date.now(),
-    });
-  };
-
-  const totalDue = fees.reduce((sum, fee) => sum + fee.totalAmount, 0);
-  const totalPaid = fees.reduce((sum, fee) => sum + fee.paidAmount, 0);
-  const totalPending = totalDue - totalPaid;
+  const totalDue = summary?.totalDue ?? 0;
+  const totalPaid = summary?.totalPaid ?? 0;
+  const totalPending = summary?.totalPending ?? 0;
 
   if (application === null) {
     return null;
@@ -200,21 +176,26 @@ function ApplicationDetailContent({
           </TabsContent>
           <TabsContent value="payments" className="mt-0">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <ApplicationPayments
-                applicationId={applicationId}
-                isAdmin={isAdmin}
-                fees={fees}
-                onAddFee={handleAddFee}
-                onRemoveFee={handleRemoveFee}
-                onUpdateFee={handleUpdateFee}
-                onMarkAsPaid={handleMarkAsPaid}
-              />
+              {isLoading ? (
+                <Skeleton className="h-96 w-full" />
+              ) : (
+                <ApplicationPayments
+                  applicationId={convexApplicationId}
+                  organizationSlug={organizationSlug}
+                  isAdmin={isAdmin}
+                  fees={fees ?? []}
+                  onAddFee={createFee}
+                  onRemoveFee={removeFee}
+                  onRecordPayment={recordManualPayment}
+                  onUpdateFee={updateFee}
+                  onCreatePaymentLink={createPaymentLink}
+                />
+              )}
             </Suspense>
           </TabsContent>
           <TabsContent value="transactions" className="mt-0">
             <ApplicationTransactionHistory
-              transactions={transactions}
-              fees={fees}
+              transactionsWithFees={transactionsWithFees ?? []}
             />
           </TabsContent>
         </Tabs>
