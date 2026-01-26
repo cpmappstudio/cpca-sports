@@ -2,7 +2,7 @@
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardAction, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -25,13 +25,27 @@ import {
   FileText,
   User,
   IdCard,
+  Trash2,
 } from "lucide-react";
 import { useState, useRef } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ApplicationBalanceCard } from "./application-balance-card";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
+import { useRouter } from "@/i18n/navigation";
 
 interface ApplicationHeaderProps {
   application: Application;
@@ -52,18 +66,20 @@ export function ApplicationHeader({
 }: ApplicationHeaderProps) {
   const t = useTranslations("Applications.detail");
   const tStatus = useTranslations("Applications.statusOptions");
-  
+
   const { formData } = application;
-  
+
   const [status, setStatus] = useState<ApplicationStatus>(application.status);
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentPhoto, setCurrentPhoto] = useState<Id<"_storage"> | null>(
-    (formData.athlete?.photo as Id<"_storage">) || null
+    (formData.athlete?.photo as Id<"_storage">) || null,
   );
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   const updateStatus = useMutation(api.applications.updateStatus);
   const updatePhoto = useMutation(api.applications.updatePhoto);
+  const deleteApplication = useMutation(api.applications.deleteApplication);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
   const firstName = getFormField(formData, "athlete", "firstName");
@@ -104,16 +120,18 @@ export function ApplicationHeader({
 
   const handleStatusChange = async (newStatus: ApplicationStatus) => {
     if (!isAdmin) return;
-    
+
     setIsUpdating(true);
     try {
       await updateStatus({
         applicationId: application._id,
         status: newStatus,
       });
-      
+
       setStatus(newStatus);
-      toast.success(`Application status updated to: ${statusMap[newStatus].label}`);
+      toast.success(
+        `Application status updated to: ${statusMap[newStatus].label}`,
+      );
     } catch (error) {
       toast.error("Failed to update application status. Please try again.");
     } finally {
@@ -151,12 +169,12 @@ export function ApplicationHeader({
       }
 
       const { storageId } = await result.json();
-      
+
       await updatePhoto({
         applicationId: application._id,
         photoStorageId: storageId,
       });
-      
+
       setCurrentPhoto(storageId);
       toast.success("Photo updated successfully");
     } catch (error) {
@@ -167,6 +185,24 @@ export function ApplicationHeader({
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    }
+  };
+
+  const handleDeleteApplication = async () => {
+    if (!isAdmin) return;
+
+    setIsUpdating(true);
+    try {
+      await deleteApplication({
+        applicationId: application._id,
+      });
+
+      toast.success("Application deleted successfully");
+      router.replace(`/${organizationSlug}/applications`);
+    } catch (error) {
+      console.error("Failed to delete application:", error);
+      toast.error("Failed to delete application. Please try again.");
+      setIsUpdating(false);
     }
   };
 
@@ -227,13 +263,57 @@ export function ApplicationHeader({
                 )}
               </div>
               <div className="flex flex-col gap-2 flex-1 min-w-0">
-                <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-                  {firstName} {lastName}
-                </h1>
+                <div className="flex flex-row justify-between items-start gap-2">
+                  <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+                    {firstName} {lastName}
+                  </h1>
+                  {isAdmin && (
+                    <CardAction>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            className="h-9 w-9"
+                            disabled={isUpdating}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent size="sm">
+                          <AlertDialogHeader>
+                            <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
+                              <Trash2 />
+                            </AlertDialogMedia>
+                            <AlertDialogTitle>
+                              Delete application?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete this application and
+                              all its associated data. This action cannot be
+                              undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel variant="outline">
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              variant="destructive"
+                              onClick={handleDeleteApplication}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </CardAction>
+                  )}
+                </div>
                 <div className="flex items-start gap-2 mt-1">
                   {isAdmin ? (
-                    <Select 
-                      value={status} 
+                    <Select
+                      value={status}
                       onValueChange={handleStatusChange}
                       disabled={isUpdating}
                     >

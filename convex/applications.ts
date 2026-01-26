@@ -570,6 +570,39 @@ export const updatePhoto = mutation({
 });
 
 /**
+ * Delete application (admin only).
+ */
+export const deleteApplication = mutation({
+  args: {
+    applicationId: v.id("applications"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const application = await ctx.db.get(args.applicationId);
+
+    if (!application) {
+      throw new Error("Application not found");
+    }
+
+    // Check admin access
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      application.organizationId,
+    );
+
+    if (!isAdmin) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    await ctx.db.delete(args.applicationId);
+
+    return null;
+  },
+});
+
+/**
  * Get application with template info (for detail view).
  */
 export const getWithTemplate = query({
