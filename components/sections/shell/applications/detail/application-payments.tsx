@@ -1,238 +1,160 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
-import { type FeeType } from "@/lib/applications/fee-types";
-import type { FeePayment } from "@/lib/applications/payment-types";
+import { useState, useMemo, useCallback } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { FeeCard } from "./fee-card";
+import { PaymentActions } from "./payment-actions";
+import { Id } from "@/convex/_generated/dataModel";
+import { type Fee } from "@/lib/applications/fee-types";
+import { useTranslations } from "next-intl";
 
 interface ApplicationPaymentsProps {
-  applicationId: string;
+  applicationId: Id<"applications">;
+  organizationSlug: string;
   isAdmin: boolean;
-  fees: FeePayment[];
-  onAddFee: (fee: FeePayment) => void;
-  onRemoveFee: (feeId: string) => void;
-  onUpdateFee: (feeId: string, updates: Partial<FeePayment>) => void;
-  onMarkAsPaid: (feeId: string) => void;
+  fees: Fee[];
+  onAddFee: (args: {
+    applicationId: Id<"applications">;
+    name: string;
+    description?: string;
+    totalAmount: number;
+    downPaymentPercent: number;
+    isRefundable: boolean;
+    isIncluded: boolean;
+    isRequired: boolean;
+  }) => Promise<Id<"fees">>;
+  onRemoveFee: (args: { feeId: Id<"fees"> }) => Promise<null>;
+  onRecordPayment: (args: {
+    feeId: Id<"fees">;
+    amount: number;
+    method: "cash" | "wire";
+    reference?: string;
+  }) => Promise<Id<"transactions">>;
+  onUpdateFee: (args: {
+    feeId: Id<"fees">;
+    name: string;
+    totalAmount?: number;
+  }) => Promise<null>;
+  onCreatePaymentLink: (args: {
+    applicationId: Id<"applications">;
+    feeIds: Id<"fees">[];
+    redirectUrl: string;
+  }) => Promise<{ paymentUrl: string; paymentLinkId: string; orderId: string }>;
 }
 
 export function ApplicationPayments({
   applicationId,
+  organizationSlug,
   isAdmin,
   fees,
   onAddFee,
   onRemoveFee,
+  onRecordPayment,
   onUpdateFee,
-  onMarkAsPaid,
+  onCreatePaymentLink,
 }: ApplicationPaymentsProps) {
-  const [isAddingFee, setIsAddingFee] = useState(false);
-  const [newFee, setNewFee] = useState<Partial<FeeType>>({
-    name: "",
-    downPayment: 0,
-    totalAmount: 0,
-    isRefundable: false,
-    isIncluded: false,
-    isDefault: false,
-    isRequired: false,
-  });
+  const t = useTranslations("Applications.payments");
 
-  const handleAddFee = () => {
-    if (!newFee.name || !newFee.totalAmount) return;
+  const pendingFees = useMemo(
+    () => fees.filter((fee) => fee.status !== "paid"),
+    [fees],
+  );
 
-    const fee: FeePayment = {
-      id: `custom_${Date.now()}`,
-      name: newFee.name,
-      description: newFee.description,
-      downPayment: newFee.downPayment || 0,
-      totalAmount: newFee.totalAmount,
-      isRefundable: newFee.isRefundable || false,
-      isIncluded: newFee.isIncluded || false,
-      isDefault: false,
-      isRequired: newFee.isRequired || false,
-      status: "pending",
-      paidAmount: 0,
-    };
+  const [selectedFeeIds, setSelectedFeeIds] = useState<Set<Id<"fees">>>(
+    new Set(),
+  );
 
-    onAddFee(fee);
-    setNewFee({
-      name: "",
-      downPayment: 0,
-      totalAmount: 0,
-      isRefundable: false,
-      isIncluded: false,
-      isDefault: false,
-      isRequired: false,
+  const handleFeeSelect = useCallback((feeId: Id<"fees">, checked: boolean) => {
+    setSelectedFeeIds((prev) => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(feeId);
+      } else {
+        newSet.delete(feeId);
+      }
+      return newSet;
     });
-    setIsAddingFee(false);
-  };
+  }, []);
+
+  const handleUpdateFee = useCallback(
+    async (feeId: Id<"fees">, name: string, totalAmount: number) => {
+      try {
+        await onUpdateFee({
+          feeId,
+          name,
+          totalAmount,
+        });
+      } catch (error) {
+        console.error("Failed to update fee:", error);
+        throw error;
+      }
+    },
+    [onUpdateFee],
+  );
+
+  const handleDeleteSelected = useCallback(async () => {
+    const feesToDelete = Array.from(selectedFeeIds);
+
+    try {
+      await Promise.all(feesToDelete.map((feeId) => onRemoveFee({ feeId })));
+      setSelectedFeeIds(new Set());
+    } catch (error) {
+      console.error("Failed to delete fees:", error);
+    }
+  }, [selectedFeeIds, onRemoveFee]);
+
+  const handlePay = useCallback(async () => {
+    const feeIds = Array.from(selectedFeeIds);
+    if (feeIds.length === 0) return;
+
+    const redirectUrl = `${window.location.origin}/${organizationSlug}/applications/${applicationId}?tab=payments&payment=success`;
+
+    const result = await onCreatePaymentLink({
+      applicationId,
+      feeIds,
+      redirectUrl,
+    });
+
+    window.location.href = result.paymentUrl;
+  }, [selectedFeeIds, applicationId, organizationSlug, onCreatePaymentLink]);
 
   return (
     <div className="space-y-6">
-      {isAdmin && (
+      <PaymentActions
+        applicationId={applicationId}
+        isAdmin={isAdmin}
+        selectedFeeIds={Array.from(selectedFeeIds)}
+        onAddFee={onAddFee}
+        onDeleteSelected={handleDeleteSelected}
+        onPay={handlePay}
+      />
+
+      {pendingFees.length === 0 ? (
         <Card>
-          <CardHeader className="gap-0">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">Add Custom Fee</CardTitle>
-              <Button
-                size="sm"
-                variant={isAddingFee ? "outline" : "default"}
-                onClick={() => setIsAddingFee(!isAddingFee)}
-              >
-                {isAddingFee ? (
-                  "Cancel"
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Fee
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardHeader>
-          {isAddingFee && (
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fee-name">Fee Name</Label>
-                  <Input
-                    id="fee-name"
-                    placeholder="Enter fee name"
-                    value={newFee.name}
-                    onChange={(e) =>
-                      setNewFee({ ...newFee, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fee-description">Description</Label>
-                  <Input
-                    id="fee-description"
-                    placeholder="Optional description"
-                    value={newFee.description || ""}
-                    onChange={(e) =>
-                      setNewFee({ ...newFee, description: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="down-payment">Down Payment</Label>
-                  <Input
-                    id="down-payment"
-                    type="number"
-                    placeholder="0"
-                    value={newFee.downPayment}
-                    onChange={(e) =>
-                      setNewFee({
-                        ...newFee,
-                        downPayment: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="total-amount">Total Amount</Label>
-                  <Input
-                    id="total-amount"
-                    type="number"
-                    placeholder="0"
-                    value={newFee.totalAmount}
-                    onChange={(e) =>
-                      setNewFee({
-                        ...newFee,
-                        totalAmount: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </div>
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-sm text-muted-foreground">{t("emptyState")}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="py-0">
+          <CardContent className="p-0">
+            {pendingFees.map((fee, index, array) => (
+              <div key={fee._id}>
+                <FeeCard
+                  fee={fee}
+                  isAdmin={isAdmin}
+                  showCheckbox={true}
+                  isSelected={selectedFeeIds.has(fee._id)}
+                  onSelect={(checked) => handleFeeSelect(fee._id, checked)}
+                  onUpdate={handleUpdateFee}
+                />
+                {index < array.length - 1 && <Separator />}
               </div>
-              <div className="flex flex-wrap gap-4">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="refundable"
-                    checked={newFee.isRefundable}
-                    onChange={(e) =>
-                      setNewFee({ ...newFee, isRefundable: e.target.checked })
-                    }
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <Label htmlFor="refundable" className="cursor-pointer">
-                    Refundable
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="included"
-                    checked={newFee.isIncluded}
-                    onChange={(e) =>
-                      setNewFee({ ...newFee, isIncluded: e.target.checked })
-                    }
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <Label htmlFor="included" className="cursor-pointer">
-                    Included
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="required"
-                    checked={newFee.isRequired}
-                    onChange={(e) =>
-                      setNewFee({ ...newFee, isRequired: e.target.checked })
-                    }
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <Label htmlFor="required" className="cursor-pointer">
-                    Required
-                  </Label>
-                </div>
-              </div>
-              <Button onClick={handleAddFee} className="w-full">
-                Add Fee
-              </Button>
-            </CardContent>
-          )}
+            ))}
+          </CardContent>
         </Card>
       )}
-
-      <div className="space-y-4">
-        {fees.filter((fee) => fee.status !== "paid").length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-sm text-muted-foreground">
-                All fees have been paid. Check the Transaction History tab to
-                view payment records.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          fees
-            .filter((fee) => fee.status !== "paid")
-            .map((fee) => (
-              <FeeCard
-                key={fee.id}
-                fee={fee}
-                isAdmin={isAdmin}
-                onUpdate={onUpdateFee}
-                onRemove={onRemoveFee}
-                onMarkAsPaid={onMarkAsPaid}
-              />
-            ))
-        )}
-      </div>
     </div>
   );
 }

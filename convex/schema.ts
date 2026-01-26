@@ -17,6 +17,30 @@ const status = v.union(
   v.literal("denied"),
 );
 
+const feeStatus = v.union(
+  v.literal("pending"),
+  v.literal("partially_paid"),
+  v.literal("paid"),
+);
+
+const paymentMethod = v.union(
+  v.literal("online"),
+  v.literal("cash"),
+  v.literal("wire"),
+);
+
+const transactionStatus = v.union(
+  v.literal("pending"),
+  v.literal("completed"),
+  v.literal("failed"),
+);
+
+const paymentLinkStatus = v.union(
+  v.literal("pending"),
+  v.literal("completed"),
+  v.literal("expired"),
+);
+
 export default defineSchema({
   users: defineTable({
     clerkId: v.string(),
@@ -97,4 +121,62 @@ export default defineSchema({
     .index("byOrganizationId", ["organizationId"])
     .index("byStatus", ["status"])
     .index("byApplicationCode", ["applicationCode"]),
+
+  fees: defineTable({
+    applicationId: v.id("applications"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    totalAmount: v.number(), // In cents
+    downPaymentPercent: v.number(), // 0-100
+    isRefundable: v.boolean(),
+    isIncluded: v.boolean(),
+    isDefault: v.boolean(),
+    isRequired: v.boolean(),
+    status: feeStatus,
+    paidAmount: v.number(), // In cents
+    createdAt: v.number(),
+    paidAt: v.optional(v.number()),
+    createdBy: v.id("users"),
+  })
+    .index("byApplication", ["applicationId"])
+    .index("byStatus", ["status"]),
+
+  transactions: defineTable({
+    applicationId: v.id("applications"),
+    feeId: v.id("fees"),
+    amount: v.number(), // In cents
+    method: paymentMethod,
+    status: transactionStatus,
+    squarePaymentId: v.optional(v.string()),
+    squareOrderId: v.optional(v.string()),
+    reference: v.optional(v.string()),
+    registeredBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("byApplication", ["applicationId"])
+    .index("byFee", ["feeId"])
+    .index("bySquarePaymentId", ["squarePaymentId"]),
+
+  paymentLinks: defineTable({
+    applicationId: v.id("applications"),
+    feeIds: v.array(v.id("fees")),
+    squareLinkId: v.string(),
+    squareOrderId: v.string(),
+    squareUrl: v.string(),
+    totalAmount: v.number(), // In cents
+    status: paymentLinkStatus,
+    idempotencyKey: v.string(),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("byApplication", ["applicationId"])
+    .index("bySquareOrderId", ["squareOrderId"])
+    .index("byIdempotencyKey", ["idempotencyKey"]),
+
+  webhookEvents: defineTable({
+    eventId: v.string(),
+    eventType: v.string(),
+    processedAt: v.number(),
+  }).index("byEventId", ["eventId"]),
 });

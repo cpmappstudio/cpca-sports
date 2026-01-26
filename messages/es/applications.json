@@ -69,6 +69,7 @@
     "height": "Altura",
     "birthCountry": "País de Nacimiento",
     "citizenship": "Ciudadanía",
+    "age": "Edad",
     "highlights": "Video de Destacados",
     "format": "Formato",
     "fullTime": "Tiempo completo",
@@ -109,6 +110,56 @@
       "totalDue": "Total a Pagar",
       "totalPaid": "Total Pagado",
       "pending": "Pendiente"
+    },
+    "actions": {
+      "pay": "Pagar",
+      "processing": "Procesando...",
+      "delete": "Eliminar",
+      "addFee": "Agregar Tarifa",
+      "cancel": "Cancelar",
+      "tooltips": {
+        "selectToPay": "Selecciona una o más tarifas para realizar un pago",
+        "selectToDelete": "Selecciona una o más tarifas para eliminar",
+        "editFee": "Editar tarifa",
+        "saveChanges": "Guardar cambios"
+      },
+      "deleteDialog": {
+        "title": "¿Eliminar tarifas?",
+        "description": "Esto eliminará permanentemente las tarifas seleccionadas. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
+      }
+    },
+    "form": {
+      "feeName": "Nombre de la Tarifa",
+      "feeNamePlaceholder": "Ingresa el nombre de la tarifa",
+      "totalAmount": "Monto Total ($)",
+      "amountPlaceholder": "0.00",
+      "refundable": "Reembolsable",
+      "included": "Incluido",
+      "required": "Requerido",
+      "adding": "Agregando...",
+      "addButton": "Agregar Tarifa"
+    },
+    "emptyState": "Todas las tarifas han sido pagadas. Consulta la pestaña de Historial de Transacciones para ver los registros de pago.",
+    "feeStatuses": {
+      "paid": "Pagado",
+      "partiallyPaid": "Parcialmente Pagado",
+      "pending": "Pendiente"
+    },
+    "feeBadges": {
+      "required": "Requerido",
+      "default": "Predeterminado",
+      "refundable": "Reembolsable",
+      "included": "Incluido"
+    },
+    "feeProgress": {
+      "progress": "Progreso",
+      "remaining": "Restante"
+    },
+    "feeTooltips": {
+      "created": "Creado",
+      "paid": "Pagado"
     }
   },
   "transactions": {
@@ -138,6 +189,10 @@
     },
     "filters": {
       "all": "Todos"
+    },
+    "counter": {
+      "payment": "pago",
+      "payments": "pagos"
     }
   }
 }

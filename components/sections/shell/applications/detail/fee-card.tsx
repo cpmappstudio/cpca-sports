@@ -1,222 +1,370 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import { Input } from "@/components/ui/input";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CheckCircle2, Clock, CreditCard, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { FeePayment } from "@/lib/applications/payment-types";
+import { CheckCircle2, Clock, CreditCard, Pencil, Check } from "lucide-react";
+import { type Fee } from "@/lib/applications/fee-types";
+import {
+  formatCurrency,
+  centsToDollars,
+  dollarsToCents,
+} from "@/lib/utils/currency";
 import { format } from "date-fns";
+import { Id } from "@/convex/_generated/dataModel";
+import { useTranslations } from "next-intl";
 
 interface FeeCardProps {
-  fee: FeePayment;
+  fee: Fee;
   isAdmin?: boolean;
-  showActions?: boolean;
-  onUpdate?: (feeId: string, updates: Partial<FeePayment>) => void;
-  onRemove?: (feeId: string) => void;
-  onMarkAsPaid?: (feeId: string) => void;
+  showCheckbox?: boolean;
+  isSelected?: boolean;
+  onSelect?: (checked: boolean) => void;
+  onRemove?: (feeId: Id<"fees">) => void;
+  onMarkAsPaid?: (feeId: Id<"fees">) => void;
+  onUpdate?: (
+    feeId: Id<"fees">,
+    name: string,
+    totalAmount: number,
+  ) => Promise<void>;
 }
+
+const getStatusConfig = (t: any) => ({
+  paid: {
+    icon: CheckCircle2,
+    iconColor: "text-green-500",
+    badgeVariant: "secondary" as const,
+    badgeClassName:
+      "gap-1 bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20",
+    label: t("feeStatuses.paid"),
+  },
+  partially_paid: {
+    icon: CreditCard,
+    iconColor: "text-blue-500",
+    badgeVariant: "secondary" as const,
+    badgeClassName: "gap-1",
+    label: t("feeStatuses.partiallyPaid"),
+  },
+  pending: {
+    icon: Clock,
+    iconColor: "text-muted-foreground",
+    badgeVariant: "outline" as const,
+    badgeClassName: "gap-1",
+    label: t("feeStatuses.pending"),
+  },
+});
 
 export function FeeCard({
   fee,
   isAdmin = false,
-  showActions = true,
-  onUpdate,
+  showCheckbox = false,
+  isSelected = false,
+  onSelect,
   onRemove,
   onMarkAsPaid,
+  onUpdate,
 }: FeeCardProps) {
-  const getStatusBadge = () => {
-    const dateText =
-      fee.status === "paid" && fee.paidAt
-        ? format(new Date(fee.paidAt), "MMM d, yyyy")
-        : fee.createdAt
-          ? format(new Date(fee.createdAt), "MMM d, yyyy")
-          : null;
+  const t = useTranslations("Applications.payments");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState(fee.name);
+  const [editedAmountDollars, setEditedAmountDollars] = useState(
+    centsToDollars(fee.totalAmount),
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const editContainerRef = useRef<HTMLDivElement>(null);
 
-    const tooltipContent = (
-      <div className="space-y-1">
-        {fee.createdAt && (
-          <div className="text-xs">
-            <span className="text-muted-foreground">Created:</span>{" "}
-            {format(new Date(fee.createdAt), "MMM d, yyyy 'at' h:mm a")}
-          </div>
-        )}
-        {fee.paidAt && (
-          <div className="text-xs">
-            <span className="text-muted-foreground">Paid:</span>{" "}
-            {format(new Date(fee.paidAt), "MMM d, yyyy 'at' h:mm a")}
-          </div>
-        )}
-      </div>
-    );
+  const statusConfig = getStatusConfig(t)[fee.status];
+  const StatusIcon = statusConfig.icon;
 
-    const statusBadge = (() => {
-      switch (fee.status) {
-        case "paid":
-          return (
-            <Badge
-              variant="secondary"
-              className="gap-1 bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20"
-            >
-              <CheckCircle2 className="h-3 w-3" />
-              Paid
-            </Badge>
-          );
-        case "partially_paid":
-          return (
-            <Badge variant="secondary" className="gap-1">
-              <CreditCard className="h-3 w-3" />
-              Partially Paid
-            </Badge>
-          );
-        default:
-          return (
-            <Badge variant="outline" className="gap-1">
-              <Clock className="h-3 w-3" />
-              Pending
-            </Badge>
-          );
+  const canEditAmount = fee.paidAmount === 0;
+
+  // Handle click outside to cancel editing
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        editContainerRef.current &&
+        !editContainerRef.current.contains(event.target as Node)
+      ) {
+        handleCancel();
       }
-    })();
+    };
 
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-2">
-            {statusBadge}
-            {dateText && (
-              <span className="text-xs text-muted-foreground">{dateText}</span>
-            )}
-          </div>
-        </TooltipTrigger>
-        {(fee.createdAt || fee.paidAt) && (
-          <TooltipContent>{tooltipContent}</TooltipContent>
-        )}
-      </Tooltip>
-    );
+    // Add listener after a small delay to avoid immediate cancellation
+    const timeoutId = setTimeout(() => {
+      document.addEventListener("mousedown", handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isEditing]);
+
+  const dateText =
+    fee.status === "paid" && fee.paidAt
+      ? format(new Date(fee.paidAt), "MMM d, yyyy")
+      : fee.createdAt
+        ? format(new Date(fee.createdAt), "MMM d, yyyy")
+        : null;
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditedName(fee.name);
+    setEditedAmountDollars(centsToDollars(fee.totalAmount));
   };
 
-  return (
-    <Card
-      className={cn(
-        "transition-colors",
-        fee.status === "paid" && "border-green-500/50",
-      )}
-    >
-      <CardHeader className="gap-0">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-base">{fee.name}</CardTitle>
+  const handleSave = async () => {
+    if (!onUpdate || !editedName.trim()) return;
+
+    setIsSaving(true);
+    try {
+      const totalAmount = canEditAmount
+        ? dollarsToCents(editedAmountDollars)
+        : fee.totalAmount;
+
+      await onUpdate(fee._id, editedName.trim(), totalAmount);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Failed to update fee:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedName(fee.name);
+    setEditedAmountDollars(centsToDollars(fee.totalAmount));
+  };
+
+  const content = (
+    <div ref={editContainerRef} className="contents">
+      <ItemMedia variant="icon">
+        <StatusIcon className={statusConfig.iconColor} />
+      </ItemMedia>
+
+      <ItemContent>
+        <div className="flex items-start justify-between gap-4 w-full">
+          <div className="flex-1 ">
+            <div className="flex items-center gap-2 flex-wrap">
+              {isEditing ? (
+                <Input
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  className="h-7 max-w-xs"
+                  autoFocus
+                />
+              ) : (
+                <ItemTitle>{fee.name}</ItemTitle>
+              )}
               {fee.isRequired && (
                 <Badge variant="secondary" className="text-xs">
-                  Required
+                  {t("feeBadges.required")}
                 </Badge>
               )}
               {fee.isDefault && (
                 <Badge variant="outline" className="text-xs">
-                  Default
+                  {t("feeBadges.default")}
                 </Badge>
               )}
             </div>
-            {fee.description && (
-              <CardDescription className="mt-1 text-sm">
-                {fee.description}
-              </CardDescription>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge()}
-            {showActions && isAdmin && !fee.isDefault && onRemove && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-destructive"
-                onClick={() => onRemove(fee.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-xs text-muted-foreground">
-              Down Payment
-            </Label>
-            <p className="text-lg font-semibold">
-              ${fee.downPayment.toFixed(2)}
-            </p>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Amount</Label>
-            <p className="text-lg font-semibold">
-              ${fee.totalAmount.toFixed(2)}
-            </p>
-          </div>
-        </div>
+            <div className="flex items-center gap-2 flex-wrap text-sm">
+              {dateText && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-xs text-muted-foreground">
+                      {dateText}
+                    </span>
+                  </TooltipTrigger>
+                  {(fee.createdAt || fee.paidAt) && (
+                    <TooltipContent>
+                      <div className="space-y-1">
+                        {fee.createdAt && (
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">
+                              {t("feeTooltips.created")}:
+                            </span>{" "}
+                            {format(
+                              new Date(fee.createdAt),
+                              "MMM d, yyyy 'at' h:mm:ss a",
+                            )}
+                          </div>
+                        )}
+                        {fee.paidAt && (
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">
+                              {t("feeTooltips.paid")}:
+                            </span>{" "}
+                            {format(
+                              new Date(fee.paidAt),
+                              "MMM d, yyyy 'at' h:mm:ss a",
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              )}
 
-        {fee.paidAmount > 0 && fee.status !== "paid" && (
-          <div className="rounded-lg border bg-muted/50 p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Paid so far</span>
-              <span className="text-sm font-semibold">
-                ${fee.paidAmount.toFixed(2)}
-              </span>
+              <span className="text-muted-foreground">•</span>
+
+              {isEditing && canEditAmount ? (
+                <div className="flex items-center gap-1">
+                  <span className="text-sm">$</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editedAmountDollars}
+                    onChange={(e) =>
+                      setEditedAmountDollars(parseFloat(e.target.value) || 0)
+                    }
+                    className="h-7 w-24"
+                  />
+                </div>
+              ) : (
+                <span className="font-semibold">
+                  {formatCurrency(fee.totalAmount)}
+                </span>
+              )}
             </div>
-            <div className="mt-2 h-2 w-full rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-green-500"
-                style={{
-                  width: `${(fee.paidAmount / fee.totalAmount) * 100}%`,
-                }}
-              />
+
+            {fee.paidAmount > 0 && fee.status !== "paid" && (
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {t("feeProgress.progress")}
+                  </span>
+                  <span className="font-medium">
+                    {formatCurrency(fee.paidAmount)} /{" "}
+                    {formatCurrency(fee.totalAmount)}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 transition-all"
+                    style={{
+                      width: `${(fee.paidAmount / fee.totalAmount) * 100}%`,
+                    }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>
+                    {t("feeProgress.remaining")}:{" "}
+                    {formatCurrency(fee.totalAmount - fee.paidAmount)}
+                  </span>
+                  <span>
+                    {Math.round((fee.paidAmount / fee.totalAmount) * 100)}%
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 flex-wrap pt-1">
+              {fee.isRefundable && (
+                <Badge variant="outline" className="text-xs">
+                  {t("feeBadges.refundable")}
+                </Badge>
+              )}
+              {fee.isIncluded && (
+                <Badge variant="outline" className="text-xs">
+                  {t("feeBadges.included")}
+                </Badge>
+              )}
             </div>
           </div>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          {fee.isRefundable && (
-            <Badge variant="outline" className="text-xs">
-              Refundable
-            </Badge>
-          )}
-          {fee.isIncluded && (
-            <Badge variant="outline" className="text-xs">
-              Included
-            </Badge>
-          )}
         </div>
+      </ItemContent>
 
-        {showActions && isAdmin && fee.status !== "paid" && onMarkAsPaid && (
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              className="flex-1 bg-green-500 hover:bg-green-600 text-white"
-              onClick={() => onMarkAsPaid(fee.id)}
-            >
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Mark as Paid
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {isAdmin && onUpdate && !fee.isDefault && (
+        <ItemActions>
+          {isEditing ? (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon-sm"
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={handleSave}
+                    disabled={isSaving || !editedName.trim()}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {t("actions.tooltips.saveChanges")}
+                </TooltipContent>
+              </Tooltip>
+            </>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  className="rounded-full"
+                  onClick={handleEdit}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t("actions.tooltips.editFee")}</TooltipContent>
+            </Tooltip>
+          )}
+        </ItemActions>
+      )}
+    </div>
   );
+
+  if (showCheckbox && onSelect) {
+    const handleClick = (e: React.MouseEvent) => {
+      // Don't toggle if clicking on buttons or inputs
+      const target = e.target as HTMLElement;
+      if (target.closest("button") || target.closest("input")) {
+        return;
+      }
+      onSelect(!isSelected);
+    };
+
+    return (
+      <FieldLabel
+        htmlFor={`fee-${fee._id}`}
+        className="!border-0 !rounded-none w-full [&>[data-slot=field]]:!border-0 [&>[data-slot=field]]:!rounded-none [&>[data-slot=field]]:!p-0"
+      >
+        <Field orientation="horizontal" className="w-full">
+          <Checkbox
+            id={`fee-${fee._id}`}
+            name={`fee-${fee._id}`}
+            checked={isSelected}
+            className="sr-only"
+          />
+          <FieldContent onClick={handleClick} className="cursor-pointer w-full">
+            <Item>{content}</Item>
+          </FieldContent>
+        </Field>
+      </FieldLabel>
+    );
+  }
+
+  return <Item>{content}</Item>;
 }

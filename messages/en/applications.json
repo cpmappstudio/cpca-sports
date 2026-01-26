@@ -81,6 +81,7 @@
     "height": "Height",
     "birthCountry": "Country of Birth",
     "citizenship": "Citizenship",
+    "age": "Age",
     "highlights": "Highlights Video",
     "format": "Format",
     "fullTime": "Full-time",
@@ -121,6 +122,56 @@
       "totalDue": "Total Due",
       "totalPaid": "Total Paid",
       "pending": "Pending"
+    },
+    "actions": {
+      "pay": "Pay",
+      "processing": "Processing...",
+      "delete": "Delete",
+      "addFee": "Add Fee",
+      "cancel": "Cancel",
+      "tooltips": {
+        "selectToPay": "Select one or more fees to make a payment",
+        "selectToDelete": "Select one or more fees to delete",
+        "editFee": "Edit fee",
+        "saveChanges": "Save changes"
+      },
+      "deleteDialog": {
+        "title": "Delete fees?",
+        "description": "This will permanently delete the selected fees. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      }
+    },
+    "form": {
+      "feeName": "Fee Name",
+      "feeNamePlaceholder": "Enter fee name",
+      "totalAmount": "Total Amount ($)",
+      "amountPlaceholder": "0.00",
+      "refundable": "Refundable",
+      "included": "Included",
+      "required": "Required",
+      "adding": "Adding...",
+      "addButton": "Add Fee"
+    },
+    "emptyState": "All fees have been paid. Check the Transaction History tab to view payment records.",
+    "feeStatuses": {
+      "paid": "Paid",
+      "partiallyPaid": "Partially Paid",
+      "pending": "Pending"
+    },
+    "feeBadges": {
+      "required": "Required",
+      "default": "Default",
+      "refundable": "Refundable",
+      "included": "Included"
+    },
+    "feeProgress": {
+      "progress": "Progress",
+      "remaining": "Remaining"
+    },
+    "feeTooltips": {
+      "created": "Created",
+      "paid": "Paid"
     }
   },
   "transactions": {
@@ -150,6 +201,10 @@
     },
     "filters": {
       "all": "All"
+    },
+    "counter": {
+      "payment": "payment",
+      "payments": "payments"
     }
   }
 }

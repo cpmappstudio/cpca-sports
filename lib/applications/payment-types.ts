@@ -1,26 +1,35 @@
-import type { FeeType } from "./fee-types";
+import { Id } from "@/convex/_generated/dataModel";
 
-export type PaymentStatus = "pending" | "paid" | "partially_paid";
+export type PaymentMethod = "online" | "cash" | "wire";
 
-export type FeePayment = FeeType & {
-  status: PaymentStatus;
-  paidAmount: number;
-  createdAt?: number;
-  paidAt?: number;
+export type TransactionStatus = "pending" | "completed" | "failed";
+
+export type Transaction = {
+  _id: Id<"transactions">;
+  _creationTime: number;
+  applicationId: Id<"applications">;
+  feeId: Id<"fees">;
+  amount: number; // In cents
+  method: PaymentMethod;
+  status: TransactionStatus;
+  squarePaymentId?: string;
+  squareOrderId?: string;
+  reference?: string;
+  registeredBy?: Id<"users">;
+  createdAt: number;
+  completedAt?: number;
 };
 
-export type PaymentMethod = "cash" | "online";
-
-export type TransactionStatus = "completed" | "pending" | "failed";
-
-export type PaymentTransaction = {
-  id: string;
-  date: number;
-  amount: number;
-  feeId: string;
+export type TransactionWithFee = {
+  transaction: Transaction;
   feeName: string;
-  method: PaymentMethod;
-  registeredBy?: string;
-  status: TransactionStatus;
-  reference?: string;
+  feeDescription?: string;
+};
+
+export type FeeSummary = {
+  totalDue: number;
+  totalPaid: number;
+  totalPending: number;
+  feeCount: number;
+  paidCount: number;
 };
