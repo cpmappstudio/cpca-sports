@@ -26,11 +26,12 @@ import {
   User,
   IdCard,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ApplicationBalanceCard } from "./application-balance-card";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { toast } from "sonner"
+import { toast } from "sonner";
+import { Pencil } from "lucide-react";
 
 interface ApplicationHeaderProps {
   application: Application;
@@ -51,12 +52,20 @@ export function ApplicationHeader({
 }: ApplicationHeaderProps) {
   const t = useTranslations("Applications.detail");
   const tStatus = useTranslations("Applications.statusOptions");
+  
+  const { formData } = application;
+  
   const [status, setStatus] = useState<ApplicationStatus>(application.status);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [currentPhoto, setCurrentPhoto] = useState<Id<"_storage"> | null>(
+    (formData.athlete?.photo as Id<"_storage">) || null
+  );
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const updateStatus = useMutation(api.applications.updateStatus);
+  const updatePhoto = useMutation(api.applications.updatePhoto);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
-  const { formData } = application;
   const firstName = getFormField(formData, "athlete", "firstName");
   const lastName = getFormField(formData, "athlete", "lastName");
   const email = getFormField(formData, "athlete", "email");
@@ -112,6 +121,55 @@ export function ApplicationHeader({
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !isAdmin) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB");
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      const uploadUrl = await generateUploadUrl();
+
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!result.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const { storageId } = await result.json();
+      
+      await updatePhoto({
+        applicationId: application._id,
+        photoStorageId: storageId,
+      });
+      
+      setCurrentPhoto(storageId);
+      toast.success("Photo updated successfully");
+    } catch (error) {
+      console.error("Failed to update photo:", error);
+      toast.error("Failed to update photo. Please try again.");
+    } finally {
+      setIsUpdating(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const calculateAge = (birthDate: string) => {
     const today = new Date();
     const birth = new Date(birthDate);
@@ -132,10 +190,10 @@ export function ApplicationHeader({
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-start gap-4">
-              <div className="w-20 h-20 shrink-0">
-                {photoStorageId ? (
+              <div className="w-20 h-20 shrink-0 relative">
+                {currentPhoto ? (
                   <ApplicationPhoto
-                    storageId={photoStorageId}
+                    storageId={currentPhoto}
                     alt={`${firstName} ${lastName}`}
                   />
                 ) : (
@@ -145,6 +203,27 @@ export function ApplicationHeader({
                       {lastName.charAt(0).toUpperCase()}
                     </span>
                   </div>
+                )}
+                {isAdmin && (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      disabled={isUpdating}
+                    />
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="absolute bottom-0 right-0 h-6 w-6 opacity-70 hover:opacity-100 hover:scale-100 transition-all duration-200"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUpdating}
+                    >
+                      <Pencil className="h-2 w-2" />
+                    </Button>
+                  </>
                 )}
               </div>
               <div className="flex flex-col gap-2 flex-1 min-w-0">

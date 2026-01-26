@@ -525,6 +525,51 @@ export const updateStatus = mutation({
 });
 
 /**
+ * Update application photo (admin only).
+ */
+export const updatePhoto = mutation({
+  args: {
+    applicationId: v.id("applications"),
+    photoStorageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const application = await ctx.db.get(args.applicationId);
+
+    if (!application) {
+      throw new Error("Application not found");
+    }
+
+    // Check admin access
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      application.organizationId,
+    );
+
+    if (!isAdmin) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    // Update photo in formData
+    const updatedFormData = {
+      ...application.formData,
+      athlete: {
+        ...application.formData.athlete,
+        photo: args.photoStorageId,
+      },
+    };
+
+    await ctx.db.patch(args.applicationId, {
+      formData: updatedFormData,
+    });
+
+    return null;
+  },
+});
+
+/**
  * Get application with template info (for detail view).
  */
 export const getWithTemplate = query({
