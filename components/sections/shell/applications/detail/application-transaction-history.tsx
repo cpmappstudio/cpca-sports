@@ -83,7 +83,7 @@ export function ApplicationTransactionHistory({
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
-        <InputGroup className="flex-1">
+        <InputGroup className="flex-1 bg-card">
           <InputGroupInput
             placeholder={t("searchPlaceholder")}
             value={searchQuery}
@@ -96,10 +96,7 @@ export function ApplicationTransactionHistory({
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className="justify-start px-2.5 font-normal w-72 shrink-0"
-            >
+            <Button className="justify-start px-2.5 font-normal w-72 shrink-0">
               <CalendarIcon />
               {dateRange?.from ? (
                 dateRange.to ? (

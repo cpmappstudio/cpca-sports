@@ -141,7 +141,7 @@ function DocumentActions({
           <span className="hidden md:inline">{t("actions.cancel")}</span>
         ) : (
           <>
-            <Plus className="h-4 w-4 md:mr-2" />
+            <Plus />
             <span className="hidden md:inline">{t("actions.addDocument")}</span>
           </>
         )}
@@ -825,13 +825,12 @@ function DocumentCard({
             />
             <Button
               asChild
-              variant="outline"
               size="sm"
               className="w-full cursor-pointer"
               disabled={isUploading}
             >
               <label htmlFor={`file-${document.id}`} className="cursor-pointer">
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload />
                 {isUploading
                   ? "Uploading..."
                   : uploadedDocument

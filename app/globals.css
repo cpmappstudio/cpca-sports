@@ -1188,7 +1188,7 @@ html[data-theme="twitter"] body {
 }
 
 [data-theme="cpca"] {
-  --background: oklch(1 0 0);
+  --background: oklch(0.9798 0.0045 78.3);
   --foreground: oklch(0.2533 0.0568 257.1422);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.1884 0.01 248.5103);

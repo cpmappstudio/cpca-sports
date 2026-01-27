@@ -96,7 +96,7 @@ export const NavbarItem = forwardRef(function NavbarItem(
       {current && (
         <motion.span
           layoutId="current-indicator"
-          className="absolute inset-x-2 -bottom-2.5 h-0.5 rounded-full bg-primary"
+          className="absolute inset-x-2 -bottom-2.5 h-0.5 rounded-full bg-sidebar-primary"
         />
       )}
       {typeof props.href === "string" ? (

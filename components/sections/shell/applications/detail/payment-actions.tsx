@@ -138,7 +138,7 @@ export function PaymentActions({
                   disabled={!hasSelectedFees || isProcessingPayment}
                   onClick={handlePay}
                 >
-                  <CreditCard className="h-4 w-4 mr-2" />
+                  <CreditCard />
                   {isProcessingPayment
                     ? t("actions.processing")
                     : t("actions.pay")}
@@ -160,11 +160,10 @@ export function PaymentActions({
                       <span className="inline-block w-fit">
                         <Button
                           size="sm"
-                          variant="default"
                           className="bg-green-500 hover:bg-green-400"
                           disabled={!hasSelectedFees || isMarkingAsPaid}
                         >
-                          <Banknote className="h-4 w-4 md:mr-2" />
+                          <Banknote />
                           <span className="hidden md:inline">
                             {isMarkingAsPaid
                               ? t("actions.markingAsPaid")
@@ -229,7 +228,7 @@ export function PaymentActions({
                           variant="destructive"
                           disabled={!hasSelectedFees}
                         >
-                          <Trash2 className="h-4 w-4 md:mr-2" />
+                          <Trash2 />
                           <span className="hidden md:inline">
                             {t("actions.delete")}
                           </span>
@@ -281,7 +280,7 @@ export function PaymentActions({
               <span className="hidden md:inline">{t("actions.cancel")}</span>
             ) : (
               <>
-                <Plus className="h-4 w-4 md:mr-2" />
+                <Plus />
                 <span className="hidden md:inline">{t("actions.addFee")}</span>
               </>
             )}

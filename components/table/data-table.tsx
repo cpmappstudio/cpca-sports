@@ -2,39 +2,45 @@
 
 import * as React from "react";
 import {
-    ColumnFiltersState,
-    flexRender,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    SortingState,
-    useReactTable,
-    VisibilityState,
+  ColumnFiltersState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+  VisibilityState,
 } from "@tanstack/react-table";
-import { Columns3Icon, Download, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Columns3Icon,
+  Download,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { DataTableFilters } from "@/components/table/data-table-filters";
 import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput,
-} from "@/components/ui/input-group"
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import type { DataTableProps } from "@/lib/table/types";
 import { shouldHandleRowClick } from "@/lib/table/utils";
@@ -43,265 +49,262 @@ import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 const PAGE_SIZE = 50;
 
 export function DataTable<TData>({
-    data,
-    columns,
-    filterColumn,
-    filterPlaceholder,
-    emptyMessage,
-    columnsMenuLabel,
-    exportButtonLabel,
-    filterConfigs,
-    filtersMenuLabel,
-    previousLabel,
-    nextLabel,
-    selectedRowsLabel,
-    initialSorting,
-    onCreate,
-    onExport,
-    onRowClick,
+  data,
+  columns,
+  filterColumn,
+  filterPlaceholder,
+  emptyMessage,
+  columnsMenuLabel,
+  exportButtonLabel,
+  filterConfigs,
+  filtersMenuLabel,
+  previousLabel,
+  nextLabel,
+  selectedRowsLabel,
+  initialSorting,
+  onCreate,
+  onExport,
+  onRowClick,
 }: DataTableProps<TData>) {
-    const [sorting, setSorting] = React.useState<SortingState>(
-        initialSorting ?? []
-    );
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-        []
-    );
-    const [columnVisibility, setColumnVisibility] =
-        React.useState<VisibilityState>({
-            search: false,
-        });
-    const [rowSelection, setRowSelection] = React.useState({});
-
-    const table = useReactTable({
-        data: data ?? [],
-        columns,
-        onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
-        getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        onColumnVisibilityChange: setColumnVisibility,
-        onRowSelectionChange: setRowSelection,
-        initialState: {
-            pagination: {
-                pageSize: PAGE_SIZE,
-            },
-            sorting: initialSorting,
-        },
-        state: {
-            sorting,
-            columnFilters,
-            columnVisibility,
-            rowSelection,
-        },
+  const [sorting, setSorting] = React.useState<SortingState>(
+    initialSorting ?? [],
+  );
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    [],
+  );
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({
+      search: false,
     });
+  const [rowSelection, setRowSelection] = React.useState({});
 
-    const t = useTranslations("Common");
+  const table = useReactTable({
+    data: data ?? [],
+    columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    initialState: {
+      pagination: {
+        pageSize: PAGE_SIZE,
+      },
+      sorting: initialSorting,
+    },
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
+    },
+  });
 
-    const filterColumnInstance = filterColumn
-        ? table.getColumn(filterColumn)
-        : undefined;
+  const t = useTranslations("Common");
 
-    const handleRowClick = React.useCallback(
-        (rowData: TData) => {
-            onRowClick?.(rowData);
-        },
-        [onRowClick]
-    );
+  const filterColumnInstance = filterColumn
+    ? table.getColumn(filterColumn)
+    : undefined;
 
-    const handleRowContainerClick = React.useCallback(
-        (
-            event: React.MouseEvent<HTMLTableRowElement, MouseEvent>,
-            rowData: TData
-        ) => {
-            if (!onRowClick || !shouldHandleRowClick(event)) {
-                return;
-            }
-            handleRowClick(rowData);
-        },
-        [handleRowClick, onRowClick]
-    );
+  const handleRowClick = React.useCallback(
+    (rowData: TData) => {
+      onRowClick?.(rowData);
+    },
+    [onRowClick],
+  );
 
-    const exportRows = React.useCallback(() => {
-        if (!onExport) {
-            return;
-        }
-        const rows = table
-            .getFilteredRowModel()
-            .rows.map((row) => row.original as TData);
-        onExport(rows);
-    }, [onExport, table]);
+  const handleRowContainerClick = React.useCallback(
+    (
+      event: React.MouseEvent<HTMLTableRowElement, MouseEvent>,
+      rowData: TData,
+    ) => {
+      if (!onRowClick || !shouldHandleRowClick(event)) {
+        return;
+      }
+      handleRowClick(rowData);
+    },
+    [handleRowClick, onRowClick],
+  );
 
-    return (
-        <div className="w-full">
-            <div className="flex items-center gap-2 pb-4">
-                {filterColumnInstance ? (
-                    <InputGroup>
-                        <InputGroupAddon>
-                            <MagnifyingGlassIcon />
-                        </InputGroupAddon>
-                        <InputGroupInput
-                            placeholder={filterPlaceholder}
-                            value={(filterColumnInstance.getFilterValue() as string) ?? ""}
-                            onChange={(event) =>
-                                filterColumnInstance.setFilterValue(event.target.value)
-                            }
-                            className="max-w-sm"
-                        />
-                    </InputGroup>
-                ) : null}
-                {onCreate && (
-                    <Button onClick={onCreate} size="icon" className="bg-muted text-primary hover:bg-muted/70">
-                        <Plus className="size-4 " />
-                    </Button>
-                )}
+  const exportRows = React.useCallback(() => {
+    if (!onExport) {
+      return;
+    }
+    const rows = table
+      .getFilteredRowModel()
+      .rows.map((row) => row.original as TData);
+    onExport(rows);
+  }, [onExport, table]);
 
-                <div className="ml-auto flex items-center gap-2">
-                    {filterConfigs && filterConfigs.length > 0 && (
-                        <DataTableFilters
-                            table={table}
-                            filterConfigs={filterConfigs}
-                            filtersMenuLabel={filtersMenuLabel}
-                        />
-                    )}
+  return (
+    <div className="w-full">
+      <div className="flex items-center gap-2 pb-4">
+        {filterColumnInstance ? (
+          <InputGroup className="bg-card">
+            <InputGroupAddon>
+              <MagnifyingGlassIcon />
+            </InputGroupAddon>
+            <InputGroupInput
+              placeholder={filterPlaceholder}
+              value={(filterColumnInstance.getFilterValue() as string) ?? ""}
+              onChange={(event) =>
+                filterColumnInstance.setFilterValue(event.target.value)
+              }
+              className="max-w-sm"
+            />
+          </InputGroup>
+        ) : null}
+        {onCreate && (
+          <Button onClick={onCreate} size="icon" className="">
+            <Plus className="size-4 " />
+          </Button>
+        )}
 
-                    {onExport && (
-                        <Button variant="outline" onClick={exportRows}>
-                            <span className="hidden md:block mr-1">{exportButtonLabel}</span>
-                            <Download className="size-3.5" />
-                        </Button>
-                    )}
+        <div className="ml-auto flex items-center gap-2">
+          {filterConfigs && filterConfigs.length > 0 && (
+            <DataTableFilters
+              table={table}
+              filterConfigs={filterConfigs}
+              filtersMenuLabel={filtersMenuLabel}
+            />
+          )}
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild className="hidden md:flex">
-                            <Button variant="outline" size="icon">
-                                {/* <span className="hidden md:block mr-1">{columnsMenuLabel}</span> */}
-                                <Columns3Icon className="size-3.5" />
-                            </Button>
-                        </DropdownMenuTrigger>
+          {onExport && (
+            <Button variant="outline" onClick={exportRows}>
+              <Download className="size-3.5" />
+              <span className="hidden md:block mr-1">{exportButtonLabel}</span>
+            </Button>
+          )}
 
-                        <DropdownMenuContent align="end">
-                            {table
-                                .getAllColumns()
-                                .filter((column) => column.getCanHide())
-                                .map((column) => (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        className="capitalize"
-                                        checked={column.getIsVisible()}
-                                        onCheckedChange={(value) =>
-                                            column.toggleVisibility(!!value)
-                                        }
-                                    >
-                                        {column.id}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild className="hidden md:flex">
+              <Button variant="outline" size="icon">
+                {/* <span className="hidden md:block mr-1">{columnsMenuLabel}</span> */}
+                <Columns3Icon className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
 
-            <div className="overflow-hidden rounded-md border">
-                <Table>
-                    <TableHeader className="bg-muted sticky top-0 z-10">
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id} >
-                                {headerGroup.headers.map((header) => (
-                                    <TableHead
-                                        key={header.id}
+            <DropdownMenuContent align="end">
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(!!value)
+                    }
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
-                                    >
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext()
-                                            )}
-                                    </TableHead>
-                                ))}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-
-                    <TableBody>
-                        {table.getRowModel().rows.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    data-state={row.getIsSelected() && "selected"}
-                                    className={
-                                        onRowClick
-                                            ? "cursor-pointer transition-colors hover:bg-muted/40"
-                                            : undefined
-                                    }
-                                    onClick={
-                                        onRowClick
-                                            ? (event) => handleRowContainerClick(event, row.original)
-                                            : undefined
-                                    }
-                                >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell
-                                    colSpan={columns.length}
-                                    className="h-24 text-center"
-                                >
-                                    {emptyMessage}
-                                </TableCell>
-                            </TableRow>
+      <div className="overflow-hidden rounded-md border">
+        <Table className="bg-card">
+          <TableHeader className=" sticky top-0 z-10 ">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
                         )}
-                    </TableBody>
-                </Table>
-            </div>
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
 
-            <div className="flex items-center justify-end space-x-2 py-4">
-                {/* <div className="flex-1 text-sm text-muted-foreground">
+          <TableBody>
+            {table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  className={
+                    onRowClick
+                      ? "cursor-pointer transition-colors hover:bg-accent/40"
+                      : undefined
+                  }
+                  onClick={
+                    onRowClick
+                      ? (event) => handleRowContainerClick(event, row.original)
+                      : undefined
+                  }
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  {emptyMessage}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex items-center justify-end space-x-2 py-4">
+        {/* <div className="flex-1 text-sm text-muted-foreground">
                     {selectedRowsLabel?.(
                         table.getFilteredSelectedRowModel().rows.length,
                         table.getFilteredRowModel().rows.length
                     ) ?? `${table.getFilteredSelectedRowModel().rows.length} of ${table.getFilteredRowModel().rows.length} row(s) selected.`}
                 </div> */}
 
-                <div className="flex-1 text-muted-foreground text-sm font-medium">
-                    {t("table.pageInfo", {
-                        current: table.getState().pagination.pageIndex + 1,
-                        total: table.getPageCount(),
-                    })}
-                </div>
-
-                <div className="space-x-2">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        <span className="sr-only">Go to previous page</span>
-                        <ChevronLeft />
-                    </Button>
-
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        <span className="sr-only">Go to next page</span>
-                        <ChevronRight />
-                    </Button>
-                </div>
-            </div>
+        <div className="flex-1 text-muted-foreground text-sm font-medium">
+          {t("table.pageInfo", {
+            current: table.getState().pagination.pageIndex + 1,
+            total: table.getPageCount(),
+          })}
         </div>
-    );
+
+        <div className="space-x-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <span className="sr-only">Go to previous page</span>
+            <ChevronLeft />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            <span className="sr-only">Go to next page</span>
+            <ChevronRight />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }
