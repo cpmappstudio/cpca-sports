@@ -37,14 +37,12 @@ interface ApplicationDetailWrapperProps {
   preloadedApplication: Preloaded<typeof api.applications.getById>;
   organizationSlug: string;
   applicationId: string;
-  isAdmin: boolean;
 }
 
 function ApplicationDetailContent({
   preloadedApplication,
   organizationSlug,
   applicationId,
-  isAdmin,
 }: ApplicationDetailWrapperProps) {
   const application = usePreloadedQuery(preloadedApplication);
   const t = useTranslations("Applications");
@@ -113,7 +111,6 @@ function ApplicationDetailContent({
           <ApplicationHeader
             application={application}
             organizationSlug={organizationSlug}
-            isAdmin={isAdmin}
             totalDue={totalDue}
             totalPaid={totalPaid}
             totalPending={totalPending}
@@ -197,7 +194,6 @@ function ApplicationDetailContent({
               ) : (
                 <ApplicationDocuments
                   applicationId={convexApplicationId}
-                  isAdmin={isAdmin}
                   documents={documents}
                   documentConfigs={documentConfigs}
                   onUpload={uploadDocument}
@@ -220,7 +216,6 @@ function ApplicationDetailContent({
                 <ApplicationPayments
                   applicationId={convexApplicationId}
                   organizationSlug={organizationSlug}
-                  isAdmin={isAdmin}
                   fees={fees ?? []}
                   onAddFee={createFee}
                   onRemoveFee={removeFee}

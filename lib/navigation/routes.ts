@@ -38,8 +38,7 @@ export const ROUTES = {
     settings: {
       root: "/admin/settings",
       appearance: "/admin/settings/appearance",
-      notifications: "/admin/settings/notifications",
-      security: "/admin/settings/security",
+      profileSecurity: "/admin/settings/user-profile",
       billing: "/admin/settings/billing",
     },
   },
@@ -113,8 +112,7 @@ export const ROUTES = {
     settings: {
       root: (orgSlug: string) => `/${orgSlug}/settings`,
       appearance: (orgSlug: string) => `/${orgSlug}/settings/appearance`,
-      notifications: (orgSlug: string) => `/${orgSlug}/settings/notifications`,
-      security: (orgSlug: string) => `/${orgSlug}/settings/security`,
+      profileSecurity: (orgSlug: string) => `/${orgSlug}/settings/user-profile`,
       billing: (orgSlug: string) => `/${orgSlug}/settings/billing`,
     },
   },

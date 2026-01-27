@@ -2,10 +2,14 @@ import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
 import { Divider } from "@/components/ui/divider";
 
-export default function SettingsItem({ title, description, children }: {
-    title: string;
-    description: string;
-    children: React.ReactNode;
+export default function SettingsItem({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
 }) {
     return (
         <section className="flex flex-col gap-3">

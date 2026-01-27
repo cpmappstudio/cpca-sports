@@ -22,11 +22,16 @@ import { ROUTES } from "@/lib/navigation/routes";
 import { routing } from "@/i18n/routing";
 
 export function NavbarAppSidebar() {
+  const params = useParams();
+  const orgSlug = (params.tenant as string) || null;
+
   return (
     <Navbar>
       <NavbarSpacer />
       <NavbarSection>
-        <UserButton />
+        <UserButton
+          userProfileUrl={ROUTES.org.settings.profileSecurity(orgSlug!)}
+        />
       </NavbarSection>
     </Navbar>
   );
@@ -52,6 +57,7 @@ export function SidebarAppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <OrganizationSwitcher
+          organizationProfileUrl={ROUTES.org.settings.root(orgSlug!)}
           afterLeaveOrganizationUrl={ROUTES.admin.organizations.list}
           afterSelectOrganizationUrl={afterSelectOrgUrl}
           appearance={{
@@ -107,12 +113,13 @@ export function SidebarAppSidebar() {
 
       <SidebarFooter className="max-lg:hidden">
         <UserButton
+          userProfileUrl={ROUTES.org.settings.profileSecurity(orgSlug!)}
           appearance={{
             elements: {
               userButtonBox: {
                 flexDirection: "row-reverse",
                 textAlign: "left",
-                maxWidth: "95%",
+                maxWidth: "100%",
               },
               userButtonOuterIdentifier: "text-sidebar-foreground",
               userButtonTrigger: "text-sidebar-foreground",

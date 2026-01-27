@@ -56,6 +56,41 @@
   --shadow-2xl: var(--shadow-2xl);
 }
 
+/* CLERK */
+
+.cl-navbar,
+.cl-header,
+.cl-footer,
+.cl-navbarMobileMenuRow {
+  display: none !important;
+}
+.cl-cardBox.border,
+.cl-profileSection {
+  border: none !important;
+  border-top-width: 0;
+}
+.cl-cardBox.shadow-sm {
+  box-shadow: none;
+}
+.cl-rootBox.cl-userProfile-root {
+  width: 100%;
+  box-shadow: none;
+}
+.cl-rootBox.cl-userProfile-root .cl-cardBox {
+  /*max-height: 428px;*/
+  height: auto !important;
+}
+
+.cl-scrollBox {
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.cl-pageScrollBox {
+  padding: 0;
+}
+
 :root,
 [data-theme="zinc"] {
   --radius: 0.65rem;

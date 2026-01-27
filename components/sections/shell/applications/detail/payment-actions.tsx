@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,6 @@ import { useTranslations } from "next-intl";
 
 interface PaymentActionsProps {
   applicationId: Id<"applications">;
-  isAdmin: boolean;
   selectedFeeIds: Id<"fees">[];
   onAddFee: (args: {
     applicationId: Id<"applications">;
@@ -48,7 +48,6 @@ interface PaymentActionsProps {
 
 export function PaymentActions({
   applicationId,
-  isAdmin,
   selectedFeeIds,
   onAddFee,
   onDeleteSelected,
@@ -56,6 +55,7 @@ export function PaymentActions({
   onMarkAsPaid,
 }: PaymentActionsProps) {
   const t = useTranslations("Applications.payments");
+  const { isAdmin } = useIsAdmin();
   const [isAddingFee, setIsAddingFee] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);

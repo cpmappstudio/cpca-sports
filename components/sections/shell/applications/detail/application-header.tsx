@@ -1,5 +1,6 @@
 "use client";
 import { useTranslations } from "next-intl";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent } from "@/components/ui/card";
@@ -57,7 +58,6 @@ import { useRouter } from "@/i18n/navigation";
 interface ApplicationHeaderProps {
   application: Application;
   organizationSlug: string;
-  isAdmin: boolean;
   totalDue: number;
   totalPaid: number;
   totalPending: number;
@@ -66,12 +66,12 @@ interface ApplicationHeaderProps {
 export function ApplicationHeader({
   application,
   organizationSlug,
-  isAdmin,
   totalDue,
   totalPaid,
   totalPending,
 }: ApplicationHeaderProps) {
   const t = useTranslations("Applications.detail");
+  const { isAdmin } = useIsAdmin();
   const tStatus = useTranslations("Applications.statusOptions");
 
   const { formData } = application;
@@ -334,13 +334,19 @@ export function ApplicationHeader({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
-                              <a href={`tel:${telephone}`} className="flex items-center gap-2">
+                              <a
+                                href={`tel:${telephone}`}
+                                className="flex items-center gap-2"
+                              >
                                 <Phone className="h-4 w-4" />
                                 <span>{t("call")}</span>
                               </a>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                              <a href={`mailto:${email}`} className="flex items-center gap-2">
+                              <a
+                                href={`mailto:${email}`}
+                                className="flex items-center gap-2"
+                              >
                                 <Mail className="h-4 w-4" />
                                 <span>{t("email")}</span>
                               </a>
@@ -479,27 +485,25 @@ export function ApplicationHeader({
         totalPaid={totalPaid}
         totalPending={totalPending}
       />
-      
+
       {/* Alert Dialog compartido para eliminar */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
             <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
               <Trash2 />
             </AlertDialogMedia>
-            <AlertDialogTitle>
-              Delete application?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Delete application?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this application and
-              all its associated data. This action cannot be
-              undone.
+              This will permanently delete this application and all its
+              associated data. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel variant="outline">
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel variant="outline">Cancel</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={handleDeleteApplication}

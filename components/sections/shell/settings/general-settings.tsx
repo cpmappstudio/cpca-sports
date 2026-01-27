@@ -2,20 +2,43 @@
 
 import { useTranslations } from "next-intl";
 import SettingsItem from "./settings-item";
+import { OrganizationProfile } from "@clerk/nextjs";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 
 export function GeneralSettings() {
-  const t = useTranslations("Settings.general");
+  const tOrganization = useTranslations("Settings.general.organization");
+  const tMembers = useTranslations("Settings.general.members");
+  const { isAdmin } = useIsAdmin();
+
+  const organizationProfileAppearance = {
+    elements: {
+      cardBox: {
+        display: "block",
+        gridTemplateColumns: "unset",
+        height: "auto",
+      },
+    },
+  };
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-4">
       <SettingsItem
-        title={t("title")}
-        description={t("description")}
+        title={tOrganization("title")}
+        description={tOrganization("description")}
       >
-        <div className="text-muted-foreground text-sm">
-          {t("placeholder")}
-        </div>
+        <OrganizationProfile appearance={organizationProfileAppearance} />
       </SettingsItem>
+      {isAdmin && (
+        <SettingsItem
+          title={tMembers("title")}
+          description={tMembers("description")}
+        >
+          <OrganizationProfile appearance={organizationProfileAppearance}>
+            <OrganizationProfile.Page label="members" />
+            <OrganizationProfile.Page label="general" />
+          </OrganizationProfile>
+        </SettingsItem>
+      )}
     </div>
   );
 }

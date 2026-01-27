@@ -45,7 +45,7 @@ export function SettingsSearch({ basePath }: SettingsSearchProps) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-start gap-2 font-normal text-muted-foreground"
+          className="w-full bg-white hover:bg-white justify-start gap-2 font-normal text-muted-foreground"
         >
           <MagnifyingGlassIcon className="size-4 shrink-0" />
           <span className="truncate">{t("placeholder")}</span>

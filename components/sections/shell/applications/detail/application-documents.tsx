@@ -70,10 +70,10 @@ import {
 import { cn } from "@/lib/utils";
 import { Id } from "@/convex/_generated/dataModel";
 import { useTranslations } from "next-intl";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 
 interface ApplicationDocumentsProps {
   applicationId: Id<"applications">;
-  isAdmin: boolean;
   documents: ApplicationDocumentWithUser[];
   documentConfigs: DocumentConfig[];
   onUpload: (args: {
@@ -116,17 +116,16 @@ interface ApplicationDocumentsProps {
 }
 
 interface DocumentActionsProps {
-  isAdmin: boolean;
   isAddingDocument: boolean;
   setIsAddingDocument: (value: boolean) => void;
 }
 
 function DocumentActions({
-  isAdmin,
   isAddingDocument,
   setIsAddingDocument,
 }: DocumentActionsProps) {
   const t = useTranslations("Applications.documents");
+  const { isAdmin } = useIsAdmin();
 
   if (!isAdmin) return null;
 
@@ -252,7 +251,6 @@ function AddDocumentForm({
 
 export function ApplicationDocuments({
   applicationId,
-  isAdmin,
   documents,
   documentConfigs,
   onUpload,
@@ -265,6 +263,7 @@ export function ApplicationDocuments({
   onDeleteCustomDocumentType,
 }: ApplicationDocumentsProps) {
   const t = useTranslations("Applications.documents");
+  const { isAdmin } = useIsAdmin();
   const [isAddingDocument, setIsAddingDocument] = useState(false);
 
   // Extract custom document types from configs with their configId
@@ -341,7 +340,6 @@ export function ApplicationDocuments({
   return (
     <div className="space-y-4">
       <DocumentActions
-        isAdmin={isAdmin}
         isAddingDocument={isAddingDocument}
         setIsAddingDocument={setIsAddingDocument}
       />
@@ -359,7 +357,6 @@ export function ApplicationDocuments({
           document={document}
           uploadedDocument={getUploadedDocument(document.id)}
           visibility={getDocumentVisibility(document)}
-          isAdmin={isAdmin}
           isCustom={isCustomDocument(document.id)}
           customConfigId={getCustomConfigId(document.id)}
           onUpload={onUpload}
@@ -380,7 +377,6 @@ interface DocumentCardProps {
   document: DocumentType;
   uploadedDocument: ApplicationDocumentWithUser | null;
   visibility: DocumentVisibility;
-  isAdmin: boolean;
   isCustom: boolean;
   customConfigId: Id<"applicationDocumentConfig"> | null;
   onUpload: ApplicationDocumentsProps["onUpload"];
@@ -397,7 +393,6 @@ function DocumentCard({
   document,
   uploadedDocument,
   visibility,
-  isAdmin,
   isCustom,
   customConfigId,
   onUpload,
@@ -409,6 +404,7 @@ function DocumentCard({
   onDeleteCustomDocumentType,
 }: DocumentCardProps) {
   const t = useTranslations("Applications.documents");
+  const { isAdmin } = useIsAdmin();
   const [isUploading, setIsUploading] = useState(false);
   const [visibilityPopoverOpen, setVisibilityPopoverOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);

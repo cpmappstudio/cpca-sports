@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -49,7 +50,6 @@ interface TransactionInfo {
 
 interface FeeCardProps {
   fee: Fee;
-  isAdmin?: boolean;
   showCheckbox?: boolean;
   isSelected?: boolean;
   onSelect?: (checked: boolean) => void;
@@ -90,7 +90,6 @@ const getStatusConfig = (t: any) => ({
 
 export function FeeCard({
   fee,
-  isAdmin = false,
   showCheckbox = false,
   isSelected = false,
   onSelect,
@@ -101,6 +100,7 @@ export function FeeCard({
 }: FeeCardProps) {
   const tTransactions = useTranslations("Applications.transactions");
   const t = useTranslations("Applications.payments");
+  const { isAdmin } = useIsAdmin();
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(fee.name);
   const [editedAmountDollars, setEditedAmountDollars] = useState(

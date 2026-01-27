@@ -3,7 +3,6 @@ import {
   UsersIcon,
   CreditCardIcon,
   Cog6ToothIcon,
-  BellIcon,
   ShieldCheckIcon,
   CalendarIcon,
 } from "@heroicons/react/20/solid";
@@ -25,8 +24,7 @@ import type {
 export type SettingsLabelKey =
   | "general"
   | "appearance"
-  | "notifications"
-  | "security"
+  | "profileSecurity"
   | "billing";
 
 // =============================================================================
@@ -146,15 +144,9 @@ const ADMIN_SETTINGS_ITEMS: SettingsNavItem[] = [
     isIndex: false,
   },
   {
-    labelKey: "notifications",
-    icon: BellIcon,
-    href: () => ROUTES.admin.settings.notifications,
-    isIndex: false,
-  },
-  {
-    labelKey: "security",
+    labelKey: "profileSecurity",
     icon: ShieldCheckIcon,
-    href: () => ROUTES.admin.settings.security,
+    href: () => ROUTES.admin.settings.profileSecurity,
     isIndex: false,
   },
   {
@@ -179,15 +171,9 @@ const ORG_SETTINGS_ITEMS: SettingsNavItem[] = [
     isIndex: false,
   },
   {
-    labelKey: "notifications",
-    icon: BellIcon,
-    href: (orgSlug) => ROUTES.org.settings.notifications(orgSlug!),
-    isIndex: false,
-  },
-  {
-    labelKey: "security",
+    labelKey: "profileSecurity",
     icon: ShieldCheckIcon,
-    href: (orgSlug) => ROUTES.org.settings.security(orgSlug!),
+    href: (orgSlug) => ROUTES.org.settings.profileSecurity(orgSlug!),
     isIndex: false,
   },
   {

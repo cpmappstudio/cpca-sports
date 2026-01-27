@@ -12,12 +12,10 @@ interface PageProps {
 export default async function ApplicationsPage({ params }: PageProps) {
   const { tenant } = await params;
   const token = await getAuthToken();
-  const { has, sessionClaims } = await auth();
+  const { has } = await auth();
 
   // Check if user is admin or superadmin using Clerk's official has() method
-  const isSuperAdmin =
-    (sessionClaims?.metadata as { isSuperAdmin?: boolean })?.isSuperAdmin ===
-    true;
+  const isSuperAdmin = has?.({ role: "org:superadmin" }) ?? false;
   const isOrgAdmin = has?.({ role: "org:admin" }) ?? false;
   const isAdmin = isOrgAdmin || isSuperAdmin;
 

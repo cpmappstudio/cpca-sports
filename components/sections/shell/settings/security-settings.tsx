@@ -1,13 +1,30 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { UserProfile, useUser } from "@clerk/nextjs";
+import SettingsItem from "./settings-item";
 
 export function SecuritySettings() {
-  const t = useTranslations("Settings.security");
+  const tProfile = useTranslations("Settings.profile");
+  const tSecurity = useTranslations("Settings.security");
 
   return (
-    <div className="flex flex-col gap-8">
-      <p className="text-muted-foreground">{t("placeholder")}</p>
+    <div className="flex flex-col gap-4">
+      <SettingsItem
+        title={tProfile("title")}
+        description={tProfile("description")}
+      >
+        <UserProfile />
+      </SettingsItem>
+      <SettingsItem
+        title={tSecurity("title")}
+        description={tSecurity("description")}
+      >
+        <UserProfile>
+          <UserProfile.Page label="security" />
+          <UserProfile.Page label="account" />
+        </UserProfile>
+      </SettingsItem>
     </div>
   );
 }

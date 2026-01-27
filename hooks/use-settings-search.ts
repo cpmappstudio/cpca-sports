@@ -32,9 +32,7 @@ export function useSettingsSearch(basePath: string) {
         description = "";
       }
 
-      const parentLabel = t(
-        `nav.${item.labelKey === "general" ? "general" : item.path || "general"}`,
-      );
+      const parentLabel = t(`nav.${item.labelKey}`);
 
       const searchableText = [
         title,

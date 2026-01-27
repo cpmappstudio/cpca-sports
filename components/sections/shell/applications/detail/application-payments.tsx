@@ -12,7 +12,6 @@ import { useTranslations } from "next-intl";
 interface ApplicationPaymentsProps {
   applicationId: Id<"applications">;
   organizationSlug: string;
-  isAdmin: boolean;
   fees: Fee[];
   onAddFee: (args: {
     applicationId: Id<"applications">;
@@ -46,7 +45,6 @@ interface ApplicationPaymentsProps {
 export function ApplicationPayments({
   applicationId,
   organizationSlug,
-  isAdmin,
   fees,
   onAddFee,
   onRemoveFee,
@@ -145,7 +143,6 @@ export function ApplicationPayments({
     <div className="space-y-6">
       <PaymentActions
         applicationId={applicationId}
-        isAdmin={isAdmin}
         selectedFeeIds={Array.from(selectedFeeIds)}
         onAddFee={onAddFee}
         onDeleteSelected={handleDeleteSelected}
@@ -166,7 +163,6 @@ export function ApplicationPayments({
               <div key={fee._id}>
                 <FeeCard
                   fee={fee}
-                  isAdmin={isAdmin}
                   showCheckbox={true}
                   isSelected={selectedFeeIds.has(fee._id)}
                   onSelect={(checked) => handleFeeSelect(fee._id, checked)}
