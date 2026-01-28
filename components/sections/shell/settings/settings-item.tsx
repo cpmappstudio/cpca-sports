@@ -11,14 +11,14 @@ export default function SettingsItem({
   description: string;
   children: React.ReactNode;
 }) {
-    return (
-        <section className="flex flex-col gap-3">
-            <div>
-                <Heading className="m-0">{title}</Heading>
-                <Divider className="mt-2 mb-3" />
-                <Text >{description}</Text>
-            </div>
-            <div>{children}</div>
-        </section>
-    );
+  return (
+    <section className="flex flex-col gap-3">
+      <div>
+        <Heading className="m-0">{title}</Heading>
+        <Divider className="mt-2 mb-3" />
+        <Text>{description}</Text>
+      </div>
+      {children}
+    </section>
+  );
 }

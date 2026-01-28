@@ -78,6 +78,8 @@
 }
 .cl-rootBox.cl-userProfile-root .cl-cardBox {
   /*max-height: 428px;*/
+  width: 100%;
+  max-width: 700px;
   height: auto !important;
 }
 
