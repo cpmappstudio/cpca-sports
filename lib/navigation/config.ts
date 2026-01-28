@@ -138,21 +138,21 @@ const ADMIN_SETTINGS_ITEMS: SettingsNavItem[] = [
     isIndex: true,
   },
   {
-    labelKey: "appearance",
-    icon: Palette,
-    href: () => ROUTES.admin.settings.appearance,
-    isIndex: false,
-  },
-  {
     labelKey: "profileSecurity",
     icon: ShieldCheckIcon,
     href: () => ROUTES.admin.settings.profileSecurity,
     isIndex: false,
   },
+  // {
+  //   labelKey: "billing",
+  //   icon: CreditCardIcon,
+  //   href: () => ROUTES.admin.settings.billing,
+  //   isIndex: false,
+  // },
   {
-    labelKey: "billing",
-    icon: CreditCardIcon,
-    href: () => ROUTES.admin.settings.billing,
+    labelKey: "appearance",
+    icon: Palette,
+    href: () => ROUTES.admin.settings.appearance,
     isIndex: false,
   },
 ];
@@ -165,21 +165,21 @@ const ORG_SETTINGS_ITEMS: SettingsNavItem[] = [
     isIndex: true,
   },
   {
-    labelKey: "appearance",
-    icon: Palette,
-    href: (orgSlug) => ROUTES.org.settings.appearance(orgSlug!),
-    isIndex: false,
-  },
-  {
     labelKey: "profileSecurity",
     icon: ShieldCheckIcon,
     href: (orgSlug) => ROUTES.org.settings.profileSecurity(orgSlug!),
     isIndex: false,
   },
+  // {
+  //   labelKey: "billing",
+  //   icon: CreditCardIcon,
+  //   href: (orgSlug) => ROUTES.org.settings.billing(orgSlug!),
+  //   isIndex: false,
+  // },
   {
-    labelKey: "billing",
-    icon: CreditCardIcon,
-    href: (orgSlug) => ROUTES.org.settings.billing(orgSlug!),
+    labelKey: "appearance",
+    icon: Palette,
+    href: (orgSlug) => ROUTES.org.settings.appearance(orgSlug!),
     isIndex: false,
   },
 ];

@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 import SettingsItem from "./settings-item";
 import { OrganizationProfile } from "@clerk/nextjs";
 import { useIsAdmin } from "@/hooks/use-is-admin";
-import { BackgroundTaskFinishedEvent2Serializer } from "svix/dist/models/backgroundTaskFinishedEvent2";
 
 export function GeneralSettings() {
   const tOrganization = useTranslations("Settings.general.organization");

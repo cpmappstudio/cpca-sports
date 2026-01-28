@@ -1,21 +1,36 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import SettingsItem from "./settings-item";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { SearchIcon } from "lucide-react";
 
 export function BillingSettings() {
-  const t = useTranslations("Settings.billing");
-
   return (
-    <div className="flex flex-col gap-8">
-      <SettingsItem
-        title={t("plan.title")}
-        description={t("plan.description")}
-      >
-        <div className="text-sm text-muted-foreground">
-          {/* TODO: Implement billing plan display */}
-        </div>
-      </SettingsItem>
+    <div className="flex flex-col gap-4">
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>404 - Not Found</EmptyTitle>
+          <EmptyDescription>
+            The page you&apos;re looking for doesn&apos;t exist. Try searching
+            for what you need below.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <EmptyDescription>
+            Need help? <a href="#">Contact support</a>
+          </EmptyDescription>
+        </EmptyContent>
+      </Empty>
     </div>
   );
 }
