@@ -59,7 +59,7 @@ export default async function LocaleLayout({
         <ThemeScript />
       </head>
       <body className={`${fontVariables} antialiased`}>
-        <Toaster position="bottom-right" richColors/>
+        <Toaster position="bottom-right" richColors />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
