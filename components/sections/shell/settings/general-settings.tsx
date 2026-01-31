@@ -20,7 +20,6 @@ export function GeneralSettings() {
         gridTemplateColumns: "unset",
         height: "auto",
         width: "100%",
-        maxWidth: "700px",
       },
     },
   };
