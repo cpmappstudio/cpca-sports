@@ -210,11 +210,11 @@ export function DataTable<TData>({
 
       <div className="overflow-hidden rounded-md border">
         <Table className="bg-card">
-          <TableHeader className=" sticky top-0 z-10 ">
+          <TableHeader className="bg-primary sticky top-0 z-10 ">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead className="text-muted" key={header.id}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -235,7 +235,7 @@ export function DataTable<TData>({
                   data-state={row.getIsSelected() && "selected"}
                   className={
                     onRowClick
-                      ? "cursor-pointer transition-colors hover:bg-accent/40"
+                      ? "cursor-pointer transition-colors"
                       : undefined
                   }
                   onClick={
