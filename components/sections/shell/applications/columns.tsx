@@ -51,14 +51,13 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
   return [
     {
       accessorKey: "_creationTime",
-      header: () => <div className="hidden md:block">{t("date")}</div>,
+      header: t("date"),
       cell: ({ row }) => {
         const date = new Date(row.getValue("_creationTime") as number);
-        return (
-          <div className="hidden md:block">
-            {date.toLocaleDateString("en-EN")}
-          </div>
-        );
+        return date.toLocaleDateString("en-EN");
+      },
+      meta: {
+        className: "hidden md:table-cell",
       },
     },
     {
@@ -94,9 +93,12 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
           "graduationYear",
         );
         const needsI20 = getFormField(formData, "athlete", "needsI20");
-        const hasVisa = needsI20 === "no-citizen" || needsI20 === "no-non-citizen";
+        const hasVisa =
+          needsI20 === "no-citizen" || needsI20 === "no-non-citizen";
         const Icon = getSportIcon(program);
-        const photoStorageId = formData.athlete?.photo as Id<"_storage"> | undefined;
+        const photoStorageId = formData.athlete?.photo as
+          | Id<"_storage">
+          | undefined;
 
         return (
           <div className="flex items-center gap-3">
@@ -122,12 +124,22 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
                   {firstName} {lastName}
                 </div>
                 <div className="md:hidden flex items-center gap-1">
-                  <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-4 w-4"
+                    asChild
+                  >
                     <a href={`tel:${telephone}`}>
                       <Phone className="h-2 w-2" />
                     </a>
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-4 w-4"
+                    asChild
+                  >
                     <a href={`mailto:${email}`}>
                       <Mail className="h-2 w-2" />
                     </a>
@@ -135,52 +147,54 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
                 </div>
               </div>
               <div className="lg:hidden flex flex-col gap-0.5 mt-1">
-              <div className="inline-flex items-center text-xs">
-                <span className="font-mono uppercase">{t("program")}:</span>
-                <Icon className="ml-1 h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground capitalize">
-                  {program}
-                </span>
-              </div>
-              {countryOfBirth && (
                 <div className="inline-flex items-center text-xs">
-                  <span className="font-mono uppercase">{t("birth")}:</span>
-                  <span className="text-muted-foreground ml-1">
-                    {countryOfBirth}
+                  <span className="font-mono uppercase">{t("program")}:</span>
+                  <Icon className="ml-1 h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground capitalize">
+                    {program}
                   </span>
                 </div>
-              )}
-              {countryOfCitizen && (
+                {countryOfBirth && (
+                  <div className="inline-flex items-center text-xs">
+                    <span className="font-mono uppercase">{t("birth")}:</span>
+                    <span className="text-muted-foreground ml-1">
+                      {countryOfBirth}
+                    </span>
+                  </div>
+                )}
+                {countryOfCitizen && (
+                  <div className="inline-flex items-center text-xs">
+                    <span className="font-mono uppercase">
+                      {t("citizenship")}:
+                    </span>
+                    <span className="text-muted-foreground ml-1">
+                      {countryOfCitizen}
+                    </span>
+                  </div>
+                )}
+                {graduationYear && (
+                  <div className="inline-flex items-center text-xs">
+                    <span className="font-mono uppercase">
+                      {t("graduationYear")}:
+                    </span>
+                    <span className="text-muted-foreground ml-1">
+                      {new Date(graduationYear).toLocaleDateString("en-EN")}
+                    </span>
+                  </div>
+                )}
                 <div className="inline-flex items-center text-xs">
                   <span className="font-mono uppercase">
-                    {t("citizenship")}:
+                    {t("visaStatus")}:
                   </span>
-                  <span className="text-muted-foreground ml-1">
-                    {countryOfCitizen}
-                  </span>
-                </div>
-              )}
-              {graduationYear && (
-                <div className="inline-flex items-center text-xs">
-                  <span className="font-mono uppercase">
-                    {t("graduationYear")}:
-                  </span>
-                  <span className="text-muted-foreground ml-1">
-                    {new Date(graduationYear).toLocaleDateString("en-EN")}
+                  <span className="ml-1">
+                    {hasVisa ? (
+                      <CircleCheck className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <CircleX className="h-3 w-3 text-red-600" />
+                    )}
                   </span>
                 </div>
-              )}
-              <div className="inline-flex items-center text-xs">
-                <span className="font-mono uppercase">{t("visaStatus")}:</span>
-                <span className="ml-1">
-                  {hasVisa ? (
-                    <CircleCheck className="h-3 w-3 text-green-600" />
-                  ) : (
-                    <CircleX className="h-3 w-3 text-red-600" />
-                  )}
-                </span>
               </div>
-            </div>
             </div>
           </div>
         );
@@ -188,7 +202,8 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       id: "program",
-      header: () => <div className="hidden lg:block">{t("program")}</div>,
+      header: () => t("program"),
+      meta: { className: "hidden lg:table-cell" },
       accessorFn: (row) => getFormField(row.formData, "athlete", "program"),
       cell: ({ row }) => {
         const program = getFormField(
@@ -198,7 +213,7 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
         );
         const Icon = getSportIcon(program);
         return (
-          <div className="hidden lg:flex lg:items-center lg:gap-2">
+          <div className="flex items-center gap-2">
             <Icon className="h-4 w-4 text-muted-foreground" />
             <span className="capitalize">{program}</span>
           </div>
@@ -215,7 +230,7 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       id: "country",
-      header: () => <div className="hidden lg:block">{t("country")}</div>,
+      header: t("country"),
       accessorFn: (row) =>
         getFormField(row.formData, "athlete", "countryOfBirth"),
       cell: ({ row }) => {
@@ -230,7 +245,7 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
           "countryOfCitizenship",
         );
         return (
-          <div className="hidden lg:flex lg:flex-col">
+          <div className="flex flex-col">
             <div className="inline-flex items-center text-xs">
               <span className="font-mono uppercase">{t("birth")}:</span>
               <span className="text-muted-foreground ml-1">
@@ -247,12 +262,13 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
           </div>
         );
       },
+      meta: {
+        className: "hidden lg:table-cell",
+      },
     },
     {
       id: "graduationYear",
-      header: () => (
-        <div className="hidden lg:block">{t("graduationYear")}</div>
-      ),
+      header: t("graduationYear"),
       accessorFn: (row) =>
         getFormField(row.formData, "athlete", "graduationYear"),
       cell: ({ row }) => {
@@ -262,17 +278,20 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
           "graduationYear",
         );
         return (
-          <div className="hidden lg:block text-sm">
+          <div className="text-sm">
             {graduationYear
               ? new Date(graduationYear).toLocaleDateString("en-EN")
               : "-"}
           </div>
         );
       },
+      meta: {
+        className: "hidden lg:table-cell",
+      },
     },
     {
       id: "visaStatus",
-      header: () => <div className="hidden lg:block">{t("visaStatus")}</div>,
+      header: t("visaStatus"),
       accessorFn: (row) => getFormField(row.formData, "athlete", "needsI20"),
       cell: ({ row }) => {
         const needsI20 = getFormField(
@@ -280,9 +299,10 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
           "athlete",
           "needsI20",
         );
-        const hasVisa = needsI20 === "no-citizen" || needsI20 === "no-non-citizen";
+        const hasVisa =
+          needsI20 === "no-citizen" || needsI20 === "no-non-citizen";
         return (
-          <div className="hidden lg:flex">
+          <div className="flex">
             {hasVisa ? (
               <CircleCheck className="h-4 w-4 text-green-600" />
             ) : (
@@ -291,26 +311,32 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
           </div>
         );
       },
+      meta: {
+        className: "hidden lg:table-cell",
+      },
     },
     {
       id: "contact",
-      header: () => <div className="hidden md:block">{t("contact")}</div>,
+      header: t("contact"),
       cell: ({ row }) => {
         const { formData } = row.original;
         const telephone = getFormField(formData, "parents", "parent1Telephone");
         const email = getFormField(formData, "parents", "parent1Email");
         return (
-          <div className="hidden md:flex md:flex-col font-medium">
-            <div className="hidden md:flex md:flex-row">
+          <div className="flex flex-col font-medium">
+            <div className="flex flex-row">
               <Mail className="h-4 w-4 mr-1" />
               {email}
             </div>
-            <div className="hidden md:flex md:flex-row">
+            <div className="flex flex-row">
               <Phone className="h-4 w-4 mr-1" />
               {telephone}
             </div>
           </div>
         );
+      },
+      meta: {
+        className: "hidden md:table-cell",
       },
     },
     {
@@ -340,14 +366,13 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
   return [
     {
       accessorKey: "_creationTime",
-      header: () => <div className="hidden md:block">{t("date")}</div>,
+      header: t("date"),
       cell: ({ row }) => {
         const date = new Date(row.getValue("_creationTime") as number);
-        return (
-          <div className="hidden md:block">
-            {date.toLocaleDateString("en-EN")}
-          </div>
-        );
+        return date.toLocaleDateString("en-EN");
+      },
+      meta: {
+        className: "hidden md:table-cell",
       },
     },
     {
@@ -383,9 +408,12 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
           "graduationYear",
         );
         const needsI20 = getFormField(formData, "athlete", "needsI20");
-        const hasVisa = needsI20 === "no-citizen" || needsI20 === "no-non-citizen";
+        const hasVisa =
+          needsI20 === "no-citizen" || needsI20 === "no-non-citizen";
         const Icon = getSportIcon(program);
-        const photoStorageId = formData.athlete?.photo as Id<"_storage"> | undefined;
+        const photoStorageId = formData.athlete?.photo as
+          | Id<"_storage">
+          | undefined;
 
         return (
           <div className="flex items-start gap-3">
@@ -411,12 +439,22 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
                   {firstName} {lastName}
                 </div>
                 <div className="md:hidden flex items-center gap-1">
-                  <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-4 w-4"
+                    asChild
+                  >
                     <a href={`tel:${telephone}`}>
                       <Phone className="h-2 w-2" />
                     </a>
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-4 w-4"
+                    asChild
+                  >
                     <a href={`mailto:${email}`}>
                       <Mail className="h-2 w-2" />
                     </a>
@@ -424,52 +462,54 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
                 </div>
               </div>
               <div className="lg:hidden flex flex-col gap-0.5 mt-1">
-              <div className="inline-flex items-center text-xs">
-                <span className="font-mono uppercase">{t("program")}:</span>
-                <Icon className="ml-1 h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground capitalize">
-                  {program}
-                </span>
-              </div>
-              {countryOfBirth && (
                 <div className="inline-flex items-center text-xs">
-                  <span className="font-mono uppercase">{t("birth")}:</span>
-                  <span className="text-muted-foreground ml-1">
-                    {countryOfBirth}
+                  <span className="font-mono uppercase">{t("program")}:</span>
+                  <Icon className="ml-1 h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground capitalize">
+                    {program}
                   </span>
                 </div>
-              )}
-              {countryOfCitizen && (
+                {countryOfBirth && (
+                  <div className="inline-flex items-center text-xs">
+                    <span className="font-mono uppercase">{t("birth")}:</span>
+                    <span className="text-muted-foreground ml-1">
+                      {countryOfBirth}
+                    </span>
+                  </div>
+                )}
+                {countryOfCitizen && (
+                  <div className="inline-flex items-center text-xs">
+                    <span className="font-mono uppercase">
+                      {t("citizenship")}:
+                    </span>
+                    <span className="text-muted-foreground ml-1">
+                      {countryOfCitizen}
+                    </span>
+                  </div>
+                )}
+                {graduationYear && (
+                  <div className="inline-flex items-center text-xs">
+                    <span className="font-mono uppercase">
+                      {t("graduationYear")}:
+                    </span>
+                    <span className="text-muted-foreground ml-1">
+                      {new Date(graduationYear).toLocaleDateString("en-EN")}
+                    </span>
+                  </div>
+                )}
                 <div className="inline-flex items-center text-xs">
                   <span className="font-mono uppercase">
-                    {t("citizenship")}:
+                    {t("visaStatus")}:
                   </span>
-                  <span className="text-muted-foreground ml-1">
-                    {countryOfCitizen}
-                  </span>
-                </div>
-              )}
-              {graduationYear && (
-                <div className="inline-flex items-center text-xs">
-                  <span className="font-mono uppercase">
-                    {t("graduationYear")}:
-                  </span>
-                  <span className="text-muted-foreground ml-1">
-                    {new Date(graduationYear).toLocaleDateString("en-EN")}
+                  <span className="ml-1">
+                    {hasVisa ? (
+                      <CircleCheck className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <CircleX className="h-3 w-3 text-red-600" />
+                    )}
                   </span>
                 </div>
-              )}
-              <div className="inline-flex items-center text-xs">
-                <span className="font-mono uppercase">{t("visaStatus")}:</span>
-                <span className="ml-1">
-                  {hasVisa ? (
-                    <CircleCheck className="h-3 w-3 text-green-600" />
-                  ) : (
-                    <CircleX className="h-3 w-3 text-red-600" />
-                  )}
-                </span>
               </div>
-            </div>
             </div>
           </div>
         );
@@ -477,7 +517,8 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       id: "program",
-      header: () => <div className="hidden lg:block">{t("program")}</div>,
+      header: () => t("program"),
+      meta: { className: "hidden lg:table-cell" },
       accessorFn: (row) => getFormField(row.formData, "athlete", "program"),
       cell: ({ row }) => {
         const program = getFormField(
@@ -487,7 +528,7 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
         );
         const Icon = getSportIcon(program);
         return (
-          <div className="hidden lg:flex lg:items-center lg:gap-2">
+          <div className="flex items-center gap-2">
             <Icon className="h-4 w-4 text-muted-foreground" />
             <span className="capitalize">{program}</span>
           </div>
@@ -504,7 +545,8 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       id: "country",
-      header: () => <div className="hidden lg:block">{t("country")}</div>,
+      header: () => t("country"),
+      meta: { className: "hidden lg:table-cell" },
       accessorFn: (row) =>
         getFormField(row.formData, "athlete", "countryOfBirth"),
       cell: ({ row }) => {
@@ -519,7 +561,7 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
           "countryOfCitizenship",
         );
         return (
-          <div className="hidden lg:flex lg:flex-col">
+          <div className="flex flex-col">
             <div className="inline-flex items-center text-xs">
               <span className="font-mono uppercase">{t("birth")}:</span>
               <span className="text-muted-foreground ml-1">
@@ -539,9 +581,8 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       id: "graduationYear",
-      header: () => (
-        <div className="hidden lg:block">{t("graduationYear")}</div>
-      ),
+      header: () => t("graduationYear"),
+      meta: { className: "hidden lg:table-cell" },
       accessorFn: (row) =>
         getFormField(row.formData, "athlete", "graduationYear"),
       cell: ({ row }) => {
@@ -551,7 +592,7 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
           "graduationYear",
         );
         return (
-          <div className="hidden lg:block text-sm">
+          <div className="text-sm">
             {graduationYear
               ? new Date(graduationYear).toLocaleDateString("en-EN")
               : "-"}
@@ -561,7 +602,8 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       id: "visaStatus",
-      header: () => <div className="hidden lg:block">{t("visaStatus")}</div>,
+      header: () => t("visaStatus"),
+      meta: { className: "hidden lg:table-cell" },
       accessorFn: (row) => getFormField(row.formData, "athlete", "needsI20"),
       cell: ({ row }) => {
         const needsI20 = getFormField(
@@ -569,9 +611,10 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
           "athlete",
           "needsI20",
         );
-        const hasVisa = needsI20 === "no-citizen" || needsI20 === "no-non-citizen";
+        const hasVisa =
+          needsI20 === "no-citizen" || needsI20 === "no-non-citizen";
         return (
-          <div className="hidden lg:flex">
+          <div className="flex">
             {hasVisa ? (
               <CircleCheck className="h-4 w-4 text-green-600" />
             ) : (
@@ -583,18 +626,19 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
     },
     {
       id: "contact",
-      header: () => <div className="hidden md:block">{t("contact")}</div>,
+      header: () => t("contact"),
+      meta: { className: "hidden md:table-cell" },
       cell: ({ row }) => {
         const { formData } = row.original;
         const telephone = getFormField(formData, "parents", "parent1Telephone");
         const email = getFormField(formData, "parents", "parent1Email");
         return (
-          <div className="hidden md:flex md:flex-col font-medium">
-            <div className="hidden md:flex md:flex-row">
+          <div className="flex flex-col font-medium">
+            <div className="flex flex-row">
               <Mail className="h-4 w-4 mr-1" />
               {email}
             </div>
-            <div className="hidden md:flex md:flex-row">
+            <div className="flex flex-row">
               <Phone className="h-4 w-4 mr-1" />
               {telephone}
             </div>

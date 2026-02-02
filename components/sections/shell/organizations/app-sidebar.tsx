@@ -72,8 +72,6 @@ export function SidebarAppSidebar() {
               organizationSwitcherPopoverCard: "bg-popover",
               organizationSwitcherPopoverActionButton: "hover:bg-accent",
               organizationSwitcherPopoverActionButtonText: "text-foreground",
-              avatarBox: "size-12",
-              organizationPreviewAvatarBox: "size-12",
             },
           }}
         />
