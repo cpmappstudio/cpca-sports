@@ -14,11 +14,15 @@ import {
 import { CountryCombobox } from "@/components/ui/country-combobox";
 import type { Application } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
+import { getCountryName } from "@/lib/countries/countries";
 
 interface ApplicationOverviewCardProps {
   application: Application;
   isEditing: boolean;
-  onDataChange?: (data: Record<string, string | number | boolean | null>) => void;
+  onDataChange?: (
+    data: Record<string, string | number | boolean | null>,
+  ) => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
 interface EditableFormData {
@@ -46,11 +50,15 @@ export function ApplicationOverviewCard({
   application,
   isEditing,
   onDataChange,
+  onValidationChange,
 }: ApplicationOverviewCardProps) {
   const t = useTranslations("Applications.detail");
   const tAthlete = useTranslations("preadmission.athlete");
+  const tValidation = useTranslations("Common.validation");
 
   const { formData } = application;
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const firstName = getFormField(formData, "athlete", "firstName");
   const lastName = getFormField(formData, "athlete", "lastName");
@@ -127,7 +135,27 @@ export function ApplicationOverviewCard({
         interestedInBoarding,
       });
     }
-  }, [isEditing, firstName, lastName, email, telephone, birthDate, sex, height, countryOfBirth, countryOfCitizenship, highlightsLink, program, format, gradeEntering, enrollmentYear, graduationYear, programOfInterest, needsI20, interestedInBoarding]);
+  }, [
+    isEditing,
+    firstName,
+    lastName,
+    email,
+    telephone,
+    birthDate,
+    sex,
+    height,
+    countryOfBirth,
+    countryOfCitizenship,
+    highlightsLink,
+    program,
+    format,
+    gradeEntering,
+    enrollmentYear,
+    graduationYear,
+    programOfInterest,
+    needsI20,
+    interestedInBoarding,
+  ]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
@@ -138,10 +166,41 @@ export function ApplicationOverviewCard({
     });
   };
 
+  const validateData = (data: EditableFormData): Record<string, string> => {
+    const newErrors: Record<string, string> = {};
+    
+    // Required fields from DEFAULT_FORM_SECTIONS
+    if (!data.firstName.trim()) newErrors.firstName = tValidation("required");
+    if (!data.lastName.trim()) newErrors.lastName = tValidation("required");
+    if (!data.email.trim()) {
+      newErrors.email = tValidation("required");
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      newErrors.email = tValidation("email");
+    }
+    if (!data.telephone.trim()) newErrors.telephone = tValidation("required");
+    if (!data.birthDate) newErrors.birthDate = tValidation("required");
+    if (!data.sex) newErrors.sex = tValidation("required");
+    if (!data.countryOfBirth) newErrors.countryOfBirth = tValidation("required");
+    if (!data.countryOfCitizenship) newErrors.countryOfCitizenship = tValidation("required");
+    if (!data.format) newErrors.format = tValidation("required");
+    if (!data.program) newErrors.program = tValidation("required");
+    if (!data.enrollmentYear) newErrors.enrollmentYear = tValidation("required");
+    if (!data.graduationYear) newErrors.graduationYear = tValidation("required");
+    if (!data.gradeEntering) newErrors.gradeEntering = tValidation("required");
+    if (!data.needsI20) newErrors.needsI20 = tValidation("required");
+    
+    return newErrors;
+  };
+
   const handleFieldChange = (field: keyof EditableFormData, value: string) => {
     const newData = { ...editData, [field]: value };
     setEditData(newData);
-    
+
+    // Validate and update errors
+    const newErrors = validateData(newData);
+    setErrors(newErrors);
+    onValidationChange?.(Object.keys(newErrors).length === 0);
+
     // Report to parent only athlete section fields (exclude interestedInBoarding which belongs to general)
     const { interestedInBoarding: _, ...athleteData } = newData;
     onDataChange?.(athleteData);
@@ -160,26 +219,39 @@ export function ApplicationOverviewCard({
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
                 {t("fullName")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <div className="flex gap-2">
-                  <Input
-                    value={editData.firstName}
-                    onChange={(e) =>
-                      handleFieldChange("firstName", e.target.value)
-                    }
-                    placeholder={t("firstName")}
-                    className="h-8 text-sm"
-                  />
-                  <Input
-                    value={editData.lastName}
-                    onChange={(e) =>
-                      handleFieldChange("lastName", e.target.value)
-                    }
-                    placeholder={t("lastName")}
-                    className="h-8 text-sm"
-                  />
-                </div>
+                <>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Input
+                        value={editData.firstName}
+                        onChange={(e) =>
+                          handleFieldChange("firstName", e.target.value)
+                        }
+                        placeholder={t("firstName")}
+                        className={`h-8 text-sm ${errors.firstName ? "border-destructive" : ""}`}
+                      />
+                      {errors.firstName && (
+                        <p className="text-xs text-destructive mt-1">{errors.firstName}</p>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        value={editData.lastName}
+                        onChange={(e) =>
+                          handleFieldChange("lastName", e.target.value)
+                        }
+                        placeholder={t("lastName")}
+                        className={`h-8 text-sm ${errors.lastName ? "border-destructive" : ""}`}
+                      />
+                      {errors.lastName && (
+                        <p className="text-xs text-destructive mt-1">{errors.lastName}</p>
+                      )}
+                    </div>
+                  </div>
+                </>
               ) : (
                 <p className="text-sm break-words">
                   {`${firstName} ${lastName}`.trim() || "-"}
@@ -187,72 +259,22 @@ export function ApplicationOverviewCard({
               )}
             </div>
 
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-semibold text-foreground">
-                {t("email")}
-              </p>
-              {isEditing ? (
-                <Input
-                  type="email"
-                  value={editData.email}
-                  onChange={(e) => handleFieldChange("email", e.target.value)}
-                  className="h-8 text-sm"
-                />
-              ) : (
-                <p className="text-sm break-words">{email || "-"}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-semibold text-foreground">
-                {t("phone")}
-              </p>
-              {isEditing ? (
-                <Input
-                  type="tel"
-                  value={editData.telephone}
-                  onChange={(e) =>
-                    handleFieldChange("telephone", e.target.value)
-                  }
-                  className="h-8 text-sm"
-                />
-              ) : (
-                <p className="text-sm break-words">{telephone || "-"}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-semibold text-foreground">
-                {t("birthDate")}
-              </p>
-              {isEditing ? (
-                <Input
-                  type="date"
-                  value={editData.birthDate}
-                  onChange={(e) =>
-                    handleFieldChange("birthDate", e.target.value)
-                  }
-                  className="h-8 text-sm"
-                />
-              ) : (
-                <p className="text-sm break-words">{formatDate(birthDate)}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
                 {t("sex")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <Select
-                  value={editData.sex}
-                  onValueChange={(value) => handleFieldChange("sex", value)}
-                >
-                  <SelectTrigger className="h-8 w-full text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">{tAthlete("sexMale")}</SelectItem>
+                <>
+                  <Select
+                    value={editData.sex}
+                    onValueChange={(value) => handleFieldChange("sex", value)}
+                  >
+                    <SelectTrigger className={`h-8 w-full text-sm ${errors.sex ? "border-destructive" : ""}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">{tAthlete("sexMale")}</SelectItem>
                     <SelectItem value="female">
                       {tAthlete("sexFemale")}
                     </SelectItem>
@@ -261,6 +283,10 @@ export function ApplicationOverviewCard({
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.sex && (
+                  <p className="text-xs text-destructive mt-1">{errors.sex}</p>
+                )}
+                </>
               ) : (
                 <p className="text-sm break-words">
                   {sex === "male"
@@ -271,6 +297,30 @@ export function ApplicationOverviewCard({
                         ? tAthlete("sexOther")
                         : "-"}
                 </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                {t("birthDate")}
+                <span className="text-destructive ml-1">*</span>
+              </p>
+              {isEditing ? (
+                <>
+                  <Input
+                    type="date"
+                    value={editData.birthDate}
+                    onChange={(e) =>
+                      handleFieldChange("birthDate", e.target.value)
+                    }
+                    className={`h-8 text-sm ${errors.birthDate ? "border-destructive" : ""}`}
+                  />
+                  {errors.birthDate && (
+                    <p className="text-xs text-destructive mt-1">{errors.birthDate}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm break-words">{formatDate(birthDate)}</p>
               )}
             </div>
 
@@ -316,36 +366,94 @@ export function ApplicationOverviewCard({
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
                 {t("birthCountry")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <CountryCombobox
-                  value={editData.countryOfBirth}
-                  onValueChange={(value) =>
-                    handleFieldChange("countryOfBirth", value)
-                  }
-                  placeholder={tAthlete("countryOfBirthPlaceholder")}
-                />
+                <>
+                  <CountryCombobox
+                    value={editData.countryOfBirth}
+                    onValueChange={(value) =>
+                      handleFieldChange("countryOfBirth", value)
+                    }
+                    placeholder={tAthlete("countryOfBirthPlaceholder")}
+                  />
+                  {errors.countryOfBirth && (
+                    <p className="text-xs text-destructive mt-1">{errors.countryOfBirth}</p>
+                  )}
+                </>
               ) : (
-                <p className="text-sm break-words">{countryOfBirth || "-"}</p>
+                <p className="text-sm break-words">{getCountryName(countryOfBirth) || "-"}</p>
               )}
             </div>
 
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
-                {t("citizenship")}
+                {tAthlete("countryOfCitizenship")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <CountryCombobox
-                  value={editData.countryOfCitizenship}
-                  onValueChange={(value) =>
-                    handleFieldChange("countryOfCitizenship", value)
-                  }
-                  placeholder={tAthlete("countryOfCitizenshipPlaceholder")}
-                />
+                <>
+                  <CountryCombobox
+                    value={editData.countryOfCitizenship}
+                    onValueChange={(value) =>
+                      handleFieldChange("countryOfCitizenship", value)
+                    }
+                    placeholder={tAthlete("countryOfCitizenshipPlaceholder")}
+                  />
+                  {errors.countryOfCitizenship && (
+                    <p className="text-xs text-destructive mt-1">{errors.countryOfCitizenship}</p>
+                  )}
+                </>
               ) : (
                 <p className="text-sm break-words">
-                  {countryOfCitizenship || "-"}
+                  {getCountryName(countryOfCitizenship) || "-"}
                 </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                {t("email")}
+                <span className="text-destructive ml-1">*</span>
+              </p>
+              {isEditing ? (
+                <>
+                  <Input
+                    type="email"
+                    value={editData.email}
+                    onChange={(e) => handleFieldChange("email", e.target.value)}
+                    className={`h-8 text-sm ${errors.email ? "border-destructive" : ""}`}
+                  />
+                  {errors.email && (
+                    <p className="text-xs text-destructive mt-1">{errors.email}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm break-words">{email || "-"}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                {t("phone")}
+                <span className="text-destructive ml-1">*</span>
+              </p>
+              {isEditing ? (
+                <>
+                  <Input
+                    type="tel"
+                    value={editData.telephone}
+                    onChange={(e) =>
+                      handleFieldChange("telephone", e.target.value)
+                    }
+                    className={`h-8 text-sm ${errors.telephone ? "border-destructive" : ""}`}
+                  />
+                  {errors.telephone && (
+                    <p className="text-xs text-destructive mt-1">{errors.telephone}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm break-words">{telephone || "-"}</p>
               )}
             </div>
 
@@ -385,49 +493,92 @@ export function ApplicationOverviewCard({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
-                {t("program")}
+                {t("format")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <Select
-                  value={editData.program}
-                  onValueChange={(value) => handleFieldChange("program", value)}
-                >
-                  <SelectTrigger className="h-8 text-sm w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="baseball">
-                      {tAthlete("programBaseball")}
-                    </SelectItem>
-                    <SelectItem value="basketball">
-                      {tAthlete("programBasketball")}
-                    </SelectItem>
-                    <SelectItem value="soccer">
-                      {tAthlete("programSoccer")}
-                    </SelectItem>
-                    <SelectItem value="volleyball">
-                      {tAthlete("programVolleyball")}
-                    </SelectItem>
-                    <SelectItem value="hr14_baseball">
-                      {tAthlete("programHR14Baseball")}
-                    </SelectItem>
-                    <SelectItem value="golf">
-                      {tAthlete("programGolf")}
-                    </SelectItem>
-                    <SelectItem value="tennis">
-                      {tAthlete("programTennis")}
-                    </SelectItem>
-                    <SelectItem value="softball">
-                      {tAthlete("programSoftball")}
-                    </SelectItem>
-                    <SelectItem value="volleyball-club">
-                      {tAthlete("programVolleyballClub")}
-                    </SelectItem>
-                    <SelectItem value="pg-basketball">
-                      {tAthlete("programPGBasketball")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <>
+                  <Select
+                    value={editData.format}
+                    onValueChange={(value) => handleFieldChange("format", value)}
+                  >
+                    <SelectTrigger className={`h-8 text-sm w-full ${errors.format ? "border-destructive" : ""}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="american">
+                        {tAthlete("formatAmerican")}
+                      </SelectItem>
+                      <SelectItem value="international">
+                        {tAthlete("formatInternational")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.format && (
+                    <p className="text-xs text-destructive mt-1">{errors.format}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm capitalize">
+                  {format === "american"
+                    ? tAthlete("formatAmerican")
+                    : format === "international"
+                      ? tAthlete("formatInternational")
+                      : "-"}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                {t("program")}
+                <span className="text-destructive ml-1">*</span>
+              </p>
+              {isEditing ? (
+                <>
+                  <Select
+                    value={editData.program}
+                    onValueChange={(value) => handleFieldChange("program", value)}
+                  >
+                    <SelectTrigger className={`h-8 text-sm w-full ${errors.program ? "border-destructive" : ""}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="baseball">
+                        {tAthlete("programBaseball")}
+                      </SelectItem>
+                      <SelectItem value="basketball">
+                        {tAthlete("programBasketball")}
+                      </SelectItem>
+                      <SelectItem value="soccer">
+                        {tAthlete("programSoccer")}
+                      </SelectItem>
+                      <SelectItem value="volleyball">
+                        {tAthlete("programVolleyball")}
+                      </SelectItem>
+                      <SelectItem value="hr14_baseball">
+                        {tAthlete("programHR14Baseball")}
+                      </SelectItem>
+                      <SelectItem value="golf">
+                        {tAthlete("programGolf")}
+                      </SelectItem>
+                      <SelectItem value="tennis">
+                        {tAthlete("programTennis")}
+                      </SelectItem>
+                      <SelectItem value="softball">
+                        {tAthlete("programSoftball")}
+                      </SelectItem>
+                      <SelectItem value="volleyball-club">
+                        {tAthlete("programVolleyballClub")}
+                      </SelectItem>
+                      <SelectItem value="pg-basketball">
+                        {tAthlete("programPGBasketball")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.program && (
+                    <p className="text-xs text-destructive mt-1">{errors.program}</p>
+                  )}
+                </>
               ) : (
                 <p className="text-sm capitalize">
                   {program
@@ -441,32 +592,52 @@ export function ApplicationOverviewCard({
 
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
-                {t("format")}
+                {t("enrollmentYear")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <Select
-                  value={editData.format}
-                  onValueChange={(value) => handleFieldChange("format", value)}
-                >
-                  <SelectTrigger className="h-8 text-sm w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="american">
-                      {tAthlete("formatAmerican")}
-                    </SelectItem>
-                    <SelectItem value="international">
-                      {tAthlete("formatInternational")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <>
+                  <Input
+                    type="date"
+                    value={editData.enrollmentYear}
+                    onChange={(e) =>
+                      handleFieldChange("enrollmentYear", e.target.value)
+                    }
+                    className={`h-8 text-sm w-full ${errors.enrollmentYear ? "border-destructive" : ""}`}
+                  />
+                  {errors.enrollmentYear && (
+                    <p className="text-xs text-destructive mt-1">{errors.enrollmentYear}</p>
+                  )}
+                </>
               ) : (
                 <p className="text-sm capitalize">
-                  {format === "american"
-                    ? tAthlete("formatAmerican")
-                    : format === "international"
-                      ? tAthlete("formatInternational")
-                      : "-"}
+                  {formatDate(enrollmentYear)}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                {t("graduationYear")}
+                <span className="text-destructive ml-1">*</span>
+              </p>
+              {isEditing ? (
+                <>
+                  <Input
+                    type="date"
+                    value={editData.graduationYear}
+                    onChange={(e) =>
+                      handleFieldChange("graduationYear", e.target.value)
+                    }
+                    className={`h-8 text-sm w-full ${errors.graduationYear ? "border-destructive" : ""}`}
+                  />
+                  {errors.graduationYear && (
+                    <p className="text-xs text-destructive mt-1">{errors.graduationYear}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm capitalize">
+                  {formatDate(graduationYear)}
                 </p>
               )}
             </div>
@@ -514,15 +685,17 @@ export function ApplicationOverviewCard({
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
                 {t("gradeEntering")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <Select
-                  value={editData.gradeEntering}
-                  onValueChange={(value) =>
-                    handleFieldChange("gradeEntering", value)
-                  }
+                <>
+                  <Select
+                    value={editData.gradeEntering}
+                    onValueChange={(value) =>
+                      handleFieldChange("gradeEntering", value)
+                    }
                 >
-                  <SelectTrigger className="h-8 text-sm w-full">
+                  <SelectTrigger className={`h-8 text-sm w-full ${errors.gradeEntering ? "border-destructive" : ""}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -543,6 +716,10 @@ export function ApplicationOverviewCard({
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.gradeEntering && (
+                  <p className="text-xs text-destructive mt-1">{errors.gradeEntering}</p>
+                )}
+                </>
               ) : (
                 <p className="text-sm capitalize">
                   {gradeEntering
@@ -558,56 +735,20 @@ export function ApplicationOverviewCard({
 
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
-                {t("enrollmentYear")}
-              </p>
-              {isEditing ? (
-                <Input
-                  type="date"
-                  value={editData.enrollmentYear}
-                  onChange={(e) =>
-                    handleFieldChange("enrollmentYear", e.target.value)
-                  }
-                  className="h-8 text-sm w-full"
-                />
-              ) : (
-                <p className="text-sm capitalize">
-                  {formatDate(enrollmentYear)}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-semibold text-foreground">
-                {t("graduationYear")}
-              </p>
-              {isEditing ? (
-                <Input
-                  type="date"
-                  value={editData.graduationYear}
-                  onChange={(e) =>
-                    handleFieldChange("graduationYear", e.target.value)
-                  }
-                  className="h-8 text-sm w-full"
-                />
-              ) : (
-                <p className="text-sm capitalize">
-                  {formatDate(graduationYear)}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-semibold text-foreground">
                 {tAthlete("needsI20")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <Select
-                  value={editData.needsI20}
-                  onValueChange={(value) =>
-                    handleFieldChange("needsI20", value)
-                  }
-                >
-                  <SelectTrigger className="h-8 text-sm w-full">
+                <>
+                  <Select
+                    value={editData.needsI20}
+                    onValueChange={(value) =>
+                      handleFieldChange("needsI20", value)
+                    }
+                  >
+                    <SelectTrigger
+                      className={`h-8 text-sm w-full ${errors.needsI20 ? "border-destructive" : ""}`}
+                    >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -625,6 +766,12 @@ export function ApplicationOverviewCard({
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.needsI20 && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.needsI20}
+                  </p>
+                )}
+                </>
               ) : (
                 <p className="text-sm capitalize">
                   {needsI20
@@ -638,32 +785,6 @@ export function ApplicationOverviewCard({
                             ? tAthlete("i20YesTransfer")
                             : "-"
                     : "-"}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-semibold text-foreground">
-                {t("boarding")}
-              </p>
-              {isEditing ? (
-                <Select
-                  value={editData.interestedInBoarding}
-                  onValueChange={(value) =>
-                    handleFieldChange("interestedInBoarding", value)
-                  }
-                >
-                  <SelectTrigger className="h-8 text-sm w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">{t("yes")}</SelectItem>
-                    <SelectItem value="no">{t("no")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-sm capitalize">
-                  {interestedInBoarding === "yes" ? t("yes") : t("no")}
                 </p>
               )}
             </div>

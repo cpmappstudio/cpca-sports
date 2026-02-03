@@ -18,6 +18,7 @@ interface ApplicationParentsCardProps {
   application: Application;
   isEditing: boolean;
   onDataChange?: (data: Record<string, string | number | boolean | null>) => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
 interface EditableFormData {
@@ -37,11 +38,15 @@ export function ApplicationParentsCard({
   application,
   isEditing,
   onDataChange,
+  onValidationChange,
 }: ApplicationParentsCardProps) {
   const t = useTranslations("Applications.detail");
   const tParents = useTranslations("preadmission.parents");
+  const tValidation = useTranslations("Common.validation");
 
   const { formData } = application;
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const parent1FirstName = getFormField(
     formData,
@@ -105,12 +110,40 @@ export function ApplicationParentsCard({
         parent2Email,
         parent2Telephone,
       });
+      setErrors({});
     }
   }, [isEditing, parent1FirstName, parent1LastName, parent1Relationship, parent1Email, parent1Telephone, parent2FirstName, parent2LastName, parent2Relationship, parent2Email, parent2Telephone]);
+
+  const validateData = (data: EditableFormData): Record<string, string> => {
+    const newErrors: Record<string, string> = {};
+
+    if (!data.parent1FirstName.trim()) {
+      newErrors.parent1FirstName = tValidation("required");
+    }
+    if (!data.parent1LastName.trim()) {
+      newErrors.parent1LastName = tValidation("required");
+    }
+    if (!data.parent1Relationship.trim()) {
+      newErrors.parent1Relationship = tValidation("required");
+    }
+    if (!data.parent1Email.trim()) {
+      newErrors.parent1Email = tValidation("required");
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.parent1Email)) {
+      newErrors.parent1Email = tValidation("email");
+    }
+    if (!data.parent1Telephone.trim()) {
+      newErrors.parent1Telephone = tValidation("required");
+    }
+
+    return newErrors;
+  };
 
   const handleFieldChange = (field: keyof EditableFormData, value: string) => {
     const newData = { ...editData, [field]: value };
     setEditData(newData);
+    const newErrors = validateData(newData);
+    setErrors(newErrors);
+    onValidationChange?.(Object.keys(newErrors).length === 0);
     onDataChange?.(newData);
   };
 
@@ -142,26 +175,34 @@ export function ApplicationParentsCard({
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
                 {t("fullName")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <div className="flex gap-2">
-                  <Input
-                    value={editData.parent1FirstName}
-                    onChange={(e) =>
-                      handleFieldChange("parent1FirstName", e.target.value)
-                    }
-                    placeholder={tParents("firstNamePlaceholder")}
-                    className="h-8 text-sm"
-                  />
-                  <Input
-                    value={editData.parent1LastName}
-                    onChange={(e) =>
-                      handleFieldChange("parent1LastName", e.target.value)
-                    }
-                    placeholder={tParents("lastNamePlaceholder")}
-                    className="h-8 text-sm"
-                  />
-                </div>
+                <>
+                  <div className="flex gap-2">
+                    <Input
+                      value={editData.parent1FirstName}
+                      onChange={(e) =>
+                        handleFieldChange("parent1FirstName", e.target.value)
+                      }
+                      placeholder={tParents("firstNamePlaceholder")}
+                      className={`h-8 text-sm ${errors.parent1FirstName ? "border-destructive" : ""}`}
+                    />
+                    <Input
+                      value={editData.parent1LastName}
+                      onChange={(e) =>
+                        handleFieldChange("parent1LastName", e.target.value)
+                      }
+                      placeholder={tParents("lastNamePlaceholder")}
+                      className={`h-8 text-sm ${errors.parent1LastName ? "border-destructive" : ""}`}
+                    />
+                  </div>
+                  {(errors.parent1FirstName || errors.parent1LastName) && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.parent1FirstName || errors.parent1LastName}
+                    </p>
+                  )}
+                </>
               ) : (
                 <p className="text-sm break-words">
                   {`${parent1FirstName} ${parent1LastName}`.trim() || "-"}
@@ -172,26 +213,36 @@ export function ApplicationParentsCard({
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
                 {t("relationship")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <Select
-                  value={editData.parent1Relationship}
-                  onValueChange={(value) =>
-                    handleFieldChange("parent1Relationship", value)
-                  }
-                >
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="father">
-                      {tParents("relationshipFather")}
-                    </SelectItem>
-                    <SelectItem value="mother">
-                      {tParents("relationshipMother")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <>
+                  <Select
+                    value={editData.parent1Relationship}
+                    onValueChange={(value) =>
+                      handleFieldChange("parent1Relationship", value)
+                    }
+                  >
+                    <SelectTrigger
+                      className={`w-full h-8 text-sm ${errors.parent1Relationship ? "border-destructive" : ""}`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="father">
+                        {tParents("relationshipFather")}
+                      </SelectItem>
+                      <SelectItem value="mother">
+                        {tParents("relationshipMother")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.parent1Relationship && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.parent1Relationship}
+                    </p>
+                  )}
+                </>
               ) : (
                 <p className="text-sm break-words">
                   {getRelationshipLabel(parent1Relationship)}
@@ -202,17 +253,25 @@ export function ApplicationParentsCard({
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
                 {t("email")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <Input
-                  type="email"
-                  value={editData.parent1Email}
-                  onChange={(e) =>
-                    handleFieldChange("parent1Email", e.target.value)
-                  }
-                  placeholder={tParents("emailPlaceholder")}
-                  className="h-8 text-sm"
-                />
+                <>
+                  <Input
+                    type="email"
+                    value={editData.parent1Email}
+                    onChange={(e) =>
+                      handleFieldChange("parent1Email", e.target.value)
+                    }
+                    placeholder={tParents("emailPlaceholder")}
+                    className={`h-8 text-sm ${errors.parent1Email ? "border-destructive" : ""}`}
+                  />
+                  {errors.parent1Email && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.parent1Email}
+                    </p>
+                  )}
+                </>
               ) : (
                 <p className="text-sm break-words">{parent1Email || "-"}</p>
               )}
@@ -221,17 +280,25 @@ export function ApplicationParentsCard({
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
                 {t("phone")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <Input
-                  type="tel"
-                  value={editData.parent1Telephone}
-                  onChange={(e) =>
-                    handleFieldChange("parent1Telephone", e.target.value)
-                  }
-                  placeholder={tParents("telephonePlaceholder")}
-                  className="h-8 text-sm"
-                />
+                <>
+                  <Input
+                    type="tel"
+                    value={editData.parent1Telephone}
+                    onChange={(e) =>
+                      handleFieldChange("parent1Telephone", e.target.value)
+                    }
+                    placeholder={tParents("telephonePlaceholder")}
+                    className={`h-8 text-sm ${errors.parent1Telephone ? "border-destructive" : ""}`}
+                  />
+                  {errors.parent1Telephone && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.parent1Telephone}
+                    </p>
+                  )}
+                </>
               ) : (
                 <p className="text-sm break-words">{parent1Telephone || "-"}</p>
               )}
@@ -287,7 +354,7 @@ export function ApplicationParentsCard({
                     handleFieldChange("parent2Relationship", value)
                   }
                 >
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className="w-full h-8 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

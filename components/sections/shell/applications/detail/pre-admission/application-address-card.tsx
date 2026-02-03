@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { CountryCombobox } from "@/components/ui/country-combobox";
 import type { Application } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
+import { getCountryName } from "@/lib/countries/countries";
 
 interface ApplicationAddressCardProps {
   application: Application;
   isEditing: boolean;
   onDataChange?: (data: Record<string, string | number | boolean | null>) => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
 interface EditableFormData {
@@ -26,11 +28,15 @@ export function ApplicationAddressCard({
   application,
   isEditing,
   onDataChange,
+  onValidationChange,
 }: ApplicationAddressCardProps) {
   const t = useTranslations("Applications.detail");
   const tAddress = useTranslations("preadmission.address");
+  const tValidation = useTranslations("Common.validation");
 
   const { formData } = application;
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const country = getFormField(formData, "address", "country");
   const state = getFormField(formData, "address", "state");
@@ -58,9 +64,27 @@ export function ApplicationAddressCard({
     }
   }, [isEditing, country, state, city, streetAddress, zipCode]);
 
+  const validateData = (data: EditableFormData): Record<string, string> => {
+    const newErrors: Record<string, string> = {};
+    
+    // All address fields are required according to DEFAULT_FORM_SECTIONS
+    if (!data.country) newErrors.country = tValidation("required");
+    if (!data.state.trim()) newErrors.state = tValidation("required");
+    if (!data.city.trim()) newErrors.city = tValidation("required");
+    if (!data.streetAddress.trim()) newErrors.streetAddress = tValidation("required");
+    if (!data.zipCode.trim()) newErrors.zipCode = tValidation("required");
+    
+    return newErrors;
+  };
+
   const handleFieldChange = (field: keyof EditableFormData, value: string) => {
     const newData = { ...editData, [field]: value };
     setEditData(newData);
+    
+    const newErrors = validateData(newData);
+    setErrors(newErrors);
+    onValidationChange?.(Object.keys(newErrors).length === 0);
+    
     onDataChange?.(newData);
   };
 
@@ -76,43 +100,63 @@ export function ApplicationAddressCard({
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-foreground">
               {t("country")}
+              <span className="text-destructive ml-1">*</span>
             </p>
             {isEditing ? (
-              <CountryCombobox
-                value={editData.country}
-                onValueChange={(value) => handleFieldChange("country", value)}
-                placeholder={tAddress("countryPlaceholder")}
-              />
+              <>
+                <CountryCombobox
+                  value={editData.country}
+                  onValueChange={(value) => handleFieldChange("country", value)}
+                  placeholder={tAddress("countryPlaceholder")}
+                />
+                {errors.country && (
+                  <p className="text-xs text-destructive mt-1">{errors.country}</p>
+                )}
+              </>
             ) : (
-              <p className="text-sm">{country || "-"}</p>
+              <p className="text-sm">{getCountryName(country) || "-"}</p>
             )}
           </div>
 
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-foreground">
               {t("state")}
+              <span className="text-destructive ml-1">*</span>
             </p>
             {isEditing ? (
-              <Input
-                value={editData.state}
-                onChange={(e) => handleFieldChange("state", e.target.value)}
-                placeholder={tAddress("statePlaceholder")}
-                className="h-8 text-sm"
-              />
+              <>
+                <Input
+                  value={editData.state}
+                  onChange={(e) => handleFieldChange("state", e.target.value)}
+                  placeholder={tAddress("statePlaceholder")}
+                  className={`h-8 text-sm ${errors.state ? "border-destructive" : ""}`}
+                />
+                {errors.state && (
+                  <p className="text-xs text-destructive mt-1">{errors.state}</p>
+                )}
+              </>
             ) : (
               <p className="text-sm">{state || "-"}</p>
             )}
           </div>
 
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-semibold text-foreground">{t("city")}</p>
+            <p className="text-sm font-semibold text-foreground">
+              {t("city")}
+              <span className="text-destructive ml-1">*</span>
+            </p>
             {isEditing ? (
-              <Input
-                value={editData.city}
-                onChange={(e) => handleFieldChange("city", e.target.value)}
-                placeholder={tAddress("cityPlaceholder")}
-                className="h-8 text-sm"
-              />
+              <>
+                <Input
+                  value={editData.city}
+                  onChange={(e) => handleFieldChange("city", e.target.value)}
+                  placeholder={tAddress("cityPlaceholder")}
+                  className={`h-8 text-sm ${errors.city ? "border-destructive" : ""}`}
+                />
+                {errors.city && (
+                  <p className="text-xs text-destructive mt-1">{errors.city}</p>
+                )}
+              </>
             ) : (
               <p className="text-sm">{city || "-"}</p>
             )}
@@ -121,16 +165,22 @@ export function ApplicationAddressCard({
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-foreground">
               {t("streetAddress")}
+              <span className="text-destructive ml-1">*</span>
             </p>
             {isEditing ? (
-              <Input
-                value={editData.streetAddress}
-                onChange={(e) =>
-                  handleFieldChange("streetAddress", e.target.value)
-                }
-                placeholder={tAddress("streetAddressPlaceholder")}
-                className="h-8 text-sm"
-              />
+              <>
+                <Input
+                  value={editData.streetAddress}
+                  onChange={(e) =>
+                    handleFieldChange("streetAddress", e.target.value)
+                  }
+                  placeholder={tAddress("streetAddressPlaceholder")}
+                  className={`h-8 text-sm ${errors.streetAddress ? "border-destructive" : ""}`}
+                />
+                {errors.streetAddress && (
+                  <p className="text-xs text-destructive mt-1">{errors.streetAddress}</p>
+                )}
+              </>
             ) : (
               <p className="text-sm">{streetAddress || "-"}</p>
             )}
@@ -139,14 +189,20 @@ export function ApplicationAddressCard({
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-foreground">
               {t("zipCode")}
+              <span className="text-destructive ml-1">*</span>
             </p>
             {isEditing ? (
-              <Input
-                value={editData.zipCode}
-                onChange={(e) => handleFieldChange("zipCode", e.target.value)}
-                placeholder={tAddress("zipCodePlaceholder")}
-                className="h-8 text-sm"
-              />
+              <>
+                <Input
+                  value={editData.zipCode}
+                  onChange={(e) => handleFieldChange("zipCode", e.target.value)}
+                  placeholder={tAddress("zipCodePlaceholder")}
+                  className={`h-8 text-sm ${errors.zipCode ? "border-destructive" : ""}`}
+                />
+                {errors.zipCode && (
+                  <p className="text-xs text-destructive mt-1">{errors.zipCode}</p>
+                )}
+              </>
             ) : (
               <p className="text-sm">{zipCode || "-"}</p>
             )}

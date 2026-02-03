@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import type { Application, ApplicationStatus } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
+import { getCountryName } from "@/lib/countries/countries";
 import { ApplicationPhoto } from "./pre-admission/application-photo";
 import { Id } from "@/convex/_generated/dataModel";
 import {
@@ -410,7 +411,7 @@ export function ApplicationHeader({
                   {t("birthCountry")}:
                 </span>
                 <span className="text-muted-foreground">
-                  {countryOfBirth || "-"}
+                  {getCountryName(countryOfBirth) || "-"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -419,7 +420,7 @@ export function ApplicationHeader({
                   {t("citizenship")}:
                 </span>
                 <span className="text-muted-foreground">
-                  {countryOfCitizenship || "-"}
+                  {getCountryName(countryOfCitizenship) || "-"}
                 </span>
               </div>
               <hr />

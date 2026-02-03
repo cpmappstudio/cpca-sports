@@ -16,13 +16,16 @@ import { type Application, getFormField } from "@/lib/applications/types";
 interface ApplicationGeneralCardProps {
   application: Application;
   isEditing: boolean;
-  onDataChange?: (data: Record<string, string | number | boolean | null>) => void;
+  onDataChange?: (
+    data: Record<string, string | number | boolean | null>,
+  ) => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
 interface EditableFormData {
   personSubmitting: string;
   howDidYouHear: string;
-  needsI20: string;
+  interestedInBoarding: string;
   message: string;
 }
 
@@ -30,9 +33,13 @@ export function ApplicationGeneralCard({
   application,
   isEditing,
   onDataChange,
+  onValidationChange,
 }: ApplicationGeneralCardProps) {
   const t = useTranslations("Applications.detail");
   const tGeneral = useTranslations("preadmission.general");
+  const tValidation = useTranslations("Common.validation");
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString("en-US", {
@@ -54,13 +61,17 @@ export function ApplicationGeneralCard({
     "general",
     "howDidYouHear",
   );
-  const needsI20 = getFormField(application.formData, "general", "needsI20");
+  const interestedInBoarding = getFormField(
+    application.formData,
+    "general",
+    "interestedInBoarding",
+  );
   const message = getFormField(application.formData, "general", "message");
 
   const [editData, setEditData] = useState<EditableFormData>({
     personSubmitting,
     howDidYouHear,
-    needsI20,
+    interestedInBoarding,
     message,
   });
 
@@ -69,15 +80,42 @@ export function ApplicationGeneralCard({
       setEditData({
         personSubmitting,
         howDidYouHear,
-        needsI20,
+        interestedInBoarding,
         message,
       });
+      setErrors({});
     }
-  }, [isEditing, personSubmitting, howDidYouHear, needsI20, message]);
+  }, [
+    isEditing,
+    personSubmitting,
+    howDidYouHear,
+    interestedInBoarding,
+    message,
+  ]);
+
+  const validateData = (data: EditableFormData): Record<string, string> => {
+    const newErrors: Record<string, string> = {};
+
+    // Required fields from DEFAULT_FORM_SECTIONS: additional section
+    if (!data.personSubmitting.trim()) {
+      newErrors.personSubmitting = tValidation("required");
+    }
+    if (!data.howDidYouHear.trim()) {
+      newErrors.howDidYouHear = tValidation("required");
+    }
+    if (!data.interestedInBoarding.trim()) {
+      newErrors.interestedInBoarding = tValidation("required");
+    }
+
+    return newErrors;
+  };
 
   const handleFieldChange = (field: keyof EditableFormData, value: string) => {
     const newData = { ...editData, [field]: value };
     setEditData(newData);
+    const newErrors = validateData(newData);
+    setErrors(newErrors);
+    onValidationChange?.(Object.keys(newErrors).length === 0);
     onDataChange?.(newData);
   };
 
@@ -121,78 +159,106 @@ export function ApplicationGeneralCard({
         <CardTitle className="text-lg">{t("additionalInfo")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold text-foreground">
+              {t("submittedAt")}
+            </p>
+            <p className="text-sm">{formatDate(application._creationTime)}</p>
+          </div>
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-foreground">
               {t("submittedBy")}
+              <span className="text-destructive ml-1">*</span>
             </p>
             {isEditing ? (
-              <Select
-                value={editData.personSubmitting}
-                onValueChange={(value) =>
-                  handleFieldChange("personSubmitting", value)
-                }
-              >
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="self">
-                    {tGeneral("personSubmittingSelf")}
-                  </SelectItem>
-                  <SelectItem value="parent">
-                    {tGeneral("personSubmittingParent")}
-                  </SelectItem>
-                  <SelectItem value="guidance">
-                    {tGeneral("personSubmittingGuidance")}
-                  </SelectItem>
-                  <SelectItem value="administration">
-                    {tGeneral("personSubmittingAdministration")}
-                  </SelectItem>
-                  <SelectItem value="coach">
-                    {tGeneral("personSubmittingCoach")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <>
+                <Select
+                  value={editData.personSubmitting}
+                  onValueChange={(value) =>
+                    handleFieldChange("personSubmitting", value)
+                  }
+                >
+                  <SelectTrigger
+                    className={`w-full h-8 text-sm ${errors.personSubmitting ? "border-destructive" : ""}`}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="self">
+                      {tGeneral("personSubmittingSelf")}
+                    </SelectItem>
+                    <SelectItem value="parent">
+                      {tGeneral("personSubmittingParent")}
+                    </SelectItem>
+                    <SelectItem value="guidance">
+                      {tGeneral("personSubmittingGuidance")}
+                    </SelectItem>
+                    <SelectItem value="administration">
+                      {tGeneral("personSubmittingAdministration")}
+                    </SelectItem>
+                    <SelectItem value="coach">
+                      {tGeneral("personSubmittingCoach")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.personSubmitting && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.personSubmitting}
+                  </p>
+                )}
+              </>
             ) : (
               <p className="text-sm capitalize">
                 {getPersonSubmittingLabel(personSubmitting)}
               </p>
             )}
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 gap-4">
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-foreground">
               {t("howDidYouHear")}
+              <span className="text-destructive ml-1">*</span>
             </p>
             {isEditing ? (
-              <Select
-                value={editData.howDidYouHear}
-                onValueChange={(value) =>
-                  handleFieldChange("howDidYouHear", value)
-                }
-              >
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="socialMedia">
-                    {tGeneral("howDidYouHearSocialMedia")}
-                  </SelectItem>
-                  <SelectItem value="friend">
-                    {tGeneral("howDidYouHearFriend")}
-                  </SelectItem>
-                  <SelectItem value="coach">
-                    {tGeneral("howDidYouHearCoach")}
-                  </SelectItem>
-                  <SelectItem value="teacher">
-                    {tGeneral("howDidYouHearTeacher")}
-                  </SelectItem>
-                  <SelectItem value="other">
-                    {tGeneral("howDidYouHearOther")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <>
+                <Select
+                  value={editData.howDidYouHear}
+                  onValueChange={(value) =>
+                    handleFieldChange("howDidYouHear", value)
+                  }
+                >
+                  <SelectTrigger
+                    className={`w-full h-8 text-sm ${errors.howDidYouHear ? "border-destructive" : ""}`}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="socialMedia">
+                      {tGeneral("howDidYouHearSocialMedia")}
+                    </SelectItem>
+                    <SelectItem value="friend">
+                      {tGeneral("howDidYouHearFriend")}
+                    </SelectItem>
+                    <SelectItem value="coach">
+                      {tGeneral("howDidYouHearCoach")}
+                    </SelectItem>
+                    <SelectItem value="teacher">
+                      {tGeneral("howDidYouHearTeacher")}
+                    </SelectItem>
+                    <SelectItem value="other">
+                      {tGeneral("howDidYouHearOther")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.howDidYouHear && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.howDidYouHear}
+                  </p>
+                )}
+              </>
             ) : (
               <p className="text-sm capitalize">
                 {getHowDidYouHearLabel(howDidYouHear)}
@@ -202,33 +268,46 @@ export function ApplicationGeneralCard({
 
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-foreground">
-              {t("needsI20")}
+              {tGeneral("interestedInBoarding")}
+              <span className="text-destructive ml-1">*</span>
             </p>
             {isEditing ? (
-              <Select
-                value={editData.needsI20}
-                onValueChange={(value) => handleFieldChange("needsI20", value)}
-              >
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">{t("yes")}</SelectItem>
-                  <SelectItem value="no">{t("no")}</SelectItem>
-                </SelectContent>
-              </Select>
+              <>
+                <Select
+                  value={editData.interestedInBoarding}
+                  onValueChange={(value) =>
+                    handleFieldChange("interestedInBoarding", value)
+                  }
+                >
+                  <SelectTrigger
+                    className={`w-full h-8 text-sm ${errors.interestedInBoarding ? "border-destructive" : ""}`}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">
+                      {tGeneral("interestedInBoardingYes")}
+                    </SelectItem>
+                    <SelectItem value="no">
+                      {tGeneral("interestedInBoardingNo")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.interestedInBoarding && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.interestedInBoarding}
+                  </p>
+                )}
+              </>
             ) : (
               <p className="text-sm capitalize">
-                {needsI20 === "yes" ? t("yes") : t("no")}
+                {interestedInBoarding === "yes"
+                  ? tGeneral("interestedInBoardingYes")
+                  : interestedInBoarding === "no"
+                    ? tGeneral("interestedInBoardingNo")
+                    : "-"}
               </p>
             )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-semibold text-foreground">
-              {t("submittedAt")}
-            </p>
-            <p className="text-sm">{formatDate(application._creationTime)}</p>
           </div>
         </div>
 

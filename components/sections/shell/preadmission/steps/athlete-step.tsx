@@ -260,7 +260,9 @@ export function AthleteStep({ formData, onChange, errors }: AthleteStepProps) {
           </Field>
 
           <Field>
-            <FieldLabel>{t("telephone")}</FieldLabel>
+            <FieldLabel>
+              {t("telephone")} <span className="text-destructive">*</span>
+            </FieldLabel>
             <Input
               type="tel"
               value={formData.telephone}
@@ -315,7 +317,10 @@ export function AthleteStep({ formData, onChange, errors }: AthleteStepProps) {
       <FieldGroup>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
           <Field>
-            <FieldLabel>{t("gradeEntering")}</FieldLabel>
+            <FieldLabel>
+              {t("gradeEntering")}
+              <span className="text-destructive ml-1">*</span>
+            </FieldLabel>
             <Select
               value={formData.gradeEntering}
               onValueChange={(value) => onChange("gradeEntering", value)}

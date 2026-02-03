@@ -13,3 +13,9 @@ export const COUNTRIES: Country[] = countries
     flag: country.flag,
   }))
   .sort((a, b) => a.label.localeCompare(b.label));
+
+export function getCountryName(code: string): string {
+  if (!code) return "";
+  const country = COUNTRIES.find((c) => c.value === code);
+  return country?.label || code;
+}

@@ -14,11 +14,15 @@ import {
 import { CountryCombobox } from "@/components/ui/country-combobox";
 import type { Application } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
+import { getCountryName } from "@/lib/countries/countries";
 
 interface ApplicationSchoolCardProps {
   application: Application;
   isEditing: boolean;
-  onDataChange?: (data: Record<string, string | number | boolean | null>) => void;
+  onDataChange?: (
+    data: Record<string, string | number | boolean | null>,
+  ) => void;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
 interface EditableFormData {
@@ -39,11 +43,15 @@ export function ApplicationSchoolCard({
   application,
   isEditing,
   onDataChange,
+  onValidationChange,
 }: ApplicationSchoolCardProps) {
   const t = useTranslations("Applications.detail");
   const tSchool = useTranslations("preadmission.school");
+  const tValidation = useTranslations("Common.validation");
 
   const { formData } = application;
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const currentSchoolName = getFormField(
     formData,
@@ -102,27 +110,77 @@ export function ApplicationSchoolCard({
         referencePhone,
         referenceRelationship,
       });
+      setErrors({});
     }
-  }, [isEditing, currentSchoolName, currentSchoolType, currentGPA, schoolAddress, schoolCity, schoolCountry, schoolState, schoolZipCode, referenceFullName, referencePhone, referenceRelationship]);
+  }, [
+    isEditing,
+    currentSchoolName,
+    currentSchoolType,
+    currentGPA,
+    schoolAddress,
+    schoolCity,
+    schoolCountry,
+    schoolState,
+    schoolZipCode,
+    referenceFullName,
+    referencePhone,
+    referenceRelationship,
+  ]);
+
+  const validateData = (data: EditableFormData): Record<string, string> => {
+    const newErrors: Record<string, string> = {};
+
+    // All required fields from DEFAULT_FORM_SECTIONS: school section
+    if (!data.currentSchoolName.trim()) {
+      newErrors.currentSchoolName = tValidation("required");
+    }
+    if (!data.currentSchoolType.trim()) {
+      newErrors.currentSchoolType = tValidation("required");
+    }
+    if (!data.schoolCountry.trim()) {
+      newErrors.schoolCountry = tValidation("required");
+    }
+    if (!data.schoolState.trim()) {
+      newErrors.schoolState = tValidation("required");
+    }
+    if (!data.schoolCity.trim()) {
+      newErrors.schoolCity = tValidation("required");
+    }
+    if (!data.currentGPA.trim()) {
+      newErrors.currentGPA = tValidation("required");
+    }
+    if (!data.referenceFullName.trim()) {
+      newErrors.referenceFullName = tValidation("required");
+    }
+    if (!data.referencePhone.trim()) {
+      newErrors.referencePhone = tValidation("required");
+    }
+    if (!data.referenceRelationship.trim()) {
+      newErrors.referenceRelationship = tValidation("required");
+    }
+
+    return newErrors;
+  };
 
   const handleFieldChange = (field: keyof EditableFormData, value: string) => {
     const newData = { ...editData, [field]: value };
     setEditData(newData);
+    const newErrors = validateData(newData);
+    setErrors(newErrors);
+    onValidationChange?.(Object.keys(newErrors).length === 0);
     onDataChange?.(newData);
   };
 
   const getSchoolTypeLabel = (type: string) => {
     switch (type) {
-      case "public":
-        return tSchool("schoolTypePublic");
-      case "private":
-        return tSchool("schoolTypePrivate");
-      case "charter":
-        return tSchool("schoolTypeCharter");
-      case "homeschool":
-        return tSchool("schoolTypeHomeschool");
-      case "online":
-        return tSchool("schoolTypeOnline");
+      case "elementary":
+        return tSchool("programElementary");
+      case "middle":
+        return tSchool("programMiddle");
+      case "high":
+        return tSchool("programHigh");
+      case "postgraduate":
+        return tSchool("programPostgraduate");  
       default:
         return type || "-";
     }
@@ -133,7 +191,7 @@ export function ApplicationSchoolCard({
     schoolCity,
     schoolState,
     schoolZipCode,
-    schoolCountry,
+    getCountryName(schoolCountry),
   ]
     .filter(Boolean)
     .join(", ");
@@ -151,16 +209,24 @@ export function ApplicationSchoolCard({
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-foreground">
               {t("currentSchool")}
+              <span className="text-destructive ml-1">*</span>
             </p>
             {isEditing ? (
-              <Input
-                value={editData.currentSchoolName}
-                onChange={(e) =>
-                  handleFieldChange("currentSchoolName", e.target.value)
-                }
-                placeholder={tSchool("currentSchoolNamePlaceholder")}
-                className="h-8 text-sm"
-              />
+              <>
+                <Input
+                  value={editData.currentSchoolName}
+                  onChange={(e) =>
+                    handleFieldChange("currentSchoolName", e.target.value)
+                  }
+                  placeholder={tSchool("currentSchoolNamePlaceholder")}
+                  className={`h-8 text-sm ${errors.currentSchoolName ? "border-destructive" : ""}`}
+                />
+                {errors.currentSchoolName && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.currentSchoolName}
+                  </p>
+                )}
+              </>
             ) : (
               <p className="text-sm wrap-break-word">
                 {currentSchoolName || "-"}
@@ -171,55 +237,42 @@ export function ApplicationSchoolCard({
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-foreground">
               {t("schoolType")}
+              <span className="text-destructive ml-1">*</span>
             </p>
             {isEditing ? (
-              <Select
-                value={editData.currentSchoolType}
-                onValueChange={(value) =>
-                  handleFieldChange("currentSchoolType", value)
-                }
-              >
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">
-                    {tSchool("schoolTypePublic")}
-                  </SelectItem>
-                  <SelectItem value="private">
-                    {tSchool("schoolTypePrivate")}
-                  </SelectItem>
-                  <SelectItem value="charter">
-                    {tSchool("schoolTypeCharter")}
-                  </SelectItem>
-                  <SelectItem value="homeschool">
-                    {tSchool("schoolTypeHomeschool")}
-                  </SelectItem>
-                  <SelectItem value="online">
-                    {tSchool("schoolTypeOnline")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <>
+                <Select
+                  value={editData.currentSchoolType}
+                  onValueChange={(value) =>
+                    handleFieldChange("currentSchoolType", value)
+                  }
+                >
+                  <SelectTrigger
+                    className={`w-full h-8 text-sm ${errors.currentSchoolType ? "border-destructive" : ""}`}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="elementary">
+                      {tSchool("programElementary")}
+                    </SelectItem>
+                    <SelectItem value="middle">{tSchool("programMiddle")}</SelectItem>
+                    <SelectItem value="high">{tSchool("programHigh")}</SelectItem>
+                    <SelectItem value="postgraduate">
+                      {tSchool("programPostgraduate")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.currentSchoolType && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.currentSchoolType}
+                  </p>
+                )}
+              </>
             ) : (
               <p className="text-sm wrap-break-word">
                 {getSchoolTypeLabel(currentSchoolType)}
               </p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-semibold text-foreground">{t("gpa")}</p>
-            {isEditing ? (
-              <Input
-                value={editData.currentGPA}
-                onChange={(e) =>
-                  handleFieldChange("currentGPA", e.target.value)
-                }
-                placeholder={tSchool("currentGPAPlaceholder")}
-                className="h-8 text-sm"
-              />
-            ) : (
-              <p className="text-sm wrap-break-word">{currentGPA || "-"}</p>
             )}
           </div>
 
@@ -228,6 +281,7 @@ export function ApplicationSchoolCard({
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-semibold text-foreground">
                   {tSchool("country")}
+                  <span className="text-destructive ml-1">*</span>
                 </p>
                 <CountryCombobox
                   value={editData.schoolCountry}
@@ -236,10 +290,16 @@ export function ApplicationSchoolCard({
                   }
                   placeholder={tSchool("countryPlaceholder")}
                 />
+                {errors.schoolCountry && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.schoolCountry}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-semibold text-foreground">
                   {tSchool("state")}
+                  <span className="text-destructive ml-1">*</span>
                 </p>
                 <Input
                   value={editData.schoolState}
@@ -247,12 +307,18 @@ export function ApplicationSchoolCard({
                     handleFieldChange("schoolState", e.target.value)
                   }
                   placeholder={tSchool("statePlaceholder")}
-                  className="h-8 text-sm"
+                  className={`h-8 text-sm ${errors.schoolState ? "border-destructive" : ""}`}
                 />
+                {errors.schoolState && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.schoolState}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-semibold text-foreground">
                   {tSchool("city")}
+                  <span className="text-destructive ml-1">*</span>
                 </p>
                 <Input
                   value={editData.schoolCity}
@@ -260,66 +326,82 @@ export function ApplicationSchoolCard({
                     handleFieldChange("schoolCity", e.target.value)
                   }
                   placeholder={tSchool("cityPlaceholder")}
-                  className="h-8 text-sm"
+                  className={`h-8 text-sm ${errors.schoolCity ? "border-destructive" : ""}`}
                 />
-              </div>
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-semibold text-foreground">
-                  {tSchool("addressLine1")}
-                </p>
-                <Input
-                  value={editData.schoolAddress}
-                  onChange={(e) =>
-                    handleFieldChange("schoolAddress", e.target.value)
-                  }
-                  placeholder={tSchool("addressLine1Placeholder")}
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-semibold text-foreground">
-                  {tSchool("zipCode")}
-                </p>
-                <Input
-                  value={editData.schoolZipCode}
-                  onChange={(e) =>
-                    handleFieldChange("schoolZipCode", e.target.value)
-                  }
-                  placeholder={tSchool("zipCodePlaceholder")}
-                  className="h-8 text-sm"
-                />
+                {errors.schoolCity && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.schoolCity}
+                  </p>
+                )}
               </div>
             </>
           ) : (
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
                 {t("schoolAddress")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               <p className="text-sm wrap-break-word">
                 {fullSchoolAddress || "-"}
               </p>
             </div>
           )}
+
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold text-foreground">
+              {t("gpa")}
+              <span className="text-destructive ml-1">*</span>
+            </p>
+            {isEditing ? (
+              <>
+                <Input
+                  value={editData.currentGPA}
+                  onChange={(e) =>
+                    handleFieldChange("currentGPA", e.target.value)
+                  }
+                  placeholder={tSchool("currentGPAPlaceholder")}
+                  className={`h-8 text-sm ${errors.currentGPA ? "border-destructive" : ""}`}
+                />
+                {errors.currentGPA && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.currentGPA}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm wrap-break-word">{currentGPA || "-"}</p>
+            )}
+          </div>
         </div>
+
+        
 
         <div>
           <h4 className="text-base font-bold text-foreground mb-3">
             {t("reference")}
           </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
                 {t("referenceName")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <Input
-                  value={editData.referenceFullName}
-                  onChange={(e) =>
-                    handleFieldChange("referenceFullName", e.target.value)
-                  }
-                  placeholder={tSchool("referenceFullNamePlaceholder")}
-                  className="h-8 text-sm"
-                />
+                <>
+                  <Input
+                    value={editData.referenceFullName}
+                    onChange={(e) =>
+                      handleFieldChange("referenceFullName", e.target.value)
+                    }
+                    placeholder={tSchool("referenceFullNamePlaceholder")}
+                    className={`h-8 text-sm ${errors.referenceFullName ? "border-destructive" : ""}`}
+                  />
+                  {errors.referenceFullName && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.referenceFullName}
+                    </p>
+                  )}
+                </>
               ) : (
                 <p className="text-sm">{referenceFullName || "-"}</p>
               )}
@@ -327,38 +409,54 @@ export function ApplicationSchoolCard({
 
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
-                {t("referenceRelationship")}
+                {t("referencePhone")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <Input
-                  value={editData.referenceRelationship}
-                  onChange={(e) =>
-                    handleFieldChange("referenceRelationship", e.target.value)
-                  }
-                  placeholder={tSchool("referenceRelationshipPlaceholder")}
-                  className="h-8 text-sm"
-                />
+                <>
+                  <Input
+                    type="tel"
+                    value={editData.referencePhone}
+                    onChange={(e) =>
+                      handleFieldChange("referencePhone", e.target.value)
+                    }
+                    placeholder={tSchool("referencePhonePlaceholder")}
+                    className={`h-8 text-sm ${errors.referencePhone ? "border-destructive" : ""}`}
+                  />
+                  {errors.referencePhone && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.referencePhone}
+                    </p>
+                  )}
+                </>
               ) : (
-                <p className="text-sm">{referenceRelationship || "-"}</p>
+                <p className="text-sm">{referencePhone || "-"}</p>
               )}
             </div>
 
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
-                {t("referencePhone")}
+                {t("referenceRelationship")}
+                <span className="text-destructive ml-1">*</span>
               </p>
               {isEditing ? (
-                <Input
-                  type="tel"
-                  value={editData.referencePhone}
-                  onChange={(e) =>
-                    handleFieldChange("referencePhone", e.target.value)
-                  }
-                  placeholder={tSchool("referencePhonePlaceholder")}
-                  className="h-8 text-sm"
-                />
+                <>
+                  <Input
+                    value={editData.referenceRelationship}
+                    onChange={(e) =>
+                      handleFieldChange("referenceRelationship", e.target.value)
+                    }
+                    placeholder={tSchool("referenceRelationshipPlaceholder")}
+                    className={`h-8 text-sm ${errors.referenceRelationship ? "border-destructive" : ""}`}
+                  />
+                  {errors.referenceRelationship && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.referenceRelationship}
+                    </p>
+                  )}
+                </>
               ) : (
-                <p className="text-sm">{referencePhone || "-"}</p>
+                <p className="text-sm">{referenceRelationship || "-"}</p>
               )}
             </div>
           </div>

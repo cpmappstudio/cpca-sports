@@ -4,7 +4,6 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { STEPS, type StepId } from "./steps/steps-navigation";
 import type { FormData as ConvexFormData } from "@/lib/applications/types";
-import { COUNTRIES } from "@/lib/countries/countries";
 
 export interface FormData {
   format: string;
@@ -63,14 +62,6 @@ interface UsePreadmissionFormOptions {
 }
 
 /**
- * Convert country code to full country name.
- */
-function getCountryName(countryCode: string): string {
-  const country = COUNTRIES.find((c) => c.value === countryCode);
-  return country ? country.label : countryCode;
-}
-
-/**
  * Convert flat form data to sectioned format for Convex.
  */
 function convertToConvexFormData(data: FormData): ConvexFormData {
@@ -88,8 +79,8 @@ function convertToConvexFormData(data: FormData): ConvexFormData {
       birthDate: data.birthDate,
       email: data.email,
       telephone: data.telephone,
-      countryOfBirth: getCountryName(data.countryOfBirth),
-      countryOfCitizenship: getCountryName(data.countryOfCitizenship),
+      countryOfBirth: data.countryOfBirth,
+      countryOfCitizenship: data.countryOfCitizenship,
       highlightsLink: data.highlightsLink,
       gradeEntering: data.gradeEntering,
       programOfInterest: data.programOfInterest,
@@ -108,7 +99,7 @@ function convertToConvexFormData(data: FormData): ConvexFormData {
       currentGPA: data.currentGPA,
       schoolAddress: data.schoolAddress,
       schoolCity: data.schoolCity,
-      schoolCountry: getCountryName(data.schoolCountry),
+      schoolCountry: data.schoolCountry,
       schoolState: data.schoolState,
       schoolZipCode: data.schoolZipCode,
       referenceFullName: data.referenceFullName,
@@ -215,22 +206,29 @@ export function usePreadmissionForm({
     const newErrors: Record<string, string> = {};
 
     if (currentStep === "athlete") {
+      // Required fields from DEFAULT_FORM_SECTIONS: athlete section
+      if (!formData.photo) {
+        newErrors.photo = "Photo is required";
+      }
       if (!formData.firstName.trim()) {
         newErrors.firstName = "First name is required";
       }
       if (!formData.lastName.trim()) {
         newErrors.lastName = "Last name is required";
       }
-      if (!formData.sex) {
-        newErrors.sex = "Sex is required";
-      }
-      if (!formData.birthDate) {
-        newErrors.birthDate = "Birth date is required";
-      }
       if (!formData.email.trim()) {
         newErrors.email = "Email is required";
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
         newErrors.email = "Invalid email format";
+      }
+      if (!formData.telephone.trim()) {
+        newErrors.telephone = "Phone is required";
+      }
+      if (!formData.birthDate) {
+        newErrors.birthDate = "Birth date is required";
+      }
+      if (!formData.sex) {
+        newErrors.sex = "Sex is required";
       }
       if (!formData.countryOfBirth) {
         newErrors.countryOfBirth = "Country of birth is required";
@@ -238,11 +236,24 @@ export function usePreadmissionForm({
       if (!formData.countryOfCitizenship) {
         newErrors.countryOfCitizenship = "Country of citizenship is required";
       }
+      // Required fields from DEFAULT_FORM_SECTIONS: program section
+      if (!formData.format) {
+        newErrors.format = "Format is required";
+      }
+      if (!formData.program) {
+        newErrors.program = "Program is required";
+      }
+      if (!formData.enrollmentYear) {
+        newErrors.enrollmentYear = "Enrollment year is required";
+      }
+      if (!formData.graduationYear) {
+        newErrors.graduationYear = "Graduation year is required";
+      }
+      if (!formData.gradeEntering) {
+        newErrors.gradeEntering = "Grade entering is required";
+      }
       if (!formData.needsI20) {
         newErrors.needsI20 = "Please select if you need an I-20";
-      }
-      if (!formData.photo) {
-        newErrors.photo = "Photo is required";
       }
     }
 
@@ -265,35 +276,33 @@ export function usePreadmissionForm({
     }
 
     if (currentStep === "school") {
+      // Required fields from DEFAULT_FORM_SECTIONS: school section
       if (!formData.currentSchoolName.trim()) {
         newErrors.currentSchoolName = "School name is required";
       }
       if (!formData.currentSchoolType) {
         newErrors.currentSchoolType = "School type is required";
       }
-      if (!formData.currentGPA.trim()) {
-        newErrors.currentGPA = "Current GPA is required";
+      if (!formData.schoolCountry) {
+        newErrors.schoolCountry = "Country is required";
       }
-      if (!formData.schoolAddress.trim()) {
-        newErrors.schoolAddress = "School address is required";
+      if (!formData.schoolState.trim()) {
+        newErrors.schoolState = "State is required";
       }
       if (!formData.schoolCity.trim()) {
         newErrors.schoolCity = "City is required";
       }
-      if (!formData.schoolCountry) {
-        newErrors.schoolCountry = "Country is required";
-      }
-      if (!formData.schoolZipCode.trim()) {
-        newErrors.schoolZipCode = "ZIP/Postal code is required";
+      if (!formData.currentGPA.trim()) {
+        newErrors.currentGPA = "Current GPA is required";
       }
       if (!formData.referenceFullName.trim()) {
-        newErrors.referenceFullName = "Reference full name is required";
+        newErrors.referenceFullName = "Reference name is required";
       }
       if (!formData.referencePhone.trim()) {
         newErrors.referencePhone = "Reference phone is required";
       }
       if (!formData.referenceRelationship.trim()) {
-        newErrors.referenceRelationship = "Relationship is required";
+        newErrors.referenceRelationship = "Reference relationship is required";
       }
     }
 
@@ -318,11 +327,15 @@ export function usePreadmissionForm({
     }
 
     if (currentStep === "general") {
+      // Required fields from DEFAULT_FORM_SECTIONS: additional section
       if (!formData.personSubmitting) {
         newErrors.personSubmitting = "Person submitting is required";
       }
       if (!formData.howDidYouHear) {
         newErrors.howDidYouHear = "This field is required";
+      }
+      if (!formData.interestedInBoarding) {
+        newErrors.interestedInBoarding = "This field is required";
       }
     }
 

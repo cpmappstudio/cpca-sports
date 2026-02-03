@@ -57,6 +57,15 @@ function ApplicationDetailContent({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editedFormData, setEditedFormData] = useState<ApplicationFormData | null>(null);
+  const [sectionValidity, setSectionValidity] = useState<Record<string, boolean>>({
+    athlete: true,
+    address: true,
+    school: true,
+    parents: true,
+    general: true,
+  });
+
+  const isFormValid = Object.values(sectionValidity).every(Boolean);
 
   const convexApplicationId = applicationId as Id<"applications">;
 
@@ -148,13 +157,38 @@ function ApplicationDetailContent({
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditedFormData(null);
+    setSectionValidity({
+      athlete: true,
+      address: true,
+      school: true,
+      parents: true,
+      general: true,
+    });
   };
 
   // Handler to start editing
   const handleStartEdit = () => {
     setEditedFormData(application?.formData ?? null);
     setIsEditing(true);
+    setSectionValidity({
+      athlete: true,
+      address: true,
+      school: true,
+      parents: true,
+      general: true,
+    });
   };
+
+  // Handler to update section validity
+  const handleSectionValidityChange = useCallback(
+    (sectionKey: string, isValid: boolean) => {
+      setSectionValidity((prev) => ({
+        ...prev,
+        [sectionKey]: isValid,
+      }));
+    },
+    []
+  );
 
   // Loading state
   const isLoading = fees === undefined || summary === undefined;
@@ -234,7 +268,7 @@ function ApplicationDetailContent({
                       size="sm"
                       variant="default"
                       onClick={handleSave}
-                      disabled={isSaving}
+                      disabled={isSaving || !isFormValid}
                     >
                       <Check className="h-4 w-4 mr-2" />
                       {isSaving ? tCommon("saving") : tCommon("save")}
@@ -264,6 +298,7 @@ function ApplicationDetailContent({
                     application={application} 
                     isEditing={isEditing} 
                     onDataChange={(data) => handleSectionDataChange("athlete", data)}
+                    onValidationChange={(isValid) => handleSectionValidityChange("athlete", isValid)}
                   />
                 </AccordionContent>
               </AccordionItem>
@@ -274,6 +309,7 @@ function ApplicationDetailContent({
                     application={application} 
                     isEditing={isEditing}
                     onDataChange={(data) => handleSectionDataChange("address", data)}
+                    onValidationChange={(isValid) => handleSectionValidityChange("address", isValid)}
                   />
                 </AccordionContent>
               </AccordionItem>
@@ -284,6 +320,7 @@ function ApplicationDetailContent({
                     application={application} 
                     isEditing={isEditing}
                     onDataChange={(data) => handleSectionDataChange("school", data)}
+                    onValidationChange={(isValid) => handleSectionValidityChange("school", isValid)}
                   />
                 </AccordionContent>
               </AccordionItem>
@@ -294,6 +331,7 @@ function ApplicationDetailContent({
                     application={application} 
                     isEditing={isEditing}
                     onDataChange={(data) => handleSectionDataChange("parents", data)}
+                    onValidationChange={(isValid) => handleSectionValidityChange("parents", isValid)}
                   />
                 </AccordionContent>
               </AccordionItem>
@@ -304,6 +342,7 @@ function ApplicationDetailContent({
                     application={application} 
                     isEditing={isEditing}
                     onDataChange={(data) => handleSectionDataChange("general", data)}
+                    onValidationChange={(isValid) => handleSectionValidityChange("general", isValid)}
                   />
                 </AccordionContent>
               </AccordionItem>
