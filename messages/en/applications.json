@@ -67,6 +67,8 @@
     "addressInfo": "Address Information",
     "additionalInfo": "Additional Information",
     "fullName": "Full Name",
+    "firstName": "First Name",
+    "lastName": "Last Name",
     "email": "Email",
     "phone": "Phone",
     "birthDate": "Birth Date",
@@ -119,6 +121,8 @@
       "pending": "Pending"
     },
     "actions": {
+      "edit": "Edit",
+      "save": "Save",
       "pay": "Pay",
       "processing": "Processing...",
       "markAsPaid": "Mark as Paid",

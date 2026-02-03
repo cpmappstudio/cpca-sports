@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import type { Application, ApplicationStatus } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
-import { ApplicationPhoto } from "../application-photo";
+import { ApplicationPhoto } from "./pre-admission/application-photo";
 import { Id } from "@/convex/_generated/dataModel";
 import {
   BookOpen,
@@ -48,7 +48,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ApplicationBalanceCard } from "./application-balance-card";
+import { ApplicationBalanceCard } from "./payments/application-balance-card";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";

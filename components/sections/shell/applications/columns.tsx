@@ -13,7 +13,7 @@ import { PiVolleyball, PiBaseball } from "react-icons/pi";
 import { IoGolfOutline } from "react-icons/io5";
 import type { IconType } from "react-icons";
 import { Mail, Phone, CircleX, CircleCheck } from "lucide-react";
-import { ApplicationPhoto } from "./application-photo";
+import { ApplicationPhoto } from "./detail/pre-admission/application-photo";
 import { Id } from "@/convex/_generated/dataModel";
 
 const SPORT_ICONS: Record<string, IconType> = {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import {
   Authenticated,
   Preloaded,
@@ -8,16 +9,19 @@ import {
   useMutation,
   useAction,
 } from "convex/react";
+import { Pencil, X, Check } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { Button } from "@/components/ui/button";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { ApplicationHeader } from "./application-header";
 import { ApplicationOverviewCard } from "./pre-admission/application-overview-card";
 import { ApplicationSchoolCard } from "./pre-admission/application-school-card";
 import { ApplicationParentsCard } from "./pre-admission/application-parents-card";
 import { ApplicationAddressCard } from "./pre-admission/application-address-card";
-import { ApplicationAdditionalCard } from "./pre-admission/application-additional-card";
-import { ApplicationDocuments } from "./application-documents";
-import { ApplicationPayments } from "./application-payments";
+import { ApplicationGeneralCard } from "./pre-admission/application-general-card";
+import { ApplicationDocuments } from "./documents/application-documents";
+import { ApplicationPayments } from "./payments/application-payments";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,7 +35,8 @@ import {
 import { UserIcon } from "@heroicons/react/20/solid";
 import { CreditCard, File, History } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { ApplicationTransactionHistory } from "./application-transaction-history";
+import { ApplicationTransactionHistory } from "./payments/application-transaction-history";
+import type { FormData as ApplicationFormData } from "@/lib/applications/types";
 
 interface ApplicationDetailWrapperProps {
   preloadedApplication: Preloaded<typeof api.applications.getById>;
@@ -46,6 +51,12 @@ function ApplicationDetailContent({
 }: ApplicationDetailWrapperProps) {
   const application = usePreloadedQuery(preloadedApplication);
   const t = useTranslations("Applications");
+  const tCommon = useTranslations("Common.actions");
+  const { isAdmin } = useIsAdmin();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editedFormData, setEditedFormData] = useState<ApplicationFormData | null>(null);
 
   const convexApplicationId = applicationId as Id<"applications">;
 
@@ -73,6 +84,7 @@ function ApplicationDetailContent({
   const removeFee = useMutation(api.fees.remove);
   const recordManualPayment = useMutation(api.fees.recordManualPayment);
   const updateFee = useMutation(api.fees.update);
+  const updateFormData = useMutation(api.applications.updateFormData);
 
   // Document mutations
   const uploadDocument = useMutation(api.documents.upload);
@@ -92,6 +104,57 @@ function ApplicationDetailContent({
 
   // Actions
   const createPaymentLink = useAction(api.square.createPaymentLink);
+
+  // Callback to update edited form data from child cards
+  const handleSectionDataChange = useCallback(
+    (sectionKey: string, sectionData: Record<string, string | number | boolean | null>) => {
+      setEditedFormData((prev) => {
+        const base = prev ?? application?.formData ?? {};
+        return {
+          ...base,
+          [sectionKey]: {
+            ...base[sectionKey],
+            ...sectionData,
+          },
+        };
+      });
+    },
+    [application?.formData]
+  );
+
+  // Handler to save edited form data
+  const handleSave = async () => {
+    if (!editedFormData) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateFormData({
+        applicationId: convexApplicationId,
+        formData: editedFormData,
+      });
+      setIsEditing(false);
+      setEditedFormData(null);
+    } catch (error) {
+      console.error("[Applications] Failed to save form data:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handler to cancel editing
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedFormData(null);
+  };
+
+  // Handler to start editing
+  const handleStartEdit = () => {
+    setEditedFormData(application?.formData ?? null);
+    setIsEditing(true);
+  };
 
   // Loading state
   const isLoading = fees === undefined || summary === undefined;
@@ -154,35 +217,94 @@ function ApplicationDetailContent({
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
           <TabsContent value="application" className="mt-0">
-            <Accordion type="single" collapsible className="w-full">
+            {isAdmin && (
+              <div className="flex justify-end mb-4">
+                {isEditing ? (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      disabled={isSaving}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      {tCommon("cancel")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={handleSave}
+                      disabled={isSaving}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      {isSaving ? tCommon("saving") : tCommon("save")}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleStartEdit}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    {tCommon("edit")}
+                  </Button>
+                )}
+              </div>
+            )}
+            <Accordion
+              type="multiple"
+              value={isEditing ? ["athlete", "address", "school", "parents", "general"] : undefined}
+              className="w-full"
+            >
               <AccordionItem value="athlete">
                 <AccordionTrigger>{t("sections.athlete")}</AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationOverviewCard application={application} />
+                  <ApplicationOverviewCard 
+                    application={application} 
+                    isEditing={isEditing} 
+                    onDataChange={(data) => handleSectionDataChange("athlete", data)}
+                  />
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="address">
                 <AccordionTrigger>{t("sections.address")}</AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationAddressCard application={application} />
+                  <ApplicationAddressCard 
+                    application={application} 
+                    isEditing={isEditing}
+                    onDataChange={(data) => handleSectionDataChange("address", data)}
+                  />
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="school">
                 <AccordionTrigger>{t("sections.school")}</AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationSchoolCard application={application} />
+                  <ApplicationSchoolCard 
+                    application={application} 
+                    isEditing={isEditing}
+                    onDataChange={(data) => handleSectionDataChange("school", data)}
+                  />
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="parents">
                 <AccordionTrigger>{t("sections.parents")}</AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationParentsCard application={application} />
+                  <ApplicationParentsCard 
+                    application={application} 
+                    isEditing={isEditing}
+                    onDataChange={(data) => handleSectionDataChange("parents", data)}
+                  />
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="general">
                 <AccordionTrigger>{t("sections.general")}</AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationAdditionalCard application={application} />
+                  <ApplicationGeneralCard 
+                    application={application} 
+                    isEditing={isEditing}
+                    onDataChange={(data) => handleSectionDataChange("general", data)}
+                  />
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

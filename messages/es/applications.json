@@ -67,6 +67,8 @@
     "addressInfo": "Información de Dirección",
     "additionalInfo": "Información Adicional",
     "fullName": "Nombre Completo",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
     "email": "Correo Electrónico",
     "phone": "Teléfono",
     "birthDate": "Fecha de Nacimiento",
@@ -120,6 +122,8 @@
     },
     "actions": {
       "pay": "Pagar",
+      "edit": "Editar",
+      "save": "Guardar",
       "processing": "Procesando...",
       "markAsPaid": "Marcar como Pagado",
       "markingAsPaid": "Marcando como Pagado...",
