@@ -96,12 +96,7 @@ const DEFAULT_FORM_SECTIONS = [
         type: "select",
         required: false,
       },
-      {
-        key: "interestedInBoarding",
-        label: "Interested in Boarding",
-        type: "checkbox",
-        required: false,
-      },
+      { key: "needsI20", label: "Needs I-20", type: "select", required: true },
     ],
   },
   {
@@ -148,37 +143,37 @@ const DEFAULT_FORM_SECTIONS = [
         key: "schoolState",
         label: "School State",
         type: "text",
-        required: false,
+        required: true,
       },
       {
         key: "schoolCity",
         label: "School City",
         type: "text",
-        required: false,
+        required: true,
       },
       {
         key: "currentGPA",
         label: "Current GPA",
         type: "text",
-        required: false,
+        required: true,
       },
       {
         key: "referenceName",
         label: "Reference Name",
         type: "text",
-        required: false,
+        required: true,
       },
       {
         key: "referencePhone",
         label: "Reference Phone",
         type: "tel",
-        required: false,
+        required: true,
       },
       {
         key: "referenceRelationship",
         label: "Reference Relationship",
         type: "text",
-        required: false,
+        required: true,
       },
     ],
   },
@@ -266,7 +261,12 @@ const DEFAULT_FORM_SECTIONS = [
         type: "select",
         required: true,
       },
-      { key: "needsI20", label: "Needs I-20", type: "select", required: true },
+      {
+        key: "interestedInBoarding",
+        label: "Interested in Boarding",
+        type: "checkbox",
+        required: true,
+      },
       { key: "message", label: "Message", type: "textarea", required: false },
     ],
   },
@@ -565,6 +565,57 @@ export const updatePhoto = mutation({
       athlete: {
         ...application.formData.athlete,
         photo: args.photoStorageId,
+      },
+    };
+
+    await ctx.db.patch(args.applicationId, {
+      formData: updatedFormData,
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Update application form data (admin only).
+ * This updates the form template sections (athlete, address, school, parents, additional).
+ */
+export const updateFormData = mutation({
+  args: {
+    applicationId: v.id("applications"),
+    formData: formDataValidator,
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const application = await ctx.db.get(args.applicationId);
+
+    if (!application) {
+      throw new Error("Application not found");
+    }
+
+    // Check admin access
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      application.organizationId,
+    );
+
+    if (!isAdmin) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    // Preserve the photo field from the original formData
+    const photoStorageId = application.formData.athlete?.photo;
+
+    // Merge the new formData with the existing one, preserving photo
+    const updatedFormData = {
+      ...application.formData,
+      ...args.formData,
+      athlete: {
+        ...application.formData.athlete,
+        ...args.formData.athlete,
+        ...(photoStorageId ? { photo: photoStorageId } : {}),
       },
     };
 

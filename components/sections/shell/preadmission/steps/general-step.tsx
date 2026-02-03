@@ -88,7 +88,10 @@ export function GeneralStep({ formData, onChange, errors }: GeneralStepProps) {
 
       <FieldGroup>
         <Field>
-          <FieldLabel>{t("interestedInBoarding")}</FieldLabel>
+          <FieldLabel>
+            {t("interestedInBoarding")}
+            <span className="text-destructive">*</span>
+          </FieldLabel>
           <Select
             value={formData.interestedInBoarding}
             onValueChange={(value) => onChange("interestedInBoarding", value)}
@@ -101,6 +104,11 @@ export function GeneralStep({ formData, onChange, errors }: GeneralStepProps) {
               <SelectItem value="no">{t("interestedInBoardingNo")}</SelectItem>
             </SelectContent>
           </Select>
+          {errors?.interestedInBoarding && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.interestedInBoarding}
+            </p>
+          )}
         </Field>
       </FieldGroup>
 

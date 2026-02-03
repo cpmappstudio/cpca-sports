@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import type { Application, ApplicationStatus } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
-import { ApplicationPhoto } from "../application-photo";
+import { getCountryName } from "@/lib/countries/countries";
+import { ApplicationPhoto } from "./pre-admission/application-photo";
 import { Id } from "@/convex/_generated/dataModel";
 import {
   BookOpen,
@@ -48,7 +49,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ApplicationBalanceCard } from "./application-balance-card";
+import { ApplicationBalanceCard } from "./payments/application-balance-card";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
@@ -410,7 +411,7 @@ export function ApplicationHeader({
                   {t("birthCountry")}:
                 </span>
                 <span className="text-muted-foreground">
-                  {countryOfBirth || "-"}
+                  {getCountryName(countryOfBirth) || "-"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -419,7 +420,7 @@ export function ApplicationHeader({
                   {t("citizenship")}:
                 </span>
                 <span className="text-muted-foreground">
-                  {countryOfCitizenship || "-"}
+                  {getCountryName(countryOfCitizenship) || "-"}
                 </span>
               </div>
               <hr />

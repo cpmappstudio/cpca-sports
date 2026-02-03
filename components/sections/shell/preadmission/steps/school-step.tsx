@@ -68,17 +68,14 @@ export function SchoolStep({ formData, onChange, errors }: SchoolStepProps) {
                 <SelectValue placeholder={t("countryPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="public">{t("schoolTypePublic")}</SelectItem>
-                <SelectItem value="private">
-                  {t("schoolTypePrivate")}
+                <SelectItem value="elementary">
+                  {t("programElementary")}
                 </SelectItem>
-                <SelectItem value="charter">
-                  {t("schoolTypeCharter")}
+                <SelectItem value="middle">{t("programMiddle")}</SelectItem>
+                <SelectItem value="high">{t("programHigh")}</SelectItem>
+                <SelectItem value="postgraduate">
+                  {t("programPostgraduate")}
                 </SelectItem>
-                <SelectItem value="homeschool">
-                  {t("schoolTypeHomeschool")}
-                </SelectItem>
-                <SelectItem value="online">{t("schoolTypeOnline")}</SelectItem>
               </SelectContent>
             </Select>
             {errors?.currentSchoolType && (
@@ -130,12 +127,21 @@ export function SchoolStep({ formData, onChange, errors }: SchoolStepProps) {
             </Field>
 
             <Field>
-              <FieldLabel>{t("state")}</FieldLabel>
+              <FieldLabel>
+                {t("state")}
+                <span className="text-destructive">*</span>
+              </FieldLabel>
               <Input
                 value={formData.schoolState}
                 onChange={(e) => onChange("schoolState", e.target.value)}
                 placeholder={t("statePlaceholder")}
+                required
               />
+              {errors?.schoolState && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.schoolState}
+                </p>
+              )}
             </Field>
 
             <Field>
@@ -152,46 +158,6 @@ export function SchoolStep({ formData, onChange, errors }: SchoolStepProps) {
               {errors?.schoolCity && (
                 <p className="text-sm text-destructive mt-1">
                   {errors.schoolCity}
-                </p>
-              )}
-            </Field>
-          </div>
-        </FieldGroup>
-
-        <FieldGroup>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-            <Field>
-              <FieldLabel>
-                {t("addressLine1")}
-                <span className="text-destructive">*</span>
-              </FieldLabel>
-              <Input
-                value={formData.schoolAddress}
-                onChange={(e) => onChange("schoolAddress", e.target.value)}
-                placeholder={t("addressLine1Placeholder")}
-                required
-              />
-              {errors?.schoolAddress && (
-                <p className="text-sm text-destructive mt-1">
-                  {errors.schoolAddress}
-                </p>
-              )}
-            </Field>
-
-            <Field>
-              <FieldLabel>
-                {t("zipCode")}
-                <span className="text-destructive">*</span>
-              </FieldLabel>
-              <Input
-                value={formData.schoolZipCode}
-                onChange={(e) => onChange("schoolZipCode", e.target.value)}
-                placeholder={t("zipCodePlaceholder")}
-                required
-              />
-              {errors?.schoolZipCode && (
-                <p className="text-sm text-destructive mt-1">
-                  {errors.schoolZipCode}
                 </p>
               )}
             </Field>
