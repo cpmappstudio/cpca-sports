@@ -597,21 +597,33 @@ export function ApplicationOverviewCard({
               </p>
               {isEditing ? (
                 <>
-                  <Input
-                    type="date"
+                  <Select
                     value={editData.enrollmentYear}
-                    onChange={(e) =>
-                      handleFieldChange("enrollmentYear", e.target.value)
+                    onValueChange={(value) =>
+                      handleFieldChange("enrollmentYear", value)
                     }
-                    className={`h-8 text-sm w-full ${errors.enrollmentYear ? "border-destructive" : ""}`}
-                  />
+                  >
+                    <SelectTrigger className={`h-8 text-sm ${errors.enrollmentYear ? "border-destructive" : ""}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => {
+                        const year = new Date().getFullYear() + i;
+                        return (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                   {errors.enrollmentYear && (
                     <p className="text-xs text-destructive mt-1">{errors.enrollmentYear}</p>
                   )}
                 </>
               ) : (
-                <p className="text-sm capitalize">
-                  {formatDate(enrollmentYear)}
+                <p className="text-sm">
+                  {enrollmentYear || "-"}
                 </p>
               )}
             </div>
@@ -623,21 +635,33 @@ export function ApplicationOverviewCard({
               </p>
               {isEditing ? (
                 <>
-                  <Input
-                    type="date"
+                  <Select
                     value={editData.graduationYear}
-                    onChange={(e) =>
-                      handleFieldChange("graduationYear", e.target.value)
+                    onValueChange={(value) =>
+                      handleFieldChange("graduationYear", value)
                     }
-                    className={`h-8 text-sm w-full ${errors.graduationYear ? "border-destructive" : ""}`}
-                  />
+                  >
+                    <SelectTrigger className={`h-8 text-sm ${errors.graduationYear ? "border-destructive" : ""}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => {
+                        const year = new Date().getFullYear() + i;
+                        return (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                   {errors.graduationYear && (
                     <p className="text-xs text-destructive mt-1">{errors.graduationYear}</p>
                   )}
                 </>
               ) : (
-                <p className="text-sm capitalize">
-                  {formatDate(graduationYear)}
+                <p className="text-sm">
+                  {graduationYear || "-"}
                 </p>
               )}
             </div>
