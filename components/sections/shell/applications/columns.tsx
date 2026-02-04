@@ -178,7 +178,7 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
                       {t("graduationYear")}:
                     </span>
                     <span className="text-muted-foreground ml-1">
-                      {new Date(graduationYear).toLocaleDateString("en-EN")}
+                      {graduationYear}
                     </span>
                   </div>
                 )}
@@ -277,13 +277,7 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
           "athlete",
           "graduationYear",
         );
-        return (
-          <div className="text-sm">
-            {graduationYear
-              ? new Date(graduationYear).toLocaleDateString("en-EN")
-              : "-"}
-          </div>
-        );
+        return <div className="text-sm">{graduationYear}</div>;
       },
       meta: {
         className: "hidden lg:table-cell",
@@ -493,7 +487,7 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
                       {t("graduationYear")}:
                     </span>
                     <span className="text-muted-foreground ml-1">
-                      {new Date(graduationYear).toLocaleDateString("en-EN")}
+                      {graduationYear}
                     </span>
                   </div>
                 )}
@@ -591,13 +585,7 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
           "athlete",
           "graduationYear",
         );
-        return (
-          <div className="text-sm">
-            {graduationYear
-              ? new Date(graduationYear).toLocaleDateString("en-EN")
-              : "-"}
-          </div>
-        );
+        return <div className="text-sm">{graduationYear}</div>;
       },
     },
     {

@@ -120,12 +120,24 @@ export function AthleteStep({ formData, onChange, errors }: AthleteStepProps) {
               {t("enrollmentYear")}
               <span className="text-destructive">*</span>
             </FieldLabel>
-            <Input
-              type="date"
+            <Select
               value={formData.enrollmentYear}
-              onChange={(e) => onChange("enrollmentYear", e.target.value)}
-              required
-            />
+              onValueChange={(value) => onChange("enrollmentYear", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t("formatPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 10 }, (_, i) => {
+                  const year = new Date().getFullYear() + i;
+                  return (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </Field>
 
           <Field>
@@ -133,12 +145,24 @@ export function AthleteStep({ formData, onChange, errors }: AthleteStepProps) {
               {t("graduationYear")}
               <span className="text-destructive">*</span>
             </FieldLabel>
-            <Input
-              type="date"
+            <Select
               value={formData.graduationYear}
-              onChange={(e) => onChange("graduationYear", e.target.value)}
-              required
-            />
+              onValueChange={(value) => onChange("graduationYear", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t("formatPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 10 }, (_, i) => {
+                  const year = new Date().getFullYear() + i;
+                  return (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </Field>
         </div>
         <div className="grid gap-4 grid-cols-2">

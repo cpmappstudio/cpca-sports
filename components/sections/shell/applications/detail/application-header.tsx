@@ -29,6 +29,7 @@ import {
   IdCard,
   Trash2,
   MoreVertical,
+  MapPin,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -72,6 +73,7 @@ export function ApplicationHeader({
   totalPending,
 }: ApplicationHeaderProps) {
   const t = useTranslations("Applications.detail");
+  const tAthlete = useTranslations("preadmission.athlete");
   const { isAdmin } = useIsAdmin();
   const tStatus = useTranslations("Applications.statusOptions");
 
@@ -106,13 +108,17 @@ export function ApplicationHeader({
   const program = getFormField(formData, "athlete", "program");
   const gradeEntering = getFormField(formData, "athlete", "gradeEntering");
   const enrollmentYear = getFormField(formData, "athlete", "enrollmentYear");
+  const graduationYear = getFormField(formData, "athlete", "graduationYear");
   const needsI20 = getFormField(formData, "athlete", "needsI20");
   const interestedInBoarding = getFormField(
     formData,
     "general",
     "interestedInBoarding",
   );
-  const photoStorageId = formData.athlete?.photo as Id<"_storage"> | undefined;
+
+  const streetAddress = getFormField(formData, "address", "streetAddress");
+  const city = getFormField(formData, "address", "city");
+  const country = getFormField(formData, "address", "country");
 
   const statusMap = {
     pending: { label: tStatus("pending"), variant: "outline" as const },
@@ -228,7 +234,6 @@ export function ApplicationHeader({
     }
     return age;
   };
-
   return (
     <section className="flex flex-col gap-4">
       <Card>
@@ -423,6 +428,17 @@ export function ApplicationHeader({
                   {getCountryName(countryOfCitizenship) || "-"}
                 </span>
               </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-semibold text-foreground">
+                  {t("address")}:
+                </span>
+                <span className="text-muted-foreground">
+                  {streetAddress && city && country
+                    ? `${streetAddress}, ${city}, ${getCountryName(country)}`
+                    : "-"}
+                </span>
+              </div>
               <hr />
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary shrink-0" />
@@ -448,7 +464,13 @@ export function ApplicationHeader({
                   {t("gradeEntering")}:
                 </span>
                 <span className="text-muted-foreground">
-                  {gradeEntering || "-"}
+                  {gradeEntering
+                    ? gradeEntering === "postgraduate"
+                      ? tAthlete("gradePostgraduate")
+                      : tAthlete(
+                          `grade${gradeEntering}` as keyof typeof tAthlete,
+                        )
+                    : "-"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -460,10 +482,21 @@ export function ApplicationHeader({
                   {enrollmentYear || "-"}
                 </span>
               </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-semibold text-foreground">
+                  {t("graduationYear")}:
+                </span>
+                <span className="text-muted-foreground">
+                  {graduationYear || "-"}
+                </span>
+              </div>
               <hr />
               <div className="flex items-center gap-2">
                 <IdCard className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">I-20:</span>
+                <span className="font-semibold text-foreground">
+                  {t("needsI20")}:
+                </span>
                 <span className="text-muted-foreground">
                   {needsI20 === "yes" ? t("yes") : t("no")}
                 </span>
