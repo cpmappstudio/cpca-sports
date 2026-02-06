@@ -19,6 +19,12 @@ export type Fee = {
   createdAt: number;
   paidAt?: number;
   createdBy: Id<"users">;
+  recurringPlanId?: Id<"recurringFeePlans">;
+  installmentIndex?: number;
+  installmentCount?: number;
+  dueDate?: string; // YYYY-MM-DD
+  timezone?: string; // IANA timezone
+  isRecurring?: boolean;
 };
 
 // Default fees configuration (amounts in cents)

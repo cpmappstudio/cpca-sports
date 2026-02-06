@@ -56,8 +56,11 @@ function ApplicationDetailContent({
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [editedFormData, setEditedFormData] = useState<ApplicationFormData | null>(null);
-  const [sectionValidity, setSectionValidity] = useState<Record<string, boolean>>({
+  const [editedFormData, setEditedFormData] =
+    useState<ApplicationFormData | null>(null);
+  const [sectionValidity, setSectionValidity] = useState<
+    Record<string, boolean>
+  >({
     athlete: true,
     address: true,
     school: true,
@@ -90,9 +93,11 @@ function ApplicationDetailContent({
 
   // Mutations
   const createFee = useMutation(api.fees.create);
+  const createRecurringPlan = useMutation(api.fees.createRecurringPlan);
   const removeFee = useMutation(api.fees.remove);
   const recordManualPayment = useMutation(api.fees.recordManualPayment);
   const updateFee = useMutation(api.fees.update);
+  const updateRecurringSeries = useMutation(api.fees.updateRecurringSeries);
   const updateFormData = useMutation(api.applications.updateFormData);
 
   // Document mutations
@@ -116,7 +121,10 @@ function ApplicationDetailContent({
 
   // Callback to update edited form data from child cards
   const handleSectionDataChange = useCallback(
-    (sectionKey: string, sectionData: Record<string, string | number | boolean | null>) => {
+    (
+      sectionKey: string,
+      sectionData: Record<string, string | number | boolean | null>,
+    ) => {
       setEditedFormData((prev) => {
         const base = prev ?? application?.formData ?? {};
         return {
@@ -128,7 +136,7 @@ function ApplicationDetailContent({
         };
       });
     },
-    [application?.formData]
+    [application?.formData],
   );
 
   // Handler to save edited form data
@@ -187,7 +195,7 @@ function ApplicationDetailContent({
         [sectionKey]: isValid,
       }));
     },
-    []
+    [],
   );
 
   // Loading state
@@ -288,61 +296,85 @@ function ApplicationDetailContent({
             )}
             <Accordion
               type="multiple"
-              value={isEditing ? ["athlete", "address", "school", "parents", "general"] : undefined}
+              value={
+                isEditing
+                  ? ["athlete", "address", "school", "parents", "general"]
+                  : undefined
+              }
               className="w-full"
             >
               <AccordionItem value="athlete">
                 <AccordionTrigger>{t("sections.athlete")}</AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationOverviewCard 
-                    application={application} 
-                    isEditing={isEditing} 
-                    onDataChange={(data) => handleSectionDataChange("athlete", data)}
-                    onValidationChange={(isValid) => handleSectionValidityChange("athlete", isValid)}
+                  <ApplicationOverviewCard
+                    application={application}
+                    isEditing={isEditing}
+                    onDataChange={(data) =>
+                      handleSectionDataChange("athlete", data)
+                    }
+                    onValidationChange={(isValid) =>
+                      handleSectionValidityChange("athlete", isValid)
+                    }
                   />
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="address">
                 <AccordionTrigger>{t("sections.address")}</AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationAddressCard 
-                    application={application} 
+                  <ApplicationAddressCard
+                    application={application}
                     isEditing={isEditing}
-                    onDataChange={(data) => handleSectionDataChange("address", data)}
-                    onValidationChange={(isValid) => handleSectionValidityChange("address", isValid)}
+                    onDataChange={(data) =>
+                      handleSectionDataChange("address", data)
+                    }
+                    onValidationChange={(isValid) =>
+                      handleSectionValidityChange("address", isValid)
+                    }
                   />
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="school">
                 <AccordionTrigger>{t("sections.school")}</AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationSchoolCard 
-                    application={application} 
+                  <ApplicationSchoolCard
+                    application={application}
                     isEditing={isEditing}
-                    onDataChange={(data) => handleSectionDataChange("school", data)}
-                    onValidationChange={(isValid) => handleSectionValidityChange("school", isValid)}
+                    onDataChange={(data) =>
+                      handleSectionDataChange("school", data)
+                    }
+                    onValidationChange={(isValid) =>
+                      handleSectionValidityChange("school", isValid)
+                    }
                   />
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="parents">
                 <AccordionTrigger>{t("sections.parents")}</AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationParentsCard 
-                    application={application} 
+                  <ApplicationParentsCard
+                    application={application}
                     isEditing={isEditing}
-                    onDataChange={(data) => handleSectionDataChange("parents", data)}
-                    onValidationChange={(isValid) => handleSectionValidityChange("parents", isValid)}
+                    onDataChange={(data) =>
+                      handleSectionDataChange("parents", data)
+                    }
+                    onValidationChange={(isValid) =>
+                      handleSectionValidityChange("parents", isValid)
+                    }
                   />
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="general">
                 <AccordionTrigger>{t("sections.general")}</AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationGeneralCard 
-                    application={application} 
+                  <ApplicationGeneralCard
+                    application={application}
                     isEditing={isEditing}
-                    onDataChange={(data) => handleSectionDataChange("general", data)}
-                    onValidationChange={(isValid) => handleSectionValidityChange("general", isValid)}
+                    onDataChange={(data) =>
+                      handleSectionDataChange("general", data)
+                    }
+                    onValidationChange={(isValid) =>
+                      handleSectionValidityChange("general", isValid)
+                    }
                   />
                 </AccordionContent>
               </AccordionItem>
@@ -379,9 +411,11 @@ function ApplicationDetailContent({
                   organizationSlug={organizationSlug}
                   fees={fees ?? []}
                   onAddFee={createFee}
+                  onAddRecurringPlan={createRecurringPlan}
                   onRemoveFee={removeFee}
                   onRecordPayment={recordManualPayment}
                   onUpdateFee={updateFee}
+                  onUpdateRecurringFee={updateRecurringSeries}
                   onCreatePaymentLink={createPaymentLink}
                 />
               )}

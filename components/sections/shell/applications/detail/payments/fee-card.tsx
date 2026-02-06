@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,8 @@ import {
   Check,
   ExternalLink,
   User,
+  Repeat,
+  type LucideIcon,
 } from "lucide-react";
 import {
   type PaymentMethod,
@@ -40,7 +42,10 @@ import {
 } from "@/lib/utils/currency";
 import { format } from "date-fns";
 import { Id } from "@/convex/_generated/dataModel";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { getFeeDueBucket, isRecurringFee } from "@/lib/payments/due-status";
+import { toast } from "sonner";
+import { RecurringFeeEditDialog } from "./recurring-fee-edit-dialog";
 
 interface TransactionInfo {
   method: PaymentMethod;
@@ -50,6 +55,7 @@ interface TransactionInfo {
 
 interface FeeCardProps {
   fee: Fee;
+  recurringInstallments?: Fee[];
   showCheckbox?: boolean;
   isSelected?: boolean;
   onSelect?: (checked: boolean) => void;
@@ -58,12 +64,44 @@ interface FeeCardProps {
   onUpdate?: (
     feeId: Id<"fees">,
     name: string,
-    totalAmount: number,
+    totalAmount?: number,
+    scope?: "single" | "this_and_following",
   ) => Promise<void>;
+  onUpdateRecurring?: (args: {
+    feeId: Id<"fees">;
+    name: string;
+    totalAmount: number;
+    startDate: string;
+    endDate: string;
+    dueDayOfMonth: number;
+    timezone: string;
+    isRefundable: boolean;
+    isIncluded: boolean;
+    isRequired: boolean;
+    installmentAmounts: number[];
+  }) => Promise<void>;
   transactionInfo?: TransactionInfo;
 }
 
-const getStatusConfig = (t: any) => ({
+type StatusConfig = {
+  icon: LucideIcon;
+  iconColor: string;
+  badgeVariant: "secondary" | "outline";
+  badgeClassName: string;
+  label: string;
+};
+
+type StatusTranslator = (key: string) => string;
+
+type DueBadgeConfig = {
+  variant: "outline" | "destructive";
+  className?: string;
+  label: string;
+};
+
+const getStatusConfig = (
+  t: StatusTranslator,
+): Record<Fee["status"], StatusConfig> => ({
   paid: {
     icon: CheckCircle2,
     iconColor: "text-green-500",
@@ -88,18 +126,75 @@ const getStatusConfig = (t: any) => ({
   },
 });
 
+const getDueBadgeConfig = (
+  t: StatusTranslator,
+  dueBucket: ReturnType<typeof getFeeDueBucket>,
+): DueBadgeConfig | null => {
+  if (dueBucket === "none") {
+    return null;
+  }
+
+  if (dueBucket === "overdue") {
+    return {
+      variant: "destructive",
+      className: "gap-1",
+      label: t("dueStatuses.overdue"),
+    };
+  }
+
+  if (dueBucket === "due_today") {
+    return {
+      variant: "outline",
+      className:
+        "gap-1 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      label: t("dueStatuses.dueToday"),
+    };
+  }
+
+  return {
+    variant: "outline",
+    className:
+      "gap-1 border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+    label: t("dueStatuses.upcoming"),
+  };
+};
+
+function parseDueDateString(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
 export function FeeCard({
   fee,
+  recurringInstallments,
   showCheckbox = false,
   isSelected = false,
   onSelect,
-  onRemove,
-  onMarkAsPaid,
   onUpdate,
+  onUpdateRecurring,
   transactionInfo,
 }: FeeCardProps) {
   const tTransactions = useTranslations("Applications.transactions");
   const t = useTranslations("Applications.payments");
+  const locale = useLocale();
   const { isAdmin } = useIsAdmin();
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(fee.name);
@@ -107,12 +202,44 @@ export function FeeCard({
     centsToDollars(fee.totalAmount),
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [isRecurringDialogOpen, setIsRecurringDialogOpen] = useState(false);
   const editContainerRef = useRef<HTMLDivElement>(null);
 
   const statusConfig = getStatusConfig(t)[fee.status];
   const StatusIcon = statusConfig.icon;
 
   const canEditAmount = fee.paidAmount === 0;
+  const recurring = isRecurringFee(fee);
+  const dueBucket = getFeeDueBucket(fee);
+  const dueBadgeConfig = getDueBadgeConfig(t, dueBucket);
+  const formattedDueDate = useMemo(() => {
+    if (!fee.dueDate) {
+      return null;
+    }
+
+    const parsedDate = parseDueDateString(fee.dueDate);
+    if (!parsedDate) {
+      return fee.dueDate;
+    }
+
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        timeZone: fee.timezone ?? "America/New_York",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }).format(parsedDate);
+    } catch {
+      return fee.dueDate;
+    }
+  }, [fee.dueDate, fee.timezone, locale]);
+
+  const handleCancel = useCallback(() => {
+    setIsEditing(false);
+    setEditedName(fee.name);
+    setEditedAmountDollars(centsToDollars(fee.totalAmount));
+    setIsRecurringDialogOpen(false);
+  }, [fee.name, fee.totalAmount]);
 
   // Handle click outside to cancel editing
   useEffect(() => {
@@ -136,7 +263,7 @@ export function FeeCard({
       clearTimeout(timeoutId);
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isEditing]);
+  }, [isEditing, handleCancel]);
 
   const dateText =
     fee.status === "paid" && fee.paidAt
@@ -146,33 +273,43 @@ export function FeeCard({
         : null;
 
   const handleEdit = () => {
+    if (recurring && onUpdateRecurring) {
+      setIsRecurringDialogOpen(true);
+      return;
+    }
+
     setIsEditing(true);
     setEditedName(fee.name);
     setEditedAmountDollars(centsToDollars(fee.totalAmount));
   };
 
-  const handleSave = async () => {
-    if (!onUpdate || !editedName.trim()) return;
+  const handleSaveInline = async () => {
+    if (!onUpdate || !editedName.trim()) {
+      return;
+    }
+
+    const nextAmount = canEditAmount
+      ? dollarsToCents(editedAmountDollars)
+      : fee.totalAmount;
+    const amountChanged = canEditAmount && nextAmount !== fee.totalAmount;
+    const nameChanged = editedName.trim() !== fee.name;
+    const totalAmountToSend = amountChanged ? nextAmount : undefined;
+
+    if (!amountChanged && !nameChanged) {
+      setIsEditing(false);
+      return;
+    }
 
     setIsSaving(true);
     try {
-      const totalAmount = canEditAmount
-        ? dollarsToCents(editedAmountDollars)
-        : fee.totalAmount;
-
-      await onUpdate(fee._id, editedName.trim(), totalAmount);
+      await onUpdate(fee._id, editedName.trim(), totalAmountToSend, "single");
       setIsEditing(false);
     } catch (error) {
       console.error("Failed to update fee:", error);
+      toast.error(t("errors.saveFeeFailed"));
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setEditedName(fee.name);
-    setEditedAmountDollars(centsToDollars(fee.totalAmount));
   };
 
   const content = (
@@ -203,6 +340,15 @@ export function FeeCard({
               {fee.isDefault && (
                 <Badge variant="outline" className="text-xs">
                   {t("feeBadges.default")}
+                </Badge>
+              )}
+              {dueBadgeConfig && (
+                <Badge
+                  variant={dueBadgeConfig.variant}
+                  className={dueBadgeConfig.className}
+                >
+                  <Repeat className="size-3" />
+                  {dueBadgeConfig.label}
                 </Badge>
               )}
             </div>
@@ -267,6 +413,15 @@ export function FeeCard({
                   {formatCurrency(fee.totalAmount)}
                 </span>
               )}
+
+              {recurring && fee.dueDate && (
+                <>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t("dueDate", { date: formattedDueDate ?? fee.dueDate })}
+                  </span>
+                </>
+              )}
             </div>
 
             {fee.paidAmount > 0 && fee.status !== "paid" && (
@@ -326,7 +481,7 @@ export function FeeCard({
                     size="icon-sm"
                     variant="outline"
                     className="rounded-full"
-                    onClick={handleSave}
+                    onClick={handleSaveInline}
                     disabled={isSaving || !editedName.trim()}
                   >
                     <Check className="h-4 w-4" />
@@ -401,6 +556,17 @@ export function FeeCard({
     </div>
   );
 
+  const recurringEditDialog =
+    recurring && onUpdateRecurring ? (
+      <RecurringFeeEditDialog
+        open={isRecurringDialogOpen}
+        onOpenChange={setIsRecurringDialogOpen}
+        fee={fee}
+        installments={recurringInstallments ?? [fee]}
+        onSave={onUpdateRecurring}
+      />
+    ) : null;
+
   if (showCheckbox && onSelect) {
     const handleClick = (e: React.MouseEvent) => {
       // Don't toggle if clicking on buttons or inputs
@@ -412,24 +578,35 @@ export function FeeCard({
     };
 
     return (
-      <FieldLabel
-        htmlFor={`fee-${fee._id}`}
-        className="!border-0 !rounded-none w-full [&>[data-slot=field]]:!border-0 [&>[data-slot=field]]:!rounded-none [&>[data-slot=field]]:!p-0"
-      >
-        <Field orientation="horizontal" className="w-full">
-          <Checkbox
-            id={`fee-${fee._id}`}
-            name={`fee-${fee._id}`}
-            checked={isSelected}
-            className="sr-only"
-          />
-          <FieldContent onClick={handleClick} className="cursor-pointer w-full">
-            <Item>{content}</Item>
-          </FieldContent>
-        </Field>
-      </FieldLabel>
+      <>
+        <FieldLabel
+          htmlFor={`fee-${fee._id}`}
+          className="!border-0 !rounded-none w-full [&>[data-slot=field]]:!border-0 [&>[data-slot=field]]:!rounded-none [&>[data-slot=field]]:!p-0"
+        >
+          <Field orientation="horizontal" className="w-full">
+            <Checkbox
+              id={`fee-${fee._id}`}
+              name={`fee-${fee._id}`}
+              checked={isSelected}
+              className="sr-only"
+            />
+            <FieldContent
+              onClick={handleClick}
+              className="cursor-pointer w-full"
+            >
+              <Item>{content}</Item>
+            </FieldContent>
+          </Field>
+        </FieldLabel>
+        {recurringEditDialog}
+      </>
     );
   }
 
-  return <Item>{content}</Item>;
+  return (
+    <>
+      <Item>{content}</Item>
+      {recurringEditDialog}
+    </>
+  );
 }

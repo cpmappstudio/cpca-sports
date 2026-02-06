@@ -41,6 +41,13 @@ const paymentLinkStatus = v.union(
   v.literal("expired"),
 );
 
+const recurringCadence = v.union(v.literal("monthly"));
+
+const recurringPlanStatus = v.union(
+  v.literal("active"),
+  v.literal("completed"),
+);
+
 const documentStatus = v.union(
   v.literal("pending"),
   v.literal("approved"),
@@ -140,6 +147,24 @@ export default defineSchema({
     .index("byStatus", ["status"])
     .index("byApplicationCode", ["applicationCode"]),
 
+  recurringFeePlans: defineTable({
+    applicationId: v.id("applications"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    cadence: recurringCadence,
+    startDate: v.string(), // YYYY-MM-DD
+    endDate: v.string(), // YYYY-MM-DD
+    dueDayOfMonth: v.number(), // 1-31
+    timezone: v.string(), // IANA timezone
+    totalAmount: v.number(), // In cents
+    downPaymentAmount: v.optional(v.number()), // In cents
+    installmentCount: v.number(),
+    status: recurringPlanStatus,
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("byApplication", ["applicationId"]),
+
   fees: defineTable({
     applicationId: v.id("applications"),
     name: v.string(),
@@ -155,9 +180,16 @@ export default defineSchema({
     createdAt: v.number(),
     paidAt: v.optional(v.number()),
     createdBy: v.id("users"),
+    recurringPlanId: v.optional(v.id("recurringFeePlans")),
+    installmentIndex: v.optional(v.number()),
+    installmentCount: v.optional(v.number()),
+    dueDate: v.optional(v.string()), // YYYY-MM-DD
+    timezone: v.optional(v.string()), // IANA timezone
+    isRecurring: v.optional(v.boolean()),
   })
     .index("byApplication", ["applicationId"])
-    .index("byStatus", ["status"]),
+    .index("byStatus", ["status"])
+    .index("byRecurringPlan", ["recurringPlanId"]),
 
   transactions: defineTable({
     applicationId: v.id("applications"),

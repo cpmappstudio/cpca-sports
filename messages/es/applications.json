@@ -129,6 +129,7 @@
       "markAsPaid": "Marcar como Pagado",
       "markingAsPaid": "Marcando como Pagado...",
       "delete": "Eliminar",
+      "deleting": "Eliminando...",
       "addFee": "Agregar Tarifa",
       "cancel": "Cancelar",
       "tooltips": {
@@ -144,6 +145,12 @@
         "cancel": "Cancelar",
         "confirm": "Eliminar"
       },
+      "deleteRecurringScopeDialog": {
+        "title": "¿Eliminar cuotas recurrentes?",
+        "description": "Elige si los cobros recurrentes deben eliminar solo la(s) cuota(s) seleccionada(s) o también cada cuota siguiente del mismo plan.",
+        "single": "Solo cuota(s) seleccionada(s)",
+        "thisAndFollowing": "Seleccionadas y siguientes"
+      },
       "markAsPaidDialog": {
         "title": "¿Marcar como pagado en efectivo?",
         "description": "Esto marcará las tarifas seleccionadas como completamente pagadas mediante pago en efectivo. Esta acción no se puede deshacer.",
@@ -157,6 +164,18 @@
       "feeNamePlaceholder": "Ingresa el nombre de la tarifa",
       "totalAmount": "Monto Total ($)",
       "amountPlaceholder": "0.00",
+      "recurring": "Cobro mensual recurrente",
+      "startDate": "Mes de inicio",
+      "endDate": "Mes final",
+      "dueDayOfMonth": "Día límite de pago",
+      "timezone": "Zona horaria",
+      "downPaymentAmount": "Primer pago ($)",
+      "selectDateRange": "Selecciona fecha de inicio y fin",
+      "recurringPreview": "Este plan generará automáticamente {count} cuotas mensuales.",
+      "timezones": {
+        "easternUs": "Hora del Este (EE. UU.)",
+        "puertoRico": "Puerto Rico (AST)"
+      },
       "refundable": "Reembolsable",
       "included": "Incluido",
       "required": "Requerido",
@@ -164,6 +183,14 @@
       "addButton": "Agregar Tarifa"
     },
     "emptyState": "Todas las tarifas han sido pagadas. Consulta la pestaña de Historial de Transacciones para ver los registros de pago.",
+    "activeFees": {
+      "title": "Cobros actuales para procesar",
+      "empty": "No hay cobros vencidos hoy. Las próximas cuotas recurrentes se muestran abajo."
+    },
+    "projection": {
+      "title": "Próximas cuotas recurrentes",
+      "description": "Solo proyección. Estas cuotas estarán disponibles en su fecha de vencimiento."
+    },
     "feeStatuses": {
       "paid": "Pagado",
       "partiallyPaid": "Parcialmente Pagado",
@@ -172,8 +199,78 @@
     "feeBadges": {
       "required": "Requerido",
       "default": "Predeterminado",
+      "recurring": "Recurrente",
       "refundable": "Reembolsable",
       "included": "Incluido"
+    },
+    "dueDate": "Vence {date}",
+    "dueStatuses": {
+      "overdue": "Atrasado",
+      "dueToday": "Vence hoy",
+      "upcoming": "Próximo"
+    },
+    "editRecurringScope": {
+      "title": "Actualizar cuota recurrente",
+      "description": "Elige si este cambio aplica solo a esta cuota o si debe redistribuirse en esta y las siguientes.",
+      "cancel": "Cancelar",
+      "single": "Solo esta cuota",
+      "thisAndFollowing": "Esta y siguientes"
+    },
+    "recurringEditDialog": {
+      "title": "Editar cobros recurrentes",
+      "description": "Actualiza el cronograma recurrente proyectado y revisa cómo se distribuye cada cuota próxima.",
+      "form": {
+        "title": "Configuración recurrente"
+      },
+      "fields": {
+        "name": "Nombre de la tarifa",
+        "totalAmount": "Monto total de las cuotas proyectadas ($)",
+        "startDate": "Mes de inicio",
+        "endDate": "Mes final",
+        "rangePlaceholder": "Selecciona mes de inicio y fin",
+        "dueDayOfMonth": "Día límite de pago",
+        "timezone": "Zona horaria"
+      },
+      "projection": {
+        "title": "Cuotas proyectadas",
+        "description": "Vista previa de todas las cuotas próximas después de aplicar estos cambios."
+      },
+      "summary": {
+        "installments": "Cuotas",
+        "total": "Total proyectado",
+        "average": "Promedio por cuota"
+      },
+      "chart": {
+        "title": "Distribución",
+        "caption": "Cada porción representa el monto de una cuota."
+      },
+      "schedule": {
+        "title": "Cronograma de cuotas",
+        "description": "Ajusta cualquier cuota. Las cuotas restantes se redistribuyen automáticamente.",
+        "empty": "Selecciona un rango válido para previsualizar el cronograma proyectado.",
+        "installment": "Cuota {index}",
+        "manual": "Personalizado",
+        "indicators": {
+          "automatic": "Distribución automática",
+          "custom": "Monto personalizado",
+          "paid": "Cuota pagada (bloqueada)",
+          "locked": "Fuera del alcance de esta edición"
+        }
+      },
+      "warnings": {
+        "paidInstallments": "No puedes reconfigurar este rango proyectado porque una o más cuotas ya tienen pagos."
+      },
+      "cancel": "Cancelar",
+      "save": "Guardar cambios recurrentes",
+      "saving": "Guardando...",
+      "errors": {
+        "invalidAmount": "El monto debe ser mayor que 0.",
+        "invalidRange": "Selecciona un mes de inicio y fin válidos.",
+        "paidInstallments": "Hay una cuota pagada dentro del rango recurrente seleccionado.",
+        "lockedExceedsTotal": "Los montos personalizados de cuotas exceden el monto total.",
+        "totalMismatch": "Cuando todas las cuotas son personalizadas, su suma debe coincidir con el monto total.",
+        "saveFailed": "No se pudieron guardar los cambios recurrentes. Inténtalo de nuevo."
+      }
     },
     "feeProgress": {
       "progress": "Progreso",
@@ -182,6 +279,9 @@
     "feeTooltips": {
       "created": "Creado",
       "paid": "Pagado"
+    },
+    "errors": {
+      "saveFeeFailed": "No se pudieron guardar los cambios. Inténtalo de nuevo."
     }
   },
   "transactions": {

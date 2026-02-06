@@ -6,17 +6,11 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Search, CalendarIcon } from "lucide-react";
+import { Search } from "lucide-react";
 import { FeeCard } from "./fee-card";
+import { DateRangePopover } from "./date-range-popover";
 import { useTranslations } from "next-intl";
 import { format, isWithinInterval } from "date-fns";
 import { type DateRange } from "react-day-picker";
@@ -94,34 +88,13 @@ export function ApplicationTransactionHistory({
           </InputGroupAddon>
         </InputGroup>
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button className="justify-start px-2.5 font-normal w-72 shrink-0">
-              <CalendarIcon />
-              {dateRange?.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                    {format(dateRange.to, "LLL dd, y")}
-                  </>
-                ) : (
-                  format(dateRange.from, "LLL dd, y")
-                )
-              ) : (
-                <span>{t("filterDate")}</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              defaultMonth={dateRange?.from}
-              selected={dateRange}
-              onSelect={setDateRange}
-              numberOfMonths={2}
-            />
-          </PopoverContent>
-        </Popover>
+        <DateRangePopover
+          dateRange={dateRange}
+          onSelect={setDateRange}
+          placeholder={t("filterDate")}
+          className="w-72 shrink-0 justify-start px-2.5 font-normal"
+          variant="default"
+        />
       </div>
 
       {groupedByMonth.length === 0 ? (

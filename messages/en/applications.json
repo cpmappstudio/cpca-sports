@@ -129,6 +129,7 @@
       "markAsPaid": "Mark as Paid",
       "markingAsPaid": "Marking as Paid...",
       "delete": "Delete",
+      "deleting": "Deleting...",
       "addFee": "Add Fee",
       "cancel": "Cancel",
       "tooltips": {
@@ -144,6 +145,12 @@
         "cancel": "Cancel",
         "confirm": "Delete"
       },
+      "deleteRecurringScopeDialog": {
+        "title": "Delete recurring installments?",
+        "description": "Choose whether recurring charges should remove only the selected installment(s) or also each following installment in the same plan.",
+        "single": "Only selected installment(s)",
+        "thisAndFollowing": "Selected and following installments"
+      },
       "markAsPaidDialog": {
         "title": "Mark as paid in cash?",
         "description": "This will mark the selected fees as fully paid via cash payment. This action cannot be undone.",
@@ -157,6 +164,18 @@
       "feeNamePlaceholder": "Enter fee name",
       "totalAmount": "Total Amount ($)",
       "amountPlaceholder": "0.00",
+      "recurring": "Recurring monthly charge",
+      "startDate": "Start month",
+      "endDate": "End month",
+      "dueDayOfMonth": "Due day of month",
+      "timezone": "Timezone",
+      "downPaymentAmount": "Down payment amount ($)",
+      "selectDateRange": "Select start and end dates",
+      "recurringPreview": "This plan will generate {count} monthly installments automatically.",
+      "timezones": {
+        "easternUs": "Eastern Time (US)",
+        "puertoRico": "Puerto Rico (AST)"
+      },
       "refundable": "Refundable",
       "included": "Included",
       "required": "Required",
@@ -164,6 +183,14 @@
       "addButton": "Add Fee"
     },
     "emptyState": "All fees have been paid. Check the Transaction History tab to view payment records.",
+    "activeFees": {
+      "title": "Current fees to process",
+      "empty": "No fees due right now. Upcoming recurring installments are listed below."
+    },
+    "projection": {
+      "title": "Upcoming recurring installments",
+      "description": "Projection only. These installments become actionable on their due date."
+    },
     "feeStatuses": {
       "paid": "Paid",
       "partiallyPaid": "Partially Paid",
@@ -172,8 +199,78 @@
     "feeBadges": {
       "required": "Required",
       "default": "Default",
+      "recurring": "Recurring",
       "refundable": "Refundable",
       "included": "Included"
+    },
+    "dueDate": "Due {date}",
+    "dueStatuses": {
+      "overdue": "Overdue",
+      "dueToday": "Due today",
+      "upcoming": "Upcoming"
+    },
+    "editRecurringScope": {
+      "title": "Update recurring installment",
+      "description": "Choose whether to apply this change only to this installment or rebalance this and following installments.",
+      "cancel": "Cancel",
+      "single": "Only this installment",
+      "thisAndFollowing": "This and following"
+    },
+    "recurringEditDialog": {
+      "title": "Edit recurring charges",
+      "description": "Update the projected recurring schedule and review how each upcoming installment will be distributed.",
+      "form": {
+        "title": "Recurring settings"
+      },
+      "fields": {
+        "name": "Fee name",
+        "totalAmount": "Total amount for projected installments ($)",
+        "startDate": "Start month",
+        "endDate": "End month",
+        "rangePlaceholder": "Select start and end month",
+        "dueDayOfMonth": "Due day of month",
+        "timezone": "Timezone"
+      },
+      "projection": {
+        "title": "Projected installments",
+        "description": "Preview of every upcoming installment after applying these changes."
+      },
+      "summary": {
+        "installments": "Installments",
+        "total": "Projected total",
+        "average": "Average installment"
+      },
+      "chart": {
+        "title": "Distribution",
+        "caption": "Each slice represents one installment amount."
+      },
+      "schedule": {
+        "title": "Installment timeline",
+        "description": "Adjust any installment amount. Remaining installments rebalance automatically.",
+        "empty": "Select a valid range to preview the projected schedule.",
+        "installment": "Installment {index}",
+        "manual": "Custom",
+        "indicators": {
+          "automatic": "Automatic distribution",
+          "custom": "Custom amount",
+          "paid": "Paid installment (locked)",
+          "locked": "Outside current edit scope"
+        }
+      },
+      "warnings": {
+        "paidInstallments": "You cannot reconfigure this projected range because one or more installments in it already have payments."
+      },
+      "cancel": "Cancel",
+      "save": "Save recurring changes",
+      "saving": "Saving...",
+      "errors": {
+        "invalidAmount": "Amount must be greater than 0.",
+        "invalidRange": "Select a valid start and end month.",
+        "paidInstallments": "A paid installment exists in the selected recurring range.",
+        "lockedExceedsTotal": "Custom installment amounts exceed the total amount.",
+        "totalMismatch": "When all installments are custom, their sum must match the total amount.",
+        "saveFailed": "Could not save recurring changes. Please try again."
+      }
     },
     "feeProgress": {
       "progress": "Progress",
@@ -182,6 +279,9 @@
     "feeTooltips": {
       "created": "Created",
       "paid": "Paid"
+    },
+    "errors": {
+      "saveFeeFailed": "Could not save changes. Please try again."
     }
   },
   "transactions": {
