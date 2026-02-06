@@ -21,6 +21,12 @@ export function GeneralSettings() {
         height: "auto",
         width: "100%",
       },
+      header : {
+        display: "none !important",
+      },
+      footer : {
+        display: "none !important",
+      }
     },
   };
 
