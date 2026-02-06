@@ -59,23 +59,25 @@
 /* CLERK */
 
 .cl-navbar,
-.cl-header,
-.cl-footer,
 .cl-navbarMobileMenuRow {
   display: none !important;
 }
+
 .cl-cardBox.border,
 .cl-profileSection {
   border: none !important;
   border-top-width: 0;
 }
+
 .cl-cardBox.shadow-sm {
   box-shadow: none;
 }
+
 .cl-rootBox.cl-userProfile-root {
   width: 100%;
   box-shadow: none;
 }
+
 .cl-rootBox.cl-userProfile-root .cl-cardBox {
   /*max-height: 428px;*/
   width: 100%;
