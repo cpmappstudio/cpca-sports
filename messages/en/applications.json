@@ -189,7 +189,7 @@
     },
     "projection": {
       "title": "Upcoming recurring installments",
-      "description": "Projection only. These installments become actionable on their due date."
+      "description": "Projection only. Each installment becomes actionable after the current one is paid."
     },
     "feeStatuses": {
       "paid": "Paid",

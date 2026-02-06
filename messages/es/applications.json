@@ -189,7 +189,7 @@
     },
     "projection": {
       "title": "Próximas cuotas recurrentes",
-      "description": "Solo proyección. Estas cuotas estarán disponibles en su fecha de vencimiento."
+      "description": "Solo proyección. Cada cuota se activa cuando se paga la cuota actual."
     },
     "feeStatuses": {
       "paid": "Pagado",
