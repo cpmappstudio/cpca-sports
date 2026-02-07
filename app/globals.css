@@ -94,6 +94,14 @@
   padding: 0;
 }
 
+.cl-signIn-password .cl-footerActionLink {
+  color: red !important;
+}
+
+.cl-signIn-password .cl-footerActionLink:hover {
+  color: red !important;
+}
+
 :root,
 [data-theme="zinc"] {
   --radius: 0.65rem;

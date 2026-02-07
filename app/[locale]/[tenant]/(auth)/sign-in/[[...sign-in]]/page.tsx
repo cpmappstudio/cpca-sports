@@ -50,7 +50,7 @@ export default async function TenantSignInPage({ params }: PageProps) {
           },
           headerTitle: {
             marginTop: "0.5rem",
-            },
+          },
           headerSubtitle: {
             color: "oklch(0.5 0.01 270)",
           },
