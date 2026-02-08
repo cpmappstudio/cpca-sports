@@ -238,7 +238,8 @@
       "summary": {
         "installments": "Cuotas",
         "total": "Total proyectado",
-        "average": "Promedio por cuota"
+        "average": "Promedio por cuota",
+        "downPayment": "Primer pago"
       },
       "chart": {
         "title": "Distribución",

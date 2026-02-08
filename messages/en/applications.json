@@ -238,7 +238,8 @@
       "summary": {
         "installments": "Installments",
         "total": "Projected total",
-        "average": "Average installment"
+        "average": "Average installment",
+        "downPayment": "Down payment"
       },
       "chart": {
         "title": "Distribution",

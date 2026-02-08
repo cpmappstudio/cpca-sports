@@ -601,10 +601,7 @@ export function RecurringFeeEditDialog({
     return distributionChartData.reduce((sum, item) => sum + item.amount, 0);
   }, [distributionChartData]);
 
-  const averageInstallmentAmount =
-    distributionChartData.length > 0
-      ? Math.round(fullPlanTotal / distributionChartData.length)
-      : 0;
+  const initialDownPaymentAmount = orderedInstallments[0]?.totalAmount ?? 0;
 
   const distributionTooltip = ({
     active,
@@ -924,10 +921,10 @@ export function RecurringFeeEditDialog({
                       </div>
                       <div className="rounded-md border bg-muted/30 px-3 py-2">
                         <p className="text-xs text-muted-foreground">
-                          {t("recurringEditDialog.summary.average")}
+                          {t("recurringEditDialog.summary.downPayment")}
                         </p>
                         <p className="text-sm font-semibold">
-                          {formatCurrency(averageInstallmentAmount)}
+                          {formatCurrency(initialDownPaymentAmount)}
                         </p>
                       </div>
                     </div>
