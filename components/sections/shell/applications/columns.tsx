@@ -15,6 +15,7 @@ import type { IconType } from "react-icons";
 import { Mail, Phone, CircleX, CircleCheck } from "lucide-react";
 import { ApplicationPhoto } from "./detail/pre-admission/application-photo";
 import { Id } from "@/convex/_generated/dataModel";
+import { getCountryName } from "@/lib/countries/countries";
 
 const SPORT_ICONS: Record<string, IconType> = {
   baseball: CiBaseball,
@@ -158,7 +159,7 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
                   <div className="inline-flex items-center text-xs">
                     <span className="font-mono uppercase">{t("birth")}:</span>
                     <span className="text-muted-foreground ml-1">
-                      {countryOfBirth}
+                      {getCountryName(countryOfBirth) || "-"}
                     </span>
                   </div>
                 )}
@@ -168,7 +169,7 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
                       {t("citizenship")}:
                     </span>
                     <span className="text-muted-foreground ml-1">
-                      {countryOfCitizen}
+                      {getCountryName(countryOfCitizen) || "-"}
                     </span>
                   </div>
                 )}
@@ -249,14 +250,14 @@ export function useAdminApplicationColumns(): ColumnDef<Application>[] {
             <div className="inline-flex items-center text-xs">
               <span className="font-mono uppercase">{t("birth")}:</span>
               <span className="text-muted-foreground ml-1">
-                {countryOfBirth}
+                {getCountryName(countryOfBirth) || "-"}
               </span>
             </div>
 
             <div className="inline-flex items-center text-xs">
               <span className="font-mono uppercase">{t("citizenship")}:</span>
               <span className="text-muted-foreground ml-1">
-                {countryOfCitizen}
+                {getCountryName(countryOfCitizen) || "-"}
               </span>
             </div>
           </div>
@@ -410,8 +411,8 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
           | undefined;
 
         return (
-          <div className="flex items-start gap-3">
-            <div className="shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex shrink-0">
               {photoStorageId ? (
                 <ApplicationPhoto
                   storageId={photoStorageId}
@@ -467,7 +468,7 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
                   <div className="inline-flex items-center text-xs">
                     <span className="font-mono uppercase">{t("birth")}:</span>
                     <span className="text-muted-foreground ml-1">
-                      {countryOfBirth}
+                      {getCountryName(countryOfBirth) || "-"}
                     </span>
                   </div>
                 )}
@@ -477,7 +478,7 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
                       {t("citizenship")}:
                     </span>
                     <span className="text-muted-foreground ml-1">
-                      {countryOfCitizen}
+                      {getCountryName(countryOfCitizen) || "-"}
                     </span>
                   </div>
                 )}
@@ -559,14 +560,14 @@ export function useClientApplicationColumns(): ColumnDef<Application>[] {
             <div className="inline-flex items-center text-xs">
               <span className="font-mono uppercase">{t("birth")}:</span>
               <span className="text-muted-foreground ml-1">
-                {countryOfBirth}
+                {getCountryName(countryOfBirth) || "-"}
               </span>
             </div>
 
             <div className="inline-flex items-center text-xs">
               <span className="font-mono uppercase">{t("citizenship")}:</span>
               <span className="text-muted-foreground ml-1">
-                {countryOfCitizen}
+                {getCountryName(countryOfCitizen) || "-"}
               </span>
             </div>
           </div>

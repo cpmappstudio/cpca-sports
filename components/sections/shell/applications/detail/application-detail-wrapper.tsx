@@ -42,12 +42,14 @@ interface ApplicationDetailWrapperProps {
   preloadedApplication: Preloaded<typeof api.applications.getById>;
   organizationSlug: string;
   applicationId: string;
+  organizationLogoUrl?: string;
 }
 
 function ApplicationDetailContent({
   preloadedApplication,
   organizationSlug,
   applicationId,
+  organizationLogoUrl,
 }: ApplicationDetailWrapperProps) {
   const application = usePreloadedQuery(preloadedApplication);
   const t = useTranslations("Applications");
@@ -219,6 +221,7 @@ function ApplicationDetailContent({
             totalDue={totalDue}
             totalPaid={totalPaid}
             totalPending={totalPending}
+            organizationLogoUrl={organizationLogoUrl}
           />
         </div>
       </div>

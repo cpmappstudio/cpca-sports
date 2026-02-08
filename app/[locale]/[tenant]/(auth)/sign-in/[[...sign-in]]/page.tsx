@@ -22,7 +22,7 @@ export default async function TenantSignInPage({ params }: PageProps) {
   return (
     <SignIn
       signUpUrl={`/${tenant}/sign-up`}
-      forceRedirectUrl={`/${tenant}/applications`}
+      forceRedirectUrl={`/${tenant}`}
       appearance={{
         elements: {
           rootBox: {
@@ -50,7 +50,7 @@ export default async function TenantSignInPage({ params }: PageProps) {
           },
           headerTitle: {
             marginTop: "0.5rem",
-            },
+          },
           headerSubtitle: {
             color: "oklch(0.5 0.01 270)",
           },
