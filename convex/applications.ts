@@ -1,7 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { getCurrentUser } from "./lib/auth";
+import { getCurrentUser, getCurrentUserOrNull } from "./lib/auth";
 import { requireOrgAccess, hasOrgAdminAccess } from "./lib/permissions";
 import { formDataValidator, applicationStatus } from "./lib/validators";
 
@@ -352,7 +352,10 @@ export const listMine = query({
   args: {},
   returns: v.array(applicationValidator),
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
+    const user = await getCurrentUserOrNull(ctx);
+    if (!user) {
+      return [];
+    }
 
     return await ctx.db
       .query("applications")

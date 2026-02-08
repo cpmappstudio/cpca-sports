@@ -78,7 +78,7 @@ export default async function SignInPage({ params }: PageProps) {
           },
           footerAction: {
             backgroundColor: "oklch(0.2 0.1 258.72)",
-            display: "flex",
+            display: "none",
             justifyContent: "center",
           },
           footerActionText: {

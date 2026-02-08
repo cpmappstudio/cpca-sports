@@ -15,7 +15,19 @@
     },
     "members": {
       "title": "Organization members",
-      "description": "Manage members, roles, and permissions"
+      "description": "Manage members, roles, and permissions",
+      "invite": {
+        "title": "Invite member",
+        "description": "Send invitations with the correct tenant redirect.",
+        "emailPlaceholder": "email@example.com",
+        "roleMember": "Member",
+        "roleAdmin": "Admin",
+        "submit": "Send invite",
+        "submitting": "Sending...",
+        "success": "Invitation sent successfully.",
+        "error": "Unable to send invitation.",
+        "emailRequired": "Email is required."
+      }
     },
     "appearance": {
       "title": "Appearance",

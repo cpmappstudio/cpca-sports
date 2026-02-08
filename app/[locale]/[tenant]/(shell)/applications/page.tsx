@@ -56,8 +56,11 @@ export default async function ApplicationsPage({ params }: PageProps) {
     { token },
   );
   const applications = preloadedQueryResult(preloadedApplications);
+  const scopedApplications = organization
+    ? applications.filter((item) => item.organizationId === organization._id)
+    : [];
 
-  if (applications.length === 0) {
+  if (scopedApplications.length === 0) {
     redirect(ROUTES.org.applications.create(tenant));
   }
 
@@ -71,6 +74,7 @@ export default async function ApplicationsPage({ params }: PageProps) {
       <ApplicationsTableWrapper
         preloadedApplications={preloadedApplications}
         organizationSlug={tenant}
+        organizationId={organization?._id}
       />
     </>
   );

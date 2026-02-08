@@ -20,6 +20,7 @@ const isPublicRoute = createRouteMatcher([
 
 // Admin routes are blocked at proxy level.
 const isAdminRoute = createRouteMatcher(["/admin(.*)", "/:locale/admin(.*)"]);
+const isApiRoute = createRouteMatcher(["/api(.*)", "/trpc(.*)"]);
 
 // Reserved paths that are not tenant slugs
 const RESERVED_PATHS = new Set([
@@ -84,6 +85,13 @@ export default clerkMiddleware(
     const authObject = await auth();
     const { userId } = authObject;
     const isAuthenticated = !!userId;
+
+    if (isApiRoute(req)) {
+      if (!isAuthenticated) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      return NextResponse.next();
+    }
 
     // Protect all routes except public ones
     if (!isAuthenticated && !isPublicRoute(req)) {

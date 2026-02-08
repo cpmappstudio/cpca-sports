@@ -1,4 +1,4 @@
-import { SignUp } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
 import { ROUTES } from "@/lib/navigation/routes";
 import { routing } from "@/i18n/routing";
 
@@ -9,11 +9,5 @@ interface PageProps {
 export default async function SignUpPage({ params }: PageProps) {
   const { locale } = await params;
   const localePrefix = locale === routing.defaultLocale ? "" : `/${locale}`;
-
-  return (
-    <SignUp
-      signInUrl={`${localePrefix}${ROUTES.auth.signIn}`}
-      forceRedirectUrl={`${localePrefix}${ROUTES.auth.organizations}`}
-    />
-  );
+  redirect(`${localePrefix}${ROUTES.auth.signIn}`);
 }
