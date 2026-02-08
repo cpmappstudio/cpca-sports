@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { routing, locales } from "./i18n/routing";
 
 const intlMiddleware = createIntlMiddleware(routing);
+const ORGANIZATIONS_PATH = "/organizations";
 
 // Only sign-in and sign-up routes are public
 const isPublicRoute = createRouteMatcher([
@@ -17,7 +18,7 @@ const isPublicRoute = createRouteMatcher([
   "/:slug/sign-up(.*)",
 ]);
 
-// Admin routes - only accessible by superadmins
+// Admin routes are blocked at proxy level.
 const isAdminRoute = createRouteMatcher(["/admin(.*)", "/:locale/admin(.*)"]);
 
 // Reserved paths that are not tenant slugs
@@ -25,6 +26,7 @@ const RESERVED_PATHS = new Set([
   "admin",
   "sign-in",
   "sign-up",
+  "organizations",
   "api",
   "_next",
   "static",
@@ -52,10 +54,35 @@ function extractTenant(pathname: string): string | null {
     : null;
 }
 
+function extractLocale(pathname: string): string | null {
+  const segments = pathname.split("/").filter(Boolean);
+  const potentialLocale = segments[0];
+  if (
+    potentialLocale &&
+    locales.includes(potentialLocale as (typeof locales)[number])
+  ) {
+    return potentialLocale;
+  }
+  return null;
+}
+
+function buildLocalizedPath(pathname: string, basePath: string): string {
+  const locale = extractLocale(pathname);
+  return locale ? `/${locale}${basePath}` : basePath;
+}
+
 export default clerkMiddleware(
   async (auth, req) => {
+    if (isAdminRoute(req)) {
+      const redirectPath = buildLocalizedPath(
+        req.nextUrl.pathname,
+        ORGANIZATIONS_PATH,
+      );
+      return NextResponse.redirect(new URL(redirectPath, req.url));
+    }
+
     const authObject = await auth();
-    const { userId, sessionClaims } = authObject;
+    const { userId } = authObject;
     const isAuthenticated = !!userId;
 
     // Protect all routes except public ones
@@ -65,18 +92,6 @@ export default clerkMiddleware(
       const signInUrl = new URL(signInPath, req.url);
       signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
       return NextResponse.redirect(signInUrl);
-    }
-
-    // Protect admin routes - only superadmins can access
-    if (isAdminRoute(req)) {
-      const metadata = sessionClaims?.metadata as
-        | { isSuperAdmin?: boolean }
-        | undefined;
-      const isSuperAdmin = metadata?.isSuperAdmin === true;
-
-      if (!isSuperAdmin) {
-        return NextResponse.redirect(new URL("/", req.url));
-      }
     }
 
     return intlMiddleware(req);

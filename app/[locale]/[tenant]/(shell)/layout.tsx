@@ -5,6 +5,7 @@ import {
 } from "@/components/sections/shell/organizations/app-sidebar";
 import { SidebarLayout } from "@/components/layouts/sidebar-layout";
 import { OrgMismatchError } from "@/components/sections/shell/organizations/org-mismatch-error";
+import { getTenantAccess } from "@/lib/auth/tenant-access";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,11 +16,13 @@ export default async function OrgLayout({ children, params }: LayoutProps) {
   const { tenant } = await params;
   const { orgSlug } = await auth();
 
-  // Validate that the active organization matches the URL
-  // This handles the case where middleware couldn't activate the org
-  // (e.g., user is not a member of the organization in the URL)
+  // Handle active-org lag after sign-in by falling back to membership check.
+  // If user still has no access to this tenant, show the mismatch resolver.
   if (orgSlug !== tenant) {
-    return <OrgMismatchError urlSlug={tenant} />;
+    const { hasAccess } = await getTenantAccess(tenant);
+    if (!hasAccess) {
+      return <OrgMismatchError urlSlug={tenant} />;
+    }
   }
 
   return (

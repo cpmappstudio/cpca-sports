@@ -3,12 +3,21 @@
 // ################################################################################
 
 import { ROUTES } from "@/lib/navigation/routes";
+import { routing } from "@/i18n/routing";
 import { SignIn } from "@clerk/nextjs";
 
-export default function SignInPage() {
+interface PageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function SignInPage({ params }: PageProps) {
+  const { locale } = await params;
+  const localePrefix = locale === routing.defaultLocale ? "" : `/${locale}`;
+
   return (
     <SignIn
-      signUpUrl={ROUTES.auth.signUp}
+      signUpUrl={`${localePrefix}${ROUTES.auth.signUp}`}
+      forceRedirectUrl={`${localePrefix}${ROUTES.auth.organizations}`}
       appearance={{
         elements: {
           rootBox: {

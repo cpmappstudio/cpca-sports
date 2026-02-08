@@ -1,12 +1,14 @@
-import { auth } from "@clerk/nextjs/server";
 import { preloadQuery } from "convex/nextjs";
+import { redirect } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { getAuthToken } from "@/lib/auth/auth";
-import { getTranslations } from 'next-intl/server';
+import { getTranslations } from "next-intl/server";
 import { ApplicationsTableWrapper } from "@/components/sections/shell/applications/applications-table-wrapper";
 import { ApplicationsTableAdminWrapper } from "@/components/sections/shell/applications/applications-table-admin-wrapper";
 import CpcaHeader from "@/components/common/cpca-header";
 import { preloadedQueryResult } from "convex/nextjs";
+import { ROUTES } from "@/lib/navigation/routes";
+import { getTenantAccess } from "@/lib/auth/tenant-access";
 
 interface PageProps {
   params: Promise<{ tenant: string }>;
@@ -15,8 +17,8 @@ interface PageProps {
 export default async function ApplicationsPage({ params }: PageProps) {
   const { tenant } = await params;
   const token = await getAuthToken();
-  const { has } = await auth();
-  const t = await getTranslations('Applications.page');
+  const { isAdmin } = await getTenantAccess(tenant, token);
+  const t = await getTranslations("Applications.page");
 
   // Get organization data for logo
   const preloadedOrganization = await preloadQuery(
@@ -25,12 +27,6 @@ export default async function ApplicationsPage({ params }: PageProps) {
     { token },
   );
   const organization = preloadedQueryResult(preloadedOrganization);
-
-  // Check if user is admin or superadmin using Clerk's official has() method
-  const isSuperAdmin = has?.({ role: "org:superadmin" }) ?? false;
-  const isOrgAdmin = has?.({ role: "org:admin" }) ?? false;
-  const isAdmin = isOrgAdmin || isSuperAdmin;
-  
 
   if (isAdmin) {
     const preloadedApplications = await preloadQuery(
@@ -59,6 +55,11 @@ export default async function ApplicationsPage({ params }: PageProps) {
     {},
     { token },
   );
+  const applications = preloadedQueryResult(preloadedApplications);
+
+  if (applications.length === 0) {
+    redirect(ROUTES.org.applications.create(tenant));
+  }
 
   return (
     <>

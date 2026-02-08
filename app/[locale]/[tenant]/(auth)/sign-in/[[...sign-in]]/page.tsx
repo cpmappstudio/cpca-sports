@@ -22,7 +22,7 @@ export default async function TenantSignInPage({ params }: PageProps) {
   return (
     <SignIn
       signUpUrl={`/${tenant}/sign-up`}
-      forceRedirectUrl={`/${tenant}`}
+      forceRedirectUrl={`/${tenant}/applications`}
       appearance={{
         elements: {
           rootBox: {

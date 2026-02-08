@@ -1,0 +1,22 @@
+import { OrganizationList } from "@clerk/nextjs";
+import { ROUTES } from "@/lib/navigation/routes";
+import { routing } from "@/i18n/routing";
+
+interface PageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function OrganizationListPage({ params }: PageProps) {
+  const { locale } = await params;
+  const localePrefix = locale === routing.defaultLocale ? "" : `/${locale}`;
+  const afterSelectOrganizationUrl = `${localePrefix}/:slug/applications`;
+  const organizationsUrl = `${localePrefix}${ROUTES.auth.organizations}`;
+
+  return (
+    <OrganizationList
+      afterCreateOrganizationUrl={afterSelectOrganizationUrl}
+      afterSelectPersonalUrl={organizationsUrl}
+      afterSelectOrganizationUrl={afterSelectOrganizationUrl}
+    />
+  );
+}

@@ -22,7 +22,7 @@ export default async function TenantSignUpPage({ params }: PageProps) {
   return (
     <SignUp
       signInUrl={`/${tenant}/sign-in`}
-      forceRedirectUrl={`/${tenant}`}
+      forceRedirectUrl={`/${tenant}/applications`}
       unsafeMetadata={{ pendingOrganizationSlug: tenant }}
       appearance={{
         elements: {
@@ -51,7 +51,7 @@ export default async function TenantSignUpPage({ params }: PageProps) {
           },
           headerTitle: {
             marginTop: "0.5rem",
-            },
+          },
           headerSubtitle: {
             color: "oklch(0.5 0.01 270)",
           },
@@ -103,4 +103,3 @@ export default async function TenantSignUpPage({ params }: PageProps) {
     />
   );
 }
-
