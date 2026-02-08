@@ -10,7 +10,7 @@ interface CpcaHeaderProps {
 const CpcaHeader = ({ title, subtitle, logoUrl }: CpcaHeaderProps) => {
   return (
     <header className="flex items-center gap-4 mb-4">
-      <div className="w-15 h-15 shrink-0 rounded-lg overflow-hidden border border-border bg-muted/30 relative">
+      <div className="w-15 h-15 shrink-0 rounded-lg overflow-hidden bg-muted/30 relative">
         <Image
           src={logoUrl || "/cpca-logo.png"}
           alt="Organization Logo"

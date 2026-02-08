@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, internalMutation } from "./_generated/server";
-import { requireSuperAdmin } from "./lib/permissions";
+import { requireSuperAdmin, getOrgMembership } from "./lib/permissions";
+import { getCurrentUserOrNull } from "./lib/auth";
 
 const organizationValidator = v.object({
   _id: v.id("organizations"),
@@ -23,6 +24,35 @@ export const getBySlug = query({
       .query("organizations")
       .withIndex("bySlug", (q) => q.eq("slug", args.slug))
       .unique();
+  },
+});
+
+/**
+ * Check if current user is admin in organization (by slug).
+ * Returns true if user is superadmin or has admin/superadmin role in the org.
+ * Returns false if not authenticated or not admin.
+ */
+export const isAdminInOrg = query({
+  args: { slug: v.string() },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrNull(ctx);
+    if (!user) return false;
+
+    // Global superadmin has access everywhere
+    if (user.isSuperAdmin) return true;
+
+    // Find organization
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("bySlug", (q) => q.eq("slug", args.slug))
+      .unique();
+
+    if (!org) return false;
+
+    // Check membership
+    const membership = await getOrgMembership(ctx, user._id, org._id);
+    return membership?.role === "admin" || membership?.role === "superadmin";
   },
 });
 

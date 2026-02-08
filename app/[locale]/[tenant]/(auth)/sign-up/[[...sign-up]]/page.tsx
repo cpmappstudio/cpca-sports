@@ -22,7 +22,7 @@ export default async function TenantSignUpPage({ params }: PageProps) {
   return (
     <SignUp
       signInUrl={`/${tenant}/sign-in`}
-      forceRedirectUrl={`/${tenant}/applications`}
+      forceRedirectUrl={`/${tenant}`}
       unsafeMetadata={{ pendingOrganizationSlug: tenant }}
       appearance={{
         elements: {

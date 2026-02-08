@@ -63,6 +63,7 @@ interface ApplicationHeaderProps {
   totalDue: number;
   totalPaid: number;
   totalPending: number;
+  organizationLogoUrl?: string;
 }
 
 export function ApplicationHeader({
@@ -71,6 +72,7 @@ export function ApplicationHeader({
   totalDue,
   totalPaid,
   totalPending,
+  organizationLogoUrl,
 }: ApplicationHeaderProps) {
   const t = useTranslations("Applications.detail");
   const tAthlete = useTranslations("preadmission.athlete");
@@ -236,8 +238,17 @@ export function ApplicationHeader({
   };
   return (
     <section className="flex flex-col gap-4">
-      <Card>
-        <CardContent>
+      <Card className="relative overflow-hidden">
+        {organizationLogoUrl && (
+          <div
+            className="absolute inset-0 bg-center bg-no-repeat bg-contain opacity-[0.05] pointer-events-none"
+            style={{
+              backgroundImage: `url(${organizationLogoUrl})`,
+              backgroundSize: '60%',
+            }}
+          />
+        )}
+        <CardContent className="relative">
           <div className="space-y-4">
             <div className="flex items-start gap-4">
               <div className="w-20 h-20 shrink-0 relative">

@@ -26,11 +26,20 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  // Get organization data for logo
+  const preloadedOrganization = await preloadQuery(
+    api.organizations.getBySlug,
+    { slug: tenant },
+    { token },
+  );
+  const organization = preloadedQueryResult(preloadedOrganization);
+
   return (
     <ApplicationDetailWrapper
       preloadedApplication={preloadedApplication}
       organizationSlug={tenant}
       applicationId={applicationId}
+      organizationLogoUrl={organization?.imageUrl}
     />
   );
 }
