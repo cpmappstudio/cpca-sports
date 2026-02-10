@@ -56,6 +56,7 @@ export const listByOrganization = query({
       membership: membershipValidator,
       user: v.object({
         _id: v.id("users"),
+        clerkId: v.string(),
         firstName: v.string(),
         lastName: v.string(),
         email: v.string(),
@@ -97,6 +98,7 @@ export const listByOrganization = query({
           membership,
           user: {
             _id: user._id,
+            clerkId: user.clerkId,
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,

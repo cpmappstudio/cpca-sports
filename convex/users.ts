@@ -1,5 +1,19 @@
-import { query, internalMutation } from "./_generated/server";
+import { action, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { clerkClient } from "./clerk";
+import { api, internal } from "./_generated/api";
+import { DEFAULT_TENANT_SLUG, isSingleTenantMode } from "./lib/tenancy";
+
+type SingleTenantAppRole = "admin" | "member";
+
+type CurrentUserWithMemberships = {
+  clerkId: string;
+  isSuperAdmin: boolean;
+  memberships: Array<{
+    organizationSlug: string;
+    role: "superadmin" | "admin" | "member";
+  }>;
+};
 
 /**
  * Get the current authenticated user's profile with their organization memberships.
@@ -205,6 +219,121 @@ export const deactivateUser = internalMutation({
     if (user) {
       await ctx.db.patch(user._id, { isActive: false });
     }
+
+    return null;
+  },
+});
+
+function hasAdminAccessForOrg(
+  user: CurrentUserWithMemberships,
+  organizationSlug: string,
+): boolean {
+  if (user.isSuperAdmin) {
+    return true;
+  }
+
+  const membership = user.memberships.find(
+    (item) => item.organizationSlug === organizationSlug,
+  );
+  return membership?.role === "admin" || membership?.role === "superadmin";
+}
+
+/**
+ * Update a user's role in single-tenant mode by writing to Clerk publicMetadata.
+ * Convex membership is updated immediately to keep the UI in sync.
+ */
+export const setSingleTenantRole = action({
+  args: {
+    organizationSlug: v.string(),
+    clerkUserId: v.string(),
+    role: v.union(v.literal("admin"), v.literal("member")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (!isSingleTenantMode()) {
+      throw new Error("Single-tenant role updates are not enabled");
+    }
+
+    if (args.organizationSlug !== DEFAULT_TENANT_SLUG) {
+      throw new Error("Organization not found");
+    }
+
+    const currentUser = await ctx.runQuery(api.users.me, {});
+    if (!currentUser) {
+      throw new Error("Unauthorized");
+    }
+
+    if (!hasAdminAccessForOrg(currentUser, args.organizationSlug)) {
+      throw new Error("Forbidden");
+    }
+
+    const targetUser = await clerkClient.users.getUser(args.clerkUserId);
+    if (targetUser.publicMetadata?.isSuperAdmin === true) {
+      throw new Error("Cannot update role for a SuperAdmin");
+    }
+
+    await clerkClient.users.updateUserMetadata(args.clerkUserId, {
+      publicMetadata: {
+        ...(targetUser.publicMetadata ?? {}),
+        role: args.role as SingleTenantAppRole,
+      },
+    });
+
+    await ctx.runMutation(internal.members.upsertFromSingleTenant, {
+      clerkUserId: args.clerkUserId,
+      organizationSlug: args.organizationSlug,
+      role: args.role,
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Delete a user from Clerk in single-tenant mode.
+ * The Convex user record is deactivated immediately.
+ */
+export const deleteSingleTenantUser = action({
+  args: {
+    organizationSlug: v.string(),
+    clerkUserId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (!isSingleTenantMode()) {
+      throw new Error("Single-tenant user deletion is not enabled");
+    }
+
+    if (args.organizationSlug !== DEFAULT_TENANT_SLUG) {
+      throw new Error("Organization not found");
+    }
+
+    const currentUser = await ctx.runQuery(api.users.me, {});
+    if (!currentUser) {
+      throw new Error("Unauthorized");
+    }
+
+    if (!hasAdminAccessForOrg(currentUser, args.organizationSlug)) {
+      throw new Error("Forbidden");
+    }
+
+    if (currentUser.clerkId === args.clerkUserId) {
+      throw new Error("You cannot delete your own account");
+    }
+
+    const targetUser = await clerkClient.users.getUser(args.clerkUserId);
+    if (
+      targetUser.publicMetadata?.isSuperAdmin === true &&
+      !currentUser.isSuperAdmin
+    ) {
+      throw new Error("Forbidden");
+    }
+
+    await clerkClient.users.deleteUser(args.clerkUserId);
+
+    await ctx.runMutation(internal.users.deactivateUser, {
+      clerkId: args.clerkUserId,
+    });
 
     return null;
   },

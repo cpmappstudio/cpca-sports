@@ -7,6 +7,7 @@ import { OrganizationProfile } from "@clerk/nextjs";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { MemberInviteForm } from "./member-invite-form";
 import { DEFAULT_TENANT_SLUG, isSingleTenantMode } from "@/lib/tenancy/config";
+import { OrganizationMembersTable } from "./organization-members-table";
 
 export function GeneralSettings() {
   const tOrganization = useTranslations("Settings.general.organization");
@@ -15,6 +16,7 @@ export function GeneralSettings() {
   const params = useParams<{ tenant?: string }>();
   const tenant = typeof params.tenant === "string" ? params.tenant : null;
   const singleTenantMode = isSingleTenantMode();
+  const organizationSlug = tenant ?? DEFAULT_TENANT_SLUG;
 
   const organizationProfileAppearance = {
     elements: {
@@ -62,12 +64,19 @@ export function GeneralSettings() {
           title={tMembers("title")}
           description={tMembers("description")}
         >
-          {tenant && <MemberInviteForm tenant={tenant} />}
-          {!singleTenantMode && (
-            <OrganizationProfile appearance={organizationProfileAppearance}>
-              <OrganizationProfile.Page label="members" />
-              <OrganizationProfile.Page label="general" />
-            </OrganizationProfile>
+          {singleTenantMode ? (
+            <div className="flex flex-col gap-3">
+              <MemberInviteForm tenant={organizationSlug} />
+              <OrganizationMembersTable organizationSlug={organizationSlug} />
+            </div>
+          ) : (
+            <>
+              {tenant && <MemberInviteForm tenant={tenant} />}
+              <OrganizationProfile appearance={organizationProfileAppearance}>
+                <OrganizationProfile.Page label="members" />
+                <OrganizationProfile.Page label="general" />
+              </OrganizationProfile>
+            </>
           )}
         </SettingsItem>
       )}
