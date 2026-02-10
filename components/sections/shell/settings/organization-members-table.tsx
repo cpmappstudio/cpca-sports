@@ -280,6 +280,9 @@ export function OrganizationMembersTable({
 
   return (
     <>
+      <div className="mt-2 text-xs text-muted-foreground">
+        {t("summary", { count: rows.length })}
+      </div>
       <DataTable
         data={rows}
         columns={columns}
@@ -292,9 +295,6 @@ export function OrganizationMembersTable({
         initialSorting={[{ id: "createdAt", desc: true }]}
         pageSize={10}
       />
-      <div className="mt-2 text-xs text-muted-foreground">
-        {t("summary", { count: rows.length })}
-      </div>
 
       <AlertDialog
         open={!!deleteTarget}
