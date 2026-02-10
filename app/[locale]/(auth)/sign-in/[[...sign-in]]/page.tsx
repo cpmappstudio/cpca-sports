@@ -5,6 +5,7 @@
 import { ROUTES } from "@/lib/navigation/routes";
 import { routing } from "@/i18n/routing";
 import { SignIn } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
 import { DEFAULT_TENANT_SLUG, isSingleTenantMode } from "@/lib/tenancy/config";
 
 interface PageProps {
@@ -14,7 +15,11 @@ interface PageProps {
 export default async function SignInPage({ params }: PageProps) {
   const { locale } = await params;
   const localePrefix = locale === routing.defaultLocale ? "" : `/${locale}`;
-  const forceRedirectPath = isSingleTenantMode()
+  const singleTenantMode = isSingleTenantMode();
+  if (singleTenantMode) {
+    redirect(`${localePrefix}/${DEFAULT_TENANT_SLUG}/sign-in`);
+  }
+  const forceRedirectPath = singleTenantMode
     ? ROUTES.org.applications.list(DEFAULT_TENANT_SLUG)
     : ROUTES.auth.organizations;
 

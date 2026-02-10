@@ -3,11 +3,11 @@ import { ROUTES } from "@/lib/navigation/routes";
 import { routing } from "@/i18n/routing";
 
 interface PageProps {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string; tenant: string }>;
 }
 
 export default async function OrganizationListPage({ params }: PageProps) {
-  const { locale } = await params;
+  const { locale, tenant } = await params;
   const localePrefix = locale === routing.defaultLocale ? "" : `/${locale}`;
-  redirect(`${localePrefix}${ROUTES.auth.organizations}`);
+  redirect(`${localePrefix}${ROUTES.org.applications.list(tenant)}`);
 }

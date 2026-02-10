@@ -11,6 +11,9 @@ import {
 const intlMiddleware = createIntlMiddleware(routing);
 const ORGANIZATIONS_PATH = "/organizations";
 const SINGLE_TENANT_MODE = isSingleTenantMode();
+const DEFAULT_TENANT_SIGN_IN_PATH = `/${DEFAULT_TENANT_SLUG}/sign-in`;
+const DEFAULT_TENANT_SIGN_UP_PATH = `/${DEFAULT_TENANT_SLUG}/sign-up`;
+const DEFAULT_TENANT_APPLICATIONS_PATH = `/${DEFAULT_TENANT_SLUG}/applications`;
 
 // Only sign-in and sign-up routes are public
 const isPublicRoute = createRouteMatcher([
@@ -26,6 +29,18 @@ const isPublicRoute = createRouteMatcher([
 
 // Admin routes are blocked at proxy level.
 const isAdminRoute = createRouteMatcher(["/admin(.*)", "/:locale/admin(.*)"]);
+const isOrganizationsRoute = createRouteMatcher([
+  "/organizations(.*)",
+  "/:locale/organizations(.*)",
+]);
+const isNonTenantSignInRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/:locale/sign-in(.*)",
+]);
+const isNonTenantSignUpRoute = createRouteMatcher([
+  "/sign-up(.*)",
+  "/:locale/sign-up(.*)",
+]);
 const isApiRoute = createRouteMatcher(["/api(.*)", "/trpc(.*)"]);
 
 // Reserved paths that are not tenant slugs
@@ -128,12 +143,41 @@ export default clerkMiddleware(async (auth, req) => {
       redirectUrl.pathname = canonicalPathname;
       return NextResponse.redirect(redirectUrl);
     }
+
+    if (isNonTenantSignInRoute(req)) {
+      const redirectUrl = req.nextUrl.clone();
+      redirectUrl.pathname = buildLocalizedPath(
+        req.nextUrl.pathname,
+        DEFAULT_TENANT_SIGN_IN_PATH,
+      );
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    if (isNonTenantSignUpRoute(req)) {
+      const redirectUrl = req.nextUrl.clone();
+      redirectUrl.pathname = buildLocalizedPath(
+        req.nextUrl.pathname,
+        DEFAULT_TENANT_SIGN_UP_PATH,
+      );
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    if (isOrganizationsRoute(req)) {
+      const redirectUrl = req.nextUrl.clone();
+      redirectUrl.pathname = buildLocalizedPath(
+        req.nextUrl.pathname,
+        DEFAULT_TENANT_APPLICATIONS_PATH,
+      );
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   if (isAdminRoute(req)) {
     const redirectPath = buildLocalizedPath(
       req.nextUrl.pathname,
-      ORGANIZATIONS_PATH,
+      SINGLE_TENANT_MODE
+        ? DEFAULT_TENANT_APPLICATIONS_PATH
+        : ORGANIZATIONS_PATH,
     );
     return NextResponse.redirect(new URL(redirectPath, req.url));
   }
@@ -151,8 +195,11 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Protect all routes except public ones
   if (!isAuthenticated && !isPublicRoute(req)) {
-    const tenant = extractTenant(req.nextUrl.pathname);
-    const signInPath = tenant ? `/${tenant}/sign-in` : "/sign-in";
+    const tenant = SINGLE_TENANT_MODE
+      ? DEFAULT_TENANT_SLUG
+      : extractTenant(req.nextUrl.pathname);
+    const signInPathBase = tenant ? `/${tenant}/sign-in` : "/sign-in";
+    const signInPath = buildLocalizedPath(req.nextUrl.pathname, signInPathBase);
     const signInUrl = new URL(signInPath, req.url);
     signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
     return NextResponse.redirect(signInUrl);
