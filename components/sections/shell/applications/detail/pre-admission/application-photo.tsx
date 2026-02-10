@@ -9,18 +9,20 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface ApplicationPhotoProps {
   storageId: Id<"_storage">;
+  applicationId: Id<"applications">;
   alt?: string;
   size?: "sm" | "md";
 }
 
 export function ApplicationPhoto({
   storageId,
+  applicationId,
   alt = "Applicant photo",
   size = "md",
 }: ApplicationPhotoProps) {
-  const photoUrl = useQuery(api.files.getUrl, { storageId });
+  const photoUrl = useQuery(api.files.getUrl, { storageId, applicationId });
 
-  const sizeClasses = size === "sm" ? "w-10 h-10": "w-20 h-20";
+  const sizeClasses = size === "sm" ? "w-10 h-10" : "w-20 h-20";
 
   if (photoUrl === undefined) {
     return <Skeleton className={`${sizeClasses} rounded-md`} />;
@@ -28,7 +30,9 @@ export function ApplicationPhoto({
 
   if (!photoUrl) {
     return (
-      <div className={`${sizeClasses} bg-muted rounded-md flex items-center justify-center border`}>
+      <div
+        className={`${sizeClasses} bg-muted rounded-md flex items-center justify-center border`}
+      >
         <span className="text-muted-foreground text-sm">No photo</span>
       </div>
     );

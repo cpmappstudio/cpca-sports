@@ -1,13 +1,12 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface PhotoUploadProps {
   value?: Id<"_storage"> | null;
@@ -18,11 +17,16 @@ interface PhotoUploadProps {
 export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  const photoUrl = useQuery(
-    api.files.getUrl,
-    value ? { storageId: value } : "skip"
-  );
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,6 +44,7 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
 
     setError(null);
     setIsUploading(true);
+    const localPreviewUrl = URL.createObjectURL(file);
 
     try {
       const uploadUrl = await generateUploadUrl();
@@ -55,8 +60,13 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
       }
 
       const { storageId } = await result.json();
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      setPreviewUrl(localPreviewUrl);
       onChange(storageId);
     } catch (err) {
+      URL.revokeObjectURL(localPreviewUrl);
       setError("Failed to upload photo");
       console.error("[PhotoUpload] Upload error:", err);
     } finally {
@@ -76,18 +86,14 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
       </div>
 
       <div className="flex items-start gap-4">
-        {value && photoUrl !== undefined && (
+        {previewUrl && (
           <div className="relative w-24 h-24 rounded-md overflow-hidden border shrink-0">
-            {photoUrl ? (
-              <Image
-                src={photoUrl}
-                alt="Uploaded photo"
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <Skeleton className="w-full h-full" />
-            )}
+            <Image
+              src={previewUrl}
+              alt="Uploaded photo"
+              fill
+              className="object-cover"
+            />
           </div>
         )}
 
@@ -105,7 +111,9 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           {value && !isUploading && (
-            <p className="text-sm text-green-600">✓ Photo uploaded successfully</p>
+            <p className="text-sm text-green-600">
+              ✓ Photo uploaded successfully
+            </p>
           )}
         </div>
       </div>

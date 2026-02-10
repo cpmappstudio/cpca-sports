@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Authenticated,
   Preloaded,
@@ -37,12 +37,16 @@ import { CreditCard, File, History } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ApplicationTransactionHistory } from "./payments/application-transaction-history";
 import type { FormData as ApplicationFormData } from "@/lib/applications/types";
+import type { TransferUser } from "./application-transfer-dialog";
+import { ROUTES } from "@/lib/navigation/routes";
+import { useRouter } from "@/i18n/navigation";
 
 interface ApplicationDetailWrapperProps {
   preloadedApplication: Preloaded<typeof api.applications.getById>;
   organizationSlug: string;
   applicationId: string;
   organizationLogoUrl?: string;
+  associatedUser: TransferUser | null;
 }
 
 function ApplicationDetailContent({
@@ -50,11 +54,13 @@ function ApplicationDetailContent({
   organizationSlug,
   applicationId,
   organizationLogoUrl,
+  associatedUser,
 }: ApplicationDetailWrapperProps) {
   const application = usePreloadedQuery(preloadedApplication);
   const t = useTranslations("Applications");
   const tCommon = useTranslations("Common.actions");
   const { isAdmin } = useIsAdmin();
+  const router = useRouter();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -73,25 +79,51 @@ function ApplicationDetailContent({
   const isFormValid = Object.values(sectionValidity).every(Boolean);
 
   const convexApplicationId = applicationId as Id<"applications">;
+  const shouldLoadApplicationRelations = application !== null;
 
   // Fetch fees and transactions from Convex
-  const fees = useQuery(api.fees.getByApplication, {
-    applicationId: convexApplicationId,
-  });
-  const summary = useQuery(api.fees.getSummary, {
-    applicationId: convexApplicationId,
-  });
-  const transactionsWithFees = useQuery(api.transactions.getWithFeeDetails, {
-    applicationId: convexApplicationId,
-  });
+  const fees = useQuery(
+    api.fees.getByApplication,
+    shouldLoadApplicationRelations
+      ? {
+          applicationId: convexApplicationId,
+        }
+      : "skip",
+  );
+  const summary = useQuery(
+    api.fees.getSummary,
+    shouldLoadApplicationRelations
+      ? {
+          applicationId: convexApplicationId,
+        }
+      : "skip",
+  );
+  const transactionsWithFees = useQuery(
+    api.transactions.getWithFeeDetails,
+    shouldLoadApplicationRelations
+      ? {
+          applicationId: convexApplicationId,
+        }
+      : "skip",
+  );
 
   // Fetch documents from Convex
-  const documents = useQuery(api.documents.getByApplication, {
-    applicationId: convexApplicationId,
-  });
-  const documentConfigs = useQuery(api.documents.getConfigByApplication, {
-    applicationId: convexApplicationId,
-  });
+  const documents = useQuery(
+    api.documents.getByApplication,
+    shouldLoadApplicationRelations
+      ? {
+          applicationId: convexApplicationId,
+        }
+      : "skip",
+  );
+  const documentConfigs = useQuery(
+    api.documents.getConfigByApplication,
+    shouldLoadApplicationRelations
+      ? {
+          applicationId: convexApplicationId,
+        }
+      : "skip",
+  );
 
   // Mutations
   const createFee = useMutation(api.fees.create);
@@ -207,6 +239,13 @@ function ApplicationDetailContent({
   const totalPaid = summary?.totalPaid ?? 0;
   const totalPending = summary?.totalPending ?? 0;
 
+  useEffect(() => {
+    if (application !== null) {
+      return;
+    }
+    router.replace(ROUTES.org.applications.list(organizationSlug));
+  }, [application, organizationSlug, router]);
+
   if (application === null) {
     return null;
   }
@@ -222,6 +261,7 @@ function ApplicationDetailContent({
             totalPaid={totalPaid}
             totalPending={totalPending}
             organizationLogoUrl={organizationLogoUrl}
+            associatedUser={associatedUser}
           />
         </div>
       </div>

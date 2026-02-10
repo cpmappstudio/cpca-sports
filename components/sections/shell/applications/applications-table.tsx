@@ -9,11 +9,10 @@ import {
   useApplicationFilters,
 } from "@/components/sections/shell/applications/columns";
 import { ROUTES } from "@/lib/navigation/routes";
-import type { Application } from "@/lib/applications/types";
-import { getFormField } from "@/lib/applications/types";
+import type { ApplicationListItem } from "@/lib/applications/list-types";
 
 interface ApplicationsTableProps {
-  applications: Application[];
+  applications: ApplicationListItem[];
   organizationSlug: string;
   isAdmin: boolean;
 }
@@ -31,7 +30,7 @@ export function ApplicationsTable({
   const clientColumns = useClientApplicationColumns();
   const filters = useApplicationFilters();
 
-  const handleRowClick = (application: Application) => {
+  const handleRowClick = (application: ApplicationListItem) => {
     router.push(
       ROUTES.org.applications.detail(organizationSlug, application._id),
     );
@@ -42,7 +41,7 @@ export function ApplicationsTable({
   };
 
   const handleExport = isAdmin
-    ? (rows: Application[]) => {
+    ? (rows: ApplicationListItem[]) => {
         const csv = convertToCSV(rows, t);
         downloadCSV(
           csv,
@@ -71,7 +70,7 @@ export function ApplicationsTable({
 }
 
 function convertToCSV(
-  data: Application[],
+  data: ApplicationListItem[],
   t: ReturnType<typeof useTranslations<"Applications">>,
 ): string {
   if (data.length === 0) return "";
@@ -96,23 +95,22 @@ function convertToCSV(
   ];
 
   const rows = data.map((app) => {
-    const { formData } = app;
     return [
       app.applicationCode,
       app.status,
-      getFormField(formData, "athlete", "firstName"),
-      getFormField(formData, "athlete", "lastName"),
-      getFormField(formData, "athlete", "email"),
-      getFormField(formData, "athlete", "telephone"),
-      getFormField(formData, "athlete", "program"),
-      getFormField(formData, "athlete", "gradeEntering"),
-      getFormField(formData, "athlete", "birthDate"),
-      getFormField(formData, "athlete", "countryOfBirth"),
-      getFormField(formData, "school", "currentSchoolName"),
-      getFormField(formData, "school", "currentGPA"),
-      `${getFormField(formData, "parents", "parent1FirstName")} ${getFormField(formData, "parents", "parent1LastName")}`,
-      getFormField(formData, "parents", "parent1Email"),
-      getFormField(formData, "parents", "parent1Telephone"),
+      app.athlete.firstName,
+      app.athlete.lastName,
+      app.athlete.email,
+      app.athlete.telephone,
+      app.athlete.program,
+      app.athlete.gradeEntering,
+      app.athlete.birthDate,
+      app.athlete.countryOfBirth,
+      app.school.currentSchoolName,
+      app.school.currentGPA,
+      `${app.parent.firstName} ${app.parent.lastName}`,
+      app.parent.email,
+      app.parent.telephone,
       new Date(app._creationTime).toLocaleDateString("es-ES"),
     ];
   });

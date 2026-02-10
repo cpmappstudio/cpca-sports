@@ -212,11 +212,16 @@ export function DataTable<TData>({
         <Table className="bg-card">
           <TableHeader className="bg-primary sticky top-0 z-10 ">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow
+                key={headerGroup.id}
+                className="hover:bg-transparent data-[state=selected]:bg-transparent"
+              >
                 {headerGroup.headers.map((header) => {
-                  const meta = header.column.columnDef.meta as { className?: string } | undefined;
+                  const meta = header.column.columnDef.meta as
+                    | { className?: string }
+                    | undefined;
                   return (
-                    <TableHead 
+                    <TableHead
                       className={`text-muted ${meta?.className || ""}`}
                       key={header.id}
                     >
@@ -240,9 +245,7 @@ export function DataTable<TData>({
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                   className={
-                    onRowClick
-                      ? "cursor-pointer transition-colors"
-                      : undefined
+                    onRowClick ? "cursor-pointer transition-colors" : undefined
                   }
                   onClick={
                     onRowClick
@@ -251,9 +254,11 @@ export function DataTable<TData>({
                   }
                 >
                   {row.getVisibleCells().map((cell) => {
-                    const meta = cell.column.columnDef.meta as { className?: string } | undefined;
+                    const meta = cell.column.columnDef.meta as
+                      | { className?: string }
+                      | undefined;
                     return (
-                      <TableCell 
+                      <TableCell
                         key={cell.id}
                         className={meta?.className || ""}
                       >

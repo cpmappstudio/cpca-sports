@@ -5,7 +5,9 @@ import { api } from "@/convex/_generated/api";
 import { ApplicationsTable } from "./applications-table";
 
 interface ApplicationsTableAdminWrapperProps {
-  preloadedApplications: Preloaded<typeof api.applications.listByOrganization>;
+  preloadedApplications: Preloaded<
+    typeof api.applications.listByOrganizationSummary
+  >;
   organizationSlug: string;
 }
 
@@ -24,7 +26,9 @@ function ApplicationsTableContent({
   );
 }
 
-export function ApplicationsTableAdminWrapper(props: ApplicationsTableAdminWrapperProps) {
+export function ApplicationsTableAdminWrapper(
+  props: ApplicationsTableAdminWrapperProps,
+) {
   return (
     <Authenticated>
       <ApplicationsTableContent {...props} />

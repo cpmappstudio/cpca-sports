@@ -17,20 +17,16 @@ interface PageProps {
 export default async function ApplicationsPage({ params }: PageProps) {
   const { tenant } = await params;
   const token = await getAuthToken();
-  const { isAdmin } = await getTenantAccess(tenant, token);
-  const t = await getTranslations("Applications.page");
-
-  // Get organization data for logo
-  const preloadedOrganization = await preloadQuery(
-    api.organizations.getBySlug,
-    { slug: tenant },
-    { token },
-  );
+  const [{ isAdmin }, t, preloadedOrganization] = await Promise.all([
+    getTenantAccess(tenant, token),
+    getTranslations("Applications.page"),
+    preloadQuery(api.organizations.getBySlug, { slug: tenant }, { token }),
+  ]);
   const organization = preloadedQueryResult(preloadedOrganization);
 
   if (isAdmin) {
     const preloadedApplications = await preloadQuery(
-      api.applications.listByOrganization,
+      api.applications.listByOrganizationSummary,
       { organizationSlug: tenant },
       { token },
     );
@@ -51,16 +47,13 @@ export default async function ApplicationsPage({ params }: PageProps) {
   }
 
   const preloadedApplications = await preloadQuery(
-    api.applications.listMine,
-    {},
+    api.applications.listMineByOrganizationSummary,
+    { organizationSlug: tenant },
     { token },
   );
   const applications = preloadedQueryResult(preloadedApplications);
-  const scopedApplications = organization
-    ? applications.filter((item) => item.organizationId === organization._id)
-    : [];
 
-  if (scopedApplications.length === 0) {
+  if (applications.length === 0) {
     redirect(ROUTES.org.applications.create(tenant));
   }
 
@@ -74,7 +67,6 @@ export default async function ApplicationsPage({ params }: PageProps) {
       <ApplicationsTableWrapper
         preloadedApplications={preloadedApplications}
         organizationSlug={tenant}
-        organizationId={organization?._id}
       />
     </>
   );

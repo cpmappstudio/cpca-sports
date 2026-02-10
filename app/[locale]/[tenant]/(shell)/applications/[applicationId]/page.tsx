@@ -26,12 +26,12 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  // Get organization data for logo
-  const preloadedOrganization = await preloadQuery(
-    api.organizations.getBySlug,
-    { slug: tenant },
-    { token },
-  );
+  const [preloadedAssociatedUser, preloadedOrganization] = await Promise.all([
+    preloadQuery(api.users.getById, { userId: application.userId }, { token }),
+    preloadQuery(api.organizations.getBySlug, { slug: tenant }, { token }),
+  ]);
+
+  const associatedUser = preloadedQueryResult(preloadedAssociatedUser);
   const organization = preloadedQueryResult(preloadedOrganization);
 
   return (
@@ -40,6 +40,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
       organizationSlug={tenant}
       applicationId={applicationId}
       organizationLogoUrl={organization?.imageUrl}
+      associatedUser={associatedUser}
     />
   );
 }

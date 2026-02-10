@@ -14,6 +14,7 @@ export const me = query({
       firstName: v.string(),
       lastName: v.string(),
       email: v.string(),
+      imageUrl: v.optional(v.string()),
       isActive: v.boolean(),
       isSuperAdmin: v.boolean(),
       memberships: v.array(
@@ -87,13 +88,54 @@ export const getById = query({
       firstName: v.string(),
       lastName: v.string(),
       email: v.string(),
+      imageUrl: v.optional(v.string()),
       isActive: v.boolean(),
       isSuperAdmin: v.boolean(),
     }),
     v.null(),
   ),
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.userId);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return null;
+    }
+
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("byClerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!currentUser) {
+      return null;
+    }
+
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser) {
+      return null;
+    }
+
+    if (currentUser._id === targetUser._id || currentUser.isSuperAdmin) {
+      return targetUser;
+    }
+
+    const [currentMemberships, targetMemberships] = await Promise.all([
+      ctx.db
+        .query("organizationMembers")
+        .withIndex("byUserId", (q) => q.eq("userId", currentUser._id))
+        .collect(),
+      ctx.db
+        .query("organizationMembers")
+        .withIndex("byUserId", (q) => q.eq("userId", targetUser._id))
+        .collect(),
+    ]);
+
+    const currentOrgIds = new Set(
+      currentMemberships.map((membership) => membership.organizationId),
+    );
+    const sharesOrganization = targetMemberships.some((membership) =>
+      currentOrgIds.has(membership.organizationId),
+    );
+
+    return sharesOrganization ? targetUser : null;
   },
 });
 
@@ -115,6 +157,7 @@ export const upsertFromClerk = internalMutation({
 
     const firstName = data.first_name || "";
     const lastName = data.last_name || "";
+    const imageUrl = data.image_url || data.profile_image_url || undefined;
     const isSuperAdmin = data.public_metadata?.isSuperAdmin === true;
 
     const existingUser = await ctx.db
@@ -127,6 +170,7 @@ export const upsertFromClerk = internalMutation({
         email,
         firstName,
         lastName,
+        imageUrl,
         isActive: true,
         isSuperAdmin,
       });
@@ -138,6 +182,7 @@ export const upsertFromClerk = internalMutation({
       email,
       firstName,
       lastName,
+      imageUrl,
       isActive: true,
       isSuperAdmin,
     });

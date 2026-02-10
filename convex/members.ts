@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { query, internalMutation } from "./_generated/server";
+import { getCurrentUser } from "./lib/auth";
+import { hasOrgAdminAccess } from "./lib/permissions";
 
 const roleValidator = v.union(
   v.literal("superadmin"),
@@ -49,10 +51,21 @@ export const listByOrganization = query({
         firstName: v.string(),
         lastName: v.string(),
         email: v.string(),
+        imageUrl: v.optional(v.string()),
       }),
     }),
   ),
   handler: async (ctx, args) => {
+    const currentUser = await getCurrentUser(ctx);
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      currentUser._id,
+      args.organizationId,
+    );
+    if (!isAdmin) {
+      return [];
+    }
+
     const memberships = await ctx.db
       .query("organizationMembers")
       .withIndex("byOrganization", (q) =>
@@ -65,24 +78,24 @@ export const listByOrganization = query({
     const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
     const userMap = new Map(users.filter(Boolean).map((u) => [u!._id, u!]));
 
-    return memberships.map((membership) => {
+    return memberships.flatMap((membership) => {
       const user = userMap.get(membership.userId);
-      return {
-        membership,
-        user: user
-          ? {
-              _id: user._id,
-              firstName: user.firstName,
-              lastName: user.lastName,
-              email: user.email,
-            }
-          : {
-              _id: membership.userId,
-              firstName: "",
-              lastName: "",
-              email: "",
-            },
-      };
+      if (!user || !user.isActive) {
+        return [];
+      }
+
+      return [
+        {
+          membership,
+          user: {
+            _id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            ...(user.imageUrl ? { imageUrl: user.imageUrl } : {}),
+          },
+        },
+      ];
     });
   },
 });
@@ -186,6 +199,7 @@ export const upsertFromClerk = internalMutation({
         email: userData.identifier ?? "",
         firstName: userData.first_name ?? "",
         lastName: userData.last_name ?? "",
+        imageUrl: userData.image_url ?? undefined,
         isActive: true,
         isSuperAdmin: false,
       });

@@ -60,12 +60,23 @@ const documentVisibility = v.union(
   v.literal("hidden"),
 );
 
+const legacyEntityType = v.union(
+  v.literal("account"),
+  v.literal("membership"),
+  v.literal("application"),
+  v.literal("fee"),
+  v.literal("transaction"),
+  v.literal("photo"),
+  v.literal("document"),
+);
+
 export default defineSchema({
   users: defineTable({
     clerkId: v.string(),
     firstName: v.string(),
     lastName: v.string(),
     email: v.string(),
+    imageUrl: v.optional(v.string()),
     isActive: v.boolean(),
     isSuperAdmin: v.boolean(),
   })
@@ -143,7 +154,9 @@ export default defineSchema({
     reviewedAt: v.optional(v.number()),
   })
     .index("byUserId", ["userId"])
+    .index("byUserIdAndOrganizationId", ["userId", "organizationId"])
     .index("byOrganizationId", ["organizationId"])
+    .index("byOrganizationIdAndStatus", ["organizationId", "status"])
     .index("byStatus", ["status"])
     .index("byApplicationCode", ["applicationCode"]),
 
@@ -263,4 +276,25 @@ export default defineSchema({
   })
     .index("byApplication", ["applicationId"])
     .index("byApplicationAndType", ["applicationId", "documentTypeId"]),
+
+  legacyMigrationMappings: defineTable({
+    source: v.string(),
+    entityType: legacyEntityType,
+    legacyId: v.string(),
+    convexId: v.string(),
+    checksum: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("bySourceAndEntityTypeAndLegacyId", [
+      "source",
+      "entityType",
+      "legacyId",
+    ])
+    .index("bySourceAndEntityTypeAndConvexId", [
+      "source",
+      "entityType",
+      "convexId",
+    ])
+    .index("bySourceAndEntityType", ["source", "entityType"]),
 });

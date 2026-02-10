@@ -15,6 +15,7 @@ import type * as fees from "../fees.js";
 import type * as files from "../files.js";
 import type * as formTemplates from "../formTemplates.js";
 import type * as http from "../http.js";
+import type * as legacyMigration from "../legacyMigration.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_auth_types from "../lib/auth_types.js";
 import type * as lib_permissions from "../lib/permissions.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   files: typeof files;
   formTemplates: typeof formTemplates;
   http: typeof http;
+  legacyMigration: typeof legacyMigration;
   "lib/auth": typeof lib_auth;
   "lib/auth_types": typeof lib_auth_types;
   "lib/permissions": typeof lib_permissions;

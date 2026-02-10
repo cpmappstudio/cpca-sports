@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { getCurrentUser, getCurrentUserOrNull } from "./lib/auth";
@@ -18,6 +18,217 @@ const applicationValidator = v.object({
   reviewedBy: v.optional(v.id("users")),
   reviewedAt: v.optional(v.number()),
 });
+
+const applicationListAthleteValidator = v.object({
+  firstName: v.string(),
+  lastName: v.string(),
+  email: v.string(),
+  telephone: v.string(),
+  program: v.string(),
+  gradeEntering: v.string(),
+  birthDate: v.string(),
+  countryOfBirth: v.string(),
+  countryOfCitizenship: v.string(),
+  graduationYear: v.string(),
+  needsI20: v.string(),
+  photoStorageId: v.optional(v.id("_storage")),
+  photoUrl: v.optional(v.string()),
+});
+
+const applicationListSchoolValidator = v.object({
+  currentSchoolName: v.string(),
+  currentGPA: v.string(),
+});
+
+const applicationListParentValidator = v.object({
+  firstName: v.string(),
+  lastName: v.string(),
+  email: v.string(),
+  telephone: v.string(),
+});
+
+const applicationListAccountValidator = v.object({
+  firstName: v.string(),
+  lastName: v.string(),
+  email: v.string(),
+  imageUrl: v.optional(v.string()),
+});
+
+const applicationListItemValidator = v.object({
+  _id: v.id("applications"),
+  _creationTime: v.number(),
+  organizationId: v.id("organizations"),
+  applicationCode: v.string(),
+  status: applicationStatus,
+  athlete: applicationListAthleteValidator,
+  school: applicationListSchoolValidator,
+  parent: applicationListParentValidator,
+  account: applicationListAccountValidator,
+});
+
+function getFormDataString(
+  formData: Record<
+    string,
+    Record<string, string | number | boolean | null | Id<"_storage">>
+  >,
+  sectionKey: string,
+  fieldKey: string,
+): string {
+  const value = formData[sectionKey]?.[fieldKey];
+  return value != null ? String(value) : "";
+}
+
+function getPhotoStorageId(
+  formData: Record<
+    string,
+    Record<string, string | number | boolean | null | Id<"_storage">>
+  >,
+): Id<"_storage"> | undefined {
+  const raw = formData.athlete?.photo;
+  if (typeof raw !== "string") {
+    return undefined;
+  }
+  // Ignore legacy path-like values and only keep storage document ids.
+  if (raw.includes("/") || raw.includes(".")) {
+    return undefined;
+  }
+  return raw as Id<"_storage">;
+}
+
+function mapToApplicationListItem(
+  application: {
+    _id: Id<"applications">;
+    _creationTime: number;
+    userId: Id<"users">;
+    organizationId: Id<"organizations">;
+    applicationCode: string;
+    status: "pending" | "reviewing" | "pre-admitted" | "admitted" | "denied";
+    formData: Record<
+      string,
+      Record<string, string | number | boolean | null | Id<"_storage">>
+    >;
+  },
+  account: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    imageUrl?: string;
+  } | null,
+) {
+  const photoStorageId = getPhotoStorageId(application.formData);
+  return {
+    _id: application._id,
+    _creationTime: application._creationTime,
+    organizationId: application.organizationId,
+    applicationCode: application.applicationCode,
+    status: application.status,
+    athlete: {
+      firstName: getFormDataString(
+        application.formData,
+        "athlete",
+        "firstName",
+      ),
+      lastName: getFormDataString(application.formData, "athlete", "lastName"),
+      email: getFormDataString(application.formData, "athlete", "email"),
+      telephone: getFormDataString(
+        application.formData,
+        "athlete",
+        "telephone",
+      ),
+      program: getFormDataString(application.formData, "athlete", "program"),
+      gradeEntering: getFormDataString(
+        application.formData,
+        "athlete",
+        "gradeEntering",
+      ),
+      birthDate: getFormDataString(
+        application.formData,
+        "athlete",
+        "birthDate",
+      ),
+      countryOfBirth: getFormDataString(
+        application.formData,
+        "athlete",
+        "countryOfBirth",
+      ),
+      countryOfCitizenship: getFormDataString(
+        application.formData,
+        "athlete",
+        "countryOfCitizenship",
+      ),
+      graduationYear: getFormDataString(
+        application.formData,
+        "athlete",
+        "graduationYear",
+      ),
+      needsI20: getFormDataString(application.formData, "athlete", "needsI20"),
+      ...(photoStorageId ? { photoStorageId } : {}),
+    },
+    school: {
+      currentSchoolName: getFormDataString(
+        application.formData,
+        "school",
+        "currentSchoolName",
+      ),
+      currentGPA: getFormDataString(
+        application.formData,
+        "school",
+        "currentGPA",
+      ),
+    },
+    parent: {
+      firstName: getFormDataString(
+        application.formData,
+        "parents",
+        "parent1FirstName",
+      ),
+      lastName: getFormDataString(
+        application.formData,
+        "parents",
+        "parent1LastName",
+      ),
+      email: getFormDataString(application.formData, "parents", "parent1Email"),
+      telephone: getFormDataString(
+        application.formData,
+        "parents",
+        "parent1Telephone",
+      ),
+    },
+    account: {
+      firstName: account?.firstName ?? "",
+      lastName: account?.lastName ?? "",
+      email: account?.email ?? "",
+      ...(account?.imageUrl ? { imageUrl: account.imageUrl } : {}),
+    },
+  };
+}
+
+async function withPhotoUrls(
+  ctx: QueryCtx,
+  items: Array<ReturnType<typeof mapToApplicationListItem>>,
+) {
+  const cache: Record<Id<"_storage">, string | null> = {};
+
+  return await Promise.all(
+    items.map(async (item) => {
+      if (!item.athlete.photoStorageId) {
+        return item;
+      }
+      const storageId = item.athlete.photoStorageId;
+      if (cache[storageId] === undefined) {
+        cache[storageId] = await ctx.storage.getUrl(storageId);
+      }
+      const photoUrl = cache[storageId];
+      return {
+        ...item,
+        athlete: {
+          ...item.athlete,
+          ...(photoUrl ? { photoUrl } : {}),
+        },
+      };
+    }),
+  );
+}
 
 /**
  * Generate a unique application code.
@@ -394,20 +605,133 @@ export const listByOrganization = query({
       return [];
     }
 
-    const query = ctx.db
+    if (args.status) {
+      return await ctx.db
+        .query("applications")
+        .withIndex("byOrganizationIdAndStatus", (q) =>
+          q.eq("organizationId", organization._id).eq("status", args.status!),
+        )
+        .order("desc")
+        .collect();
+    }
+
+    return await ctx.db
       .query("applications")
       .withIndex("byOrganizationId", (q) =>
         q.eq("organizationId", organization._id),
       )
-      .order("desc");
+      .order("desc")
+      .collect();
+  },
+});
 
-    const applications = await query.collect();
-
-    if (args.status) {
-      return applications.filter((app) => app.status === args.status);
+/**
+ * Lightweight list for table rendering (owner only, scoped by organization).
+ * Reduces payload by returning only the fields used by list/table views.
+ */
+export const listMineByOrganizationSummary = query({
+  args: {
+    organizationSlug: v.string(),
+  },
+  returns: v.array(applicationListItemValidator),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrNull(ctx);
+    if (!user) {
+      return [];
     }
 
-    return applications;
+    const organization = await ctx.db
+      .query("organizations")
+      .withIndex("bySlug", (q) => q.eq("slug", args.organizationSlug))
+      .unique();
+
+    if (!organization) {
+      return [];
+    }
+
+    const applications = await ctx.db
+      .query("applications")
+      .withIndex("byUserIdAndOrganizationId", (q) =>
+        q.eq("userId", user._id).eq("organizationId", organization._id),
+      )
+      .order("desc")
+      .collect();
+
+    const userIds = [
+      ...new Set(applications.map((application) => application.userId)),
+    ];
+    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
+    const userMap = new Map(
+      users.filter(Boolean).map((item) => [item!._id, item!]),
+    );
+
+    const summary = applications.map((application) =>
+      mapToApplicationListItem(
+        application,
+        userMap.get(application.userId) ?? null,
+      ),
+    );
+    return await withPhotoUrls(ctx, summary);
+  },
+});
+
+/**
+ * Lightweight list for table rendering (admin view).
+ * Keeps authorization and optional status filter while minimizing returned fields.
+ */
+export const listByOrganizationSummary = query({
+  args: {
+    organizationSlug: v.string(),
+    status: v.optional(applicationStatus),
+  },
+  returns: v.array(applicationListItemValidator),
+  handler: async (ctx, args) => {
+    const organization = await ctx.db
+      .query("organizations")
+      .withIndex("bySlug", (q) => q.eq("slug", args.organizationSlug))
+      .unique();
+
+    if (!organization) {
+      return [];
+    }
+
+    const user = await getCurrentUser(ctx);
+    const isAdmin = await hasOrgAdminAccess(ctx, user._id, organization._id);
+    if (!isAdmin) {
+      return [];
+    }
+
+    const applications = args.status
+      ? await ctx.db
+          .query("applications")
+          .withIndex("byOrganizationIdAndStatus", (q) =>
+            q.eq("organizationId", organization._id).eq("status", args.status!),
+          )
+          .order("desc")
+          .collect()
+      : await ctx.db
+          .query("applications")
+          .withIndex("byOrganizationId", (q) =>
+            q.eq("organizationId", organization._id),
+          )
+          .order("desc")
+          .collect();
+
+    const userIds = [
+      ...new Set(applications.map((application) => application.userId)),
+    ];
+    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
+    const userMap = new Map(
+      users.filter(Boolean).map((item) => [item!._id, item!]),
+    );
+
+    const summary = applications.map((application) =>
+      mapToApplicationListItem(
+        application,
+        userMap.get(application.userId) ?? null,
+      ),
+    );
+    return await withPhotoUrls(ctx, summary);
   },
 });
 
@@ -519,6 +843,65 @@ export const updateStatus = mutation({
       status: args.status,
       reviewedBy: user._id,
       reviewedAt: Date.now(),
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Transfer application ownership to another user in the same organization.
+ * Admins/superadmins only.
+ */
+export const transferOwnership = mutation({
+  args: {
+    applicationId: v.id("applications"),
+    targetUserId: v.id("users"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const application = await ctx.db.get(args.applicationId);
+
+    if (!application) {
+      throw new Error("Application not found");
+    }
+
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      application.organizationId,
+    );
+    if (!isAdmin) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    if (application.userId === args.targetUserId) {
+      return null;
+    }
+
+    const targetUser = await ctx.db.get(args.targetUserId);
+    if (!targetUser || !targetUser.isActive) {
+      throw new Error("Target user not found or inactive");
+    }
+
+    const targetMembership = await ctx.db
+      .query("organizationMembers")
+      .withIndex("byUserAndOrg", (q) =>
+        q
+          .eq("userId", args.targetUserId)
+          .eq("organizationId", application.organizationId),
+      )
+      .unique();
+
+    if (!targetMembership && !targetUser.isSuperAdmin) {
+      throw new Error(
+        "Target user must belong to this organization to receive the application",
+      );
+    }
+
+    await ctx.db.patch(args.applicationId, {
+      userId: args.targetUserId,
     });
 
     return null;
@@ -657,6 +1040,79 @@ export const deleteApplication = mutation({
       throw new Error("Unauthorized: Admin access required");
     }
 
+    const photoStorageId = getPhotoStorageId(application.formData);
+
+    const [
+      documents,
+      documentConfigs,
+      transactions,
+      paymentLinks,
+      fees,
+      recurringPlans,
+    ] = await Promise.all([
+      ctx.db
+        .query("applicationDocuments")
+        .withIndex("byApplication", (q) =>
+          q.eq("applicationId", args.applicationId),
+        )
+        .collect(),
+      ctx.db
+        .query("applicationDocumentConfig")
+        .withIndex("byApplication", (q) =>
+          q.eq("applicationId", args.applicationId),
+        )
+        .collect(),
+      ctx.db
+        .query("transactions")
+        .withIndex("byApplication", (q) =>
+          q.eq("applicationId", args.applicationId),
+        )
+        .collect(),
+      ctx.db
+        .query("paymentLinks")
+        .withIndex("byApplication", (q) =>
+          q.eq("applicationId", args.applicationId),
+        )
+        .collect(),
+      ctx.db
+        .query("fees")
+        .withIndex("byApplication", (q) =>
+          q.eq("applicationId", args.applicationId),
+        )
+        .collect(),
+      ctx.db
+        .query("recurringFeePlans")
+        .withIndex("byApplication", (q) =>
+          q.eq("applicationId", args.applicationId),
+        )
+        .collect(),
+    ]);
+
+    const storageIdsToDelete = new Set<Id<"_storage">>();
+    if (photoStorageId) {
+      storageIdsToDelete.add(photoStorageId);
+    }
+    for (const document of documents) {
+      storageIdsToDelete.add(document.storageId);
+    }
+
+    await Promise.all(
+      [...storageIdsToDelete].map((storageId) => ctx.storage.delete(storageId)),
+    );
+    await Promise.all(documents.map((document) => ctx.db.delete(document._id)));
+    await Promise.all(
+      documentConfigs.map((config) => ctx.db.delete(config._id)),
+    );
+    await Promise.all(
+      transactions.map((transaction) => ctx.db.delete(transaction._id)),
+    );
+    await Promise.all(
+      paymentLinks.map((paymentLink) => ctx.db.delete(paymentLink._id)),
+    );
+    await Promise.all(fees.map((fee) => ctx.db.delete(fee._id)));
+    await Promise.all(
+      recurringPlans.map((recurringPlan) => ctx.db.delete(recurringPlan._id)),
+    );
     await ctx.db.delete(args.applicationId);
 
     return null;

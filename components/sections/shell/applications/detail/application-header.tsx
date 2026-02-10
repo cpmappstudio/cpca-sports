@@ -20,6 +20,7 @@ import {
   BookOpen,
   GraduationCap,
   Calendar,
+  ArrowRightLeft,
   Mail,
   Phone,
   Globe,
@@ -40,22 +41,29 @@ import {
 import { useState, useRef } from "react";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogMedia,
   AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialogAction,
+  AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { ApplicationBalanceCard } from "./payments/application-balance-card";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
+import { ROUTES } from "@/lib/navigation/routes";
+import { Avatar } from "@/components/ui/avatar";
+import {
+  ApplicationTransferDialog,
+  type TransferUser,
+  getTransferUserDisplayName,
+  getTransferUserInitials,
+} from "./application-transfer-dialog";
 
 interface ApplicationHeaderProps {
   application: Application;
@@ -64,6 +72,7 @@ interface ApplicationHeaderProps {
   totalPaid: number;
   totalPending: number;
   organizationLogoUrl?: string;
+  associatedUser: TransferUser | null;
 }
 
 export function ApplicationHeader({
@@ -73,6 +82,7 @@ export function ApplicationHeader({
   totalPaid,
   totalPending,
   organizationLogoUrl,
+  associatedUser,
 }: ApplicationHeaderProps) {
   const t = useTranslations("Applications.detail");
   const tAthlete = useTranslations("preadmission.athlete");
@@ -87,6 +97,7 @@ export function ApplicationHeader({
     (formData.athlete?.photo as Id<"_storage">) || null,
   );
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -94,6 +105,9 @@ export function ApplicationHeader({
   const updatePhoto = useMutation(api.applications.updatePhoto);
   const deleteApplication = useMutation(api.applications.deleteApplication);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  const liveAssociatedUser = useQuery(api.users.getById, {
+    userId: application.userId,
+  });
 
   const firstName = getFormField(formData, "athlete", "firstName");
   const lastName = getFormField(formData, "athlete", "lastName");
@@ -121,6 +135,22 @@ export function ApplicationHeader({
   const streetAddress = getFormField(formData, "address", "streetAddress");
   const city = getFormField(formData, "address", "city");
   const country = getFormField(formData, "address", "country");
+  const currentAssociatedUser: TransferUser | null =
+    liveAssociatedUser === undefined
+      ? associatedUser
+      : liveAssociatedUser
+        ? {
+            _id: liveAssociatedUser._id,
+            firstName: liveAssociatedUser.firstName,
+            lastName: liveAssociatedUser.lastName,
+            email: liveAssociatedUser.email,
+            imageUrl: liveAssociatedUser.imageUrl,
+          }
+        : null;
+  const associatedUserDisplayName = getTransferUserDisplayName(
+    currentAssociatedUser,
+  );
+  const associatedUserInitials = getTransferUserInitials(currentAssociatedUser);
 
   const statusMap = {
     pending: { label: tStatus("pending"), variant: "outline" as const },
@@ -149,7 +179,7 @@ export function ApplicationHeader({
       toast.success(
         `Application status updated to: ${statusMap[newStatus].label}`,
       );
-    } catch (error) {
+    } catch {
       toast.error("Failed to update application status. Please try again.");
     } finally {
       setIsUpdating(false);
@@ -215,12 +245,20 @@ export function ApplicationHeader({
       });
 
       toast.success("Application deleted successfully");
-      router.replace(`/${organizationSlug}/applications`);
+      router.replace(ROUTES.org.applications.list(organizationSlug));
     } catch (error) {
       console.error("Failed to delete application:", error);
       toast.error("Failed to delete application. Please try again.");
+    } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleOpenTransferDialog = () => {
+    if (!isAdmin) {
+      return;
+    }
+    setIsTransferDialogOpen(true);
   };
 
   const calculateAge = (birthDate: string) => {
@@ -244,7 +282,7 @@ export function ApplicationHeader({
             className="absolute inset-0 bg-center bg-no-repeat bg-contain opacity-[0.05] pointer-events-none"
             style={{
               backgroundImage: `url(${organizationLogoUrl})`,
-              backgroundSize: '60%',
+              backgroundSize: "60%",
             }}
           />
         )}
@@ -255,6 +293,7 @@ export function ApplicationHeader({
                 {currentPhoto ? (
                   <ApplicationPhoto
                     storageId={currentPhoto}
+                    applicationId={application._id}
                     alt={`${firstName} ${lastName}`}
                   />
                 ) : (
@@ -350,6 +389,23 @@ export function ApplicationHeader({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {currentAssociatedUser && (
+                              <DropdownMenuItem
+                                onSelect={handleOpenTransferDialog}
+                                className="flex items-center gap-2 max-w-56"
+                              >
+                                <Avatar
+                                  src={currentAssociatedUser?.imageUrl}
+                                  initials={associatedUserInitials}
+                                  alt={associatedUserDisplayName}
+                                  className="size-5 bg-muted text-muted-foreground"
+                                />
+                                <span className="truncate">
+                                  {associatedUserDisplayName}
+                                </span>
+                                <ArrowRightLeft className="h-4 w-4 ml-auto text-muted-foreground" />
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem asChild>
                               <a
                                 href={`tel:${telephone}`}
@@ -400,6 +456,24 @@ export function ApplicationHeader({
                             <Mail className="h-4 w-4" />
                           </a>
                         </Button>
+                        {currentAssociatedUser && (
+                          <Button
+                            variant="outline"
+                            className="h-9 max-w-56 justify-start gap-2 px-2"
+                            onClick={handleOpenTransferDialog}
+                          >
+                            <Avatar
+                              src={currentAssociatedUser?.imageUrl}
+                              initials={associatedUserInitials}
+                              alt={associatedUserDisplayName}
+                              className="size-5 bg-muted text-muted-foreground"
+                            />
+                            <span className="truncate text-xs font-medium">
+                              {associatedUserDisplayName}
+                            </span>
+                            <ArrowRightLeft className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          </Button>
+                        )}
                       </div>
                     </>
                   )}
@@ -530,6 +604,17 @@ export function ApplicationHeader({
         totalPaid={totalPaid}
         totalPending={totalPending}
       />
+
+      {isAdmin && currentAssociatedUser && (
+        <ApplicationTransferDialog
+          open={isTransferDialogOpen}
+          onOpenChange={setIsTransferDialogOpen}
+          applicationId={application._id}
+          organizationId={application.organizationId}
+          organizationSlug={organizationSlug}
+          sourceUser={currentAssociatedUser}
+        />
+      )}
 
       {/* Alert Dialog compartido para eliminar */}
       <AlertDialog
