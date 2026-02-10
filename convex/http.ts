@@ -70,6 +70,13 @@ function resolveSingleTenantRole(data: {
     isSuperAdmin?: unknown;
   };
 }): SingleTenantResolvedRole {
+  // SuperAdmin is a separate flag and must always win, regardless of `role`.
+  // Otherwise normalizing `role` (e.g. superadmin -> admin) can unintentionally downgrade
+  // the app membership when a user updates their profile (photo/name/etc).
+  if (data.public_metadata?.isSuperAdmin === true) {
+    return "superadmin";
+  }
+
   const role = data.public_metadata?.role;
   if (role === "superadmin" || role === "org:superadmin") {
     return "superadmin";
@@ -79,9 +86,6 @@ function resolveSingleTenantRole(data: {
   }
   if (role === "member" || role === "org:member") {
     return "member";
-  }
-  if (data.public_metadata?.isSuperAdmin === true) {
-    return "superadmin";
   }
   return "member";
 }

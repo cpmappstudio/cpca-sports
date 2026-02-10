@@ -109,7 +109,7 @@ export function OrganizationMembersTable({
       lastName: user.lastName,
       email: user.email,
       imageUrl: user.imageUrl,
-      role: membership.role,
+      role: user.isSuperAdmin ? "superadmin" : membership.role,
       createdAt: membership.createdAt ?? membership._creationTime,
     }));
   }, [members]);

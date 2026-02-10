@@ -61,6 +61,7 @@ export const listByOrganization = query({
         lastName: v.string(),
         email: v.string(),
         imageUrl: v.optional(v.string()),
+        isSuperAdmin: v.boolean(),
       }),
     }),
   ),
@@ -103,6 +104,7 @@ export const listByOrganization = query({
             lastName: user.lastName,
             email: user.email,
             ...(user.imageUrl ? { imageUrl: user.imageUrl } : {}),
+            isSuperAdmin: user.isSuperAdmin,
           },
         },
       ];
@@ -343,6 +345,8 @@ export const upsertFromSingleTenant = internalMutation({
       return null;
     }
 
+    const resolvedRole = user.isSuperAdmin ? "superadmin" : args.role;
+
     let organization = await ctx.db
       .query("organizations")
       .withIndex("bySlug", (q) => q.eq("slug", args.organizationSlug))
@@ -370,8 +374,8 @@ export const upsertFromSingleTenant = internalMutation({
       .unique();
 
     if (existingBySyntheticId) {
-      if (existingBySyntheticId.role !== args.role) {
-        await ctx.db.patch(existingBySyntheticId._id, { role: args.role });
+      if (existingBySyntheticId.role !== resolvedRole) {
+        await ctx.db.patch(existingBySyntheticId._id, { role: resolvedRole });
       }
       return existingBySyntheticId._id;
     }
@@ -385,7 +389,7 @@ export const upsertFromSingleTenant = internalMutation({
 
     if (existingByUserOrg) {
       await ctx.db.patch(existingByUserOrg._id, {
-        role: args.role,
+        role: resolvedRole,
         clerkMembershipId: syntheticMembershipId,
       });
       return existingByUserOrg._id;
@@ -395,7 +399,7 @@ export const upsertFromSingleTenant = internalMutation({
       userId: user._id,
       organizationId: organization._id,
       clerkMembershipId: syntheticMembershipId,
-      role: args.role,
+      role: resolvedRole,
       createdAt: Date.now(),
     });
   },
