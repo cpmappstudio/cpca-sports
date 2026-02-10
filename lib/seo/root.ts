@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const rootMetadata: Metadata = {
-  title: "Payments",
-  description: "Your ultimate payments solution.",
+  title: "CPCA Sports",
+  description: "CPCA Sports.",
   icons: {
-    icon: "/soccer-ball.svg",
+    icon: "/cpca-logo.png",
   },
 };

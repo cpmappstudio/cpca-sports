@@ -87,8 +87,8 @@ export function SidebarAppSidebar() {
     <Sidebar>
       <SidebarHeader>
         {SINGLE_TENANT_MODE ? (
-          <div className="w-full rounded-md border px-3 py-2 text-left">
-            <p className="text-lg font-semibold text-sidebar-foreground">
+          <div className="w-full rounded-md px-3 py-2 text-left">
+            <p className="text-lg font-serif font-semibold text-sidebar-foreground">
               {orgSlug ?? DEFAULT_TENANT_SLUG}
             </p>
           </div>

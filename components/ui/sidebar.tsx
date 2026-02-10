@@ -132,9 +132,9 @@ export const SidebarItem = forwardRef(function SidebarItem(
   }: { current?: boolean; className?: string; children: React.ReactNode } & (
     | ({ href?: never } & Omit<Headless.ButtonProps, "as" | "className">)
     | ({ href: string } & Omit<
-      Headless.ButtonProps<typeof Link>,
-      "as" | "className"
-    >)
+        Headless.ButtonProps<typeof Link>,
+        "as" | "className"
+      >)
   ),
   ref: React.ForwardedRef<HTMLAnchorElement | HTMLButtonElement>,
 ) {
@@ -195,5 +195,11 @@ export function SidebarLabel({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"span">) {
-  return <span {...props} data-slot="label" className={clsx(className, "truncate")} />;
+  return (
+    <span
+      {...props}
+      data-slot="label"
+      className={clsx(className, "truncate")}
+    />
+  );
 }
