@@ -348,33 +348,77 @@ export function ApplicationPayments({
     window.location.href = result.paymentUrl;
   }, [selectedFeeIds, applicationId, organizationSlug, onCreatePaymentLink]);
 
-  const handleMarkAsPaid = useCallback(async () => {
-    const feesToMark = fees.filter((fee) => selectedFeeIds.has(fee._id));
+  const handleMarkAsPaid = useCallback(
+    async (args?: { amountCents?: number }) => {
+      const feesToMark = fees.filter((fee) => selectedFeeIds.has(fee._id));
 
-    try {
-      await Promise.all(
-        feesToMark.map((fee) => {
+      try {
+        if (feesToMark.length === 1) {
+          const fee = feesToMark[0];
           const remainingAmount = fee.totalAmount - fee.paidAmount;
-          if (remainingAmount > 0) {
-            return onRecordPayment({
-              feeId: fee._id,
-              amount: remainingAmount,
-              method: "cash",
-            });
+          if (remainingAmount <= 0) {
+            setSelectedFeeIds(new Set());
+            return;
           }
-        }),
-      );
-      setSelectedFeeIds(new Set());
-    } catch (error) {
-      console.error("Failed to mark fees as paid:", error);
+
+          const amount = args?.amountCents ?? remainingAmount;
+          await onRecordPayment({
+            feeId: fee._id,
+            amount,
+            method: "cash",
+          });
+          setSelectedFeeIds(new Set());
+          return;
+        }
+
+        await Promise.all(
+          feesToMark.map((fee) => {
+            const remainingAmount = fee.totalAmount - fee.paidAmount;
+            if (remainingAmount > 0) {
+              return onRecordPayment({
+                feeId: fee._id,
+                amount: remainingAmount,
+                method: "cash",
+              });
+            }
+          }),
+        );
+        setSelectedFeeIds(new Set());
+      } catch (error) {
+        console.error("Failed to mark fees as paid:", error);
+      }
+    },
+    [selectedFeeIds, fees, onRecordPayment],
+  );
+
+  const selectedRemainingTotalCents = useMemo(() => {
+    return fees.reduce((sum, fee) => {
+      if (!selectedFeeIds.has(fee._id)) {
+        return sum;
+      }
+      return sum + Math.max(0, fee.totalAmount - fee.paidAmount);
+    }, 0);
+  }, [fees, selectedFeeIds]);
+
+  const selectedSingleRemainingCents = useMemo(() => {
+    if (selectedFeeIds.size !== 1) {
+      return null;
     }
-  }, [selectedFeeIds, fees, onRecordPayment]);
+    const [feeId] = Array.from(selectedFeeIds);
+    const fee = fees.find((item) => item._id === feeId);
+    if (!fee) {
+      return null;
+    }
+    return Math.max(0, fee.totalAmount - fee.paidAmount);
+  }, [fees, selectedFeeIds]);
 
   return (
     <div className="space-y-6">
       <PaymentActions
         applicationId={applicationId}
         selectedFeeIds={Array.from(selectedFeeIds)}
+        selectedRemainingTotalCents={selectedRemainingTotalCents}
+        selectedSingleRemainingCents={selectedSingleRemainingCents}
         hasSelectedRecurringFees={hasSelectedRecurringFees}
         onAddFee={onAddFee}
         onAddRecurringPlan={onAddRecurringPlan}

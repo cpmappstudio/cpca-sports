@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -32,17 +33,24 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, CreditCard, Trash2, Banknote } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
-import { dollarsToCents } from "@/lib/utils/currency";
+import {
+  centsToDollars,
+  dollarsToCents,
+  formatCurrency,
+} from "@/lib/utils/currency";
 import { useTranslations } from "next-intl";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { DateRangePopover } from "./date-range-popover";
+import { toast } from "sonner";
 
 type RecurringScope = "single" | "this_and_following";
 
 interface PaymentActionsProps {
   applicationId: Id<"applications">;
   selectedFeeIds: Id<"fees">[];
+  selectedRemainingTotalCents: number;
+  selectedSingleRemainingCents: number | null;
   hasSelectedRecurringFees: boolean;
   onAddFee: (args: {
     applicationId: Id<"applications">;
@@ -70,7 +78,7 @@ interface PaymentActionsProps {
   }) => Promise<{ planId: Id<"recurringFeePlans">; feeIds: Id<"fees">[] }>;
   onDeleteSelected: (scope?: RecurringScope) => Promise<void>;
   onPay: () => Promise<void>;
-  onMarkAsPaid: () => Promise<void>;
+  onMarkAsPaid: (args?: { amountCents?: number }) => Promise<void>;
 }
 
 const FEE_NAME_SUGGESTIONS = [
@@ -92,6 +100,8 @@ function toMonthStart(date: Date): Date {
 export function PaymentActions({
   applicationId,
   selectedFeeIds,
+  selectedRemainingTotalCents,
+  selectedSingleRemainingCents,
   hasSelectedRecurringFees,
   onAddFee,
   onAddRecurringPlan,
@@ -106,6 +116,9 @@ export function PaymentActions({
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isMarkingAsPaid, setIsMarkingAsPaid] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMarkAsPaidDialogOpen, setIsMarkAsPaidDialogOpen] = useState(false);
+  const [markAsPaidUseFullAmount, setMarkAsPaidUseFullAmount] = useState(true);
+  const [markAsPaidAmountDollars, setMarkAsPaidAmountDollars] = useState(0);
   const [showFeeNameSuggestions, setShowFeeNameSuggestions] = useState(false);
   const [recurringDateRange, setRecurringDateRange] = useState<
     DateRange | undefined
@@ -229,12 +242,54 @@ export function PaymentActions({
     }
   };
 
-  const handleMarkAsPaid = async () => {
-    if (!hasSelectedFees || isMarkingAsPaid) return;
+  const canEnterPartialAmount =
+    selectedSingleRemainingCents !== null && selectedSingleRemainingCents > 0;
+  const markAsPaidMaxCents =
+    selectedSingleRemainingCents ?? selectedRemainingTotalCents;
+  const markAsPaidMaxDollars = centsToDollars(markAsPaidMaxCents);
+
+  useEffect(() => {
+    setMarkAsPaidUseFullAmount(true);
+    setMarkAsPaidAmountDollars(markAsPaidMaxDollars);
+  }, [markAsPaidMaxDollars]);
+
+  const markAsPaidAmountCents = useMemo(() => {
+    if (!Number.isFinite(markAsPaidAmountDollars)) {
+      return NaN;
+    }
+    return dollarsToCents(markAsPaidAmountDollars);
+  }, [markAsPaidAmountDollars]);
+
+  const markAsPaidResolvedAmountCents = markAsPaidUseFullAmount
+    ? markAsPaidMaxCents
+    : markAsPaidAmountCents;
+
+  const markAsPaidAmountValid =
+    markAsPaidResolvedAmountCents > 0 &&
+    markAsPaidResolvedAmountCents <= markAsPaidMaxCents;
+
+  const handleMarkAsPaidConfirm = async () => {
+    if (!hasSelectedFees || isMarkingAsPaid) {
+      return;
+    }
+
+    if (!markAsPaidAmountValid) {
+      toast.error(
+        t("actions.markAsPaidDialog.errors.invalidAmount", {
+          max: formatCurrency(markAsPaidMaxCents),
+        }),
+      );
+      return;
+    }
 
     setIsMarkingAsPaid(true);
     try {
-      await onMarkAsPaid();
+      if (canEnterPartialAmount && !markAsPaidUseFullAmount) {
+        await onMarkAsPaid({ amountCents: markAsPaidResolvedAmountCents });
+      } else {
+        await onMarkAsPaid();
+      }
+      setIsMarkAsPaidDialogOpen(false);
     } catch (error) {
       console.error("Failed to mark fees as paid:", error);
     } finally {
@@ -331,7 +386,10 @@ export function PaymentActions({
           {isAdmin && (
             <>
               {canMarkAsPaid ? (
-                <AlertDialog>
+                <AlertDialog
+                  open={isMarkAsPaidDialogOpen}
+                  onOpenChange={setIsMarkAsPaidDialogOpen}
+                >
                   <AlertDialogTrigger asChild>
                     <Button
                       size="sm"
@@ -359,6 +417,83 @@ export function PaymentActions({
                           <div className="text-muted-foreground text-xs">
                             {t("actions.markAsPaidDialog.accountability")}
                           </div>
+                          <Card className="border-dashed">
+                            <CardContent className="p-3">
+                              <div className="flex items-center justify-between gap-2 text-sm font-medium">
+                                <span>
+                                  {t(
+                                    "actions.markAsPaidDialog.amount.totalSelected",
+                                  )}
+                                </span>
+                                <span className="tabular-nums">
+                                  {formatCurrency(selectedRemainingTotalCents)}
+                                </span>
+                              </div>
+
+                              {canEnterPartialAmount ? (
+                                <div className="mt-3 space-y-3">
+                                  <label className="flex items-center gap-2 text-sm">
+                                    <Checkbox
+                                      checked={markAsPaidUseFullAmount}
+                                      onCheckedChange={(checked) =>
+                                        setMarkAsPaidUseFullAmount(
+                                          checked === true,
+                                        )
+                                      }
+                                    />
+                                    <span>
+                                      {t(
+                                        "actions.markAsPaidDialog.amount.payFullRemaining",
+                                      )}
+                                    </span>
+                                  </label>
+
+                                  <div className="grid gap-2">
+                                    <Label>
+                                      {t(
+                                        "actions.markAsPaidDialog.amount.amountLabel",
+                                      )}
+                                    </Label>
+                                    <Input
+                                      type="number"
+                                      inputMode="decimal"
+                                      step="0.01"
+                                      min={0}
+                                      max={markAsPaidMaxDollars}
+                                      disabled={markAsPaidUseFullAmount}
+                                      value={markAsPaidAmountDollars}
+                                      placeholder={t(
+                                        "actions.markAsPaidDialog.amount.amountPlaceholder",
+                                      )}
+                                      onChange={(e) => {
+                                        const next = e.target.value;
+                                        const parsed = next
+                                          ? Number.parseFloat(next)
+                                          : 0;
+                                        setMarkAsPaidAmountDollars(parsed);
+                                      }}
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                      {t(
+                                        "actions.markAsPaidDialog.amount.maxHelp",
+                                        {
+                                          max: formatCurrency(
+                                            markAsPaidMaxCents,
+                                          ),
+                                        },
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="mt-3 text-xs text-muted-foreground">
+                                  {t(
+                                    "actions.markAsPaidDialog.amount.multiFeeNote",
+                                  )}
+                                </p>
+                              )}
+                            </CardContent>
+                          </Card>
                         </div>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -377,9 +512,12 @@ export function PaymentActions({
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = "#22c55e";
                         }}
-                        onClick={handleMarkAsPaid}
+                        disabled={!markAsPaidAmountValid}
+                        onClick={handleMarkAsPaidConfirm}
                       >
-                        {t("actions.markAsPaidDialog.confirm")}
+                        {canEnterPartialAmount && !markAsPaidUseFullAmount
+                          ? t("actions.markAsPaidDialog.confirmPartial")
+                          : t("actions.markAsPaidDialog.confirm")}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

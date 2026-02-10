@@ -179,7 +179,19 @@
         "description": "This will mark the selected fees as fully paid via cash payment. This action cannot be undone.",
         "accountability": "Your account will be registered as responsible for this cash payment transaction. The system will maintain a record of your account as the person who processed this payment for accountability purposes.",
         "cancel": "Cancel",
-        "confirm": "Mark as Paid"
+        "confirm": "Mark as Paid",
+        "confirmPartial": "Record Payment",
+        "amount": {
+          "totalSelected": "Total selected balance",
+          "payFullRemaining": "Pay full remaining balance",
+          "amountLabel": "Amount",
+          "amountPlaceholder": "0.00",
+          "maxHelp": "Max: {max}",
+          "multiFeeNote": "To record a partial payment, select a single fee."
+        },
+        "errors": {
+          "invalidAmount": "Enter an amount between $0.01 and {max}."
+        }
       }
     },
     "form": {
