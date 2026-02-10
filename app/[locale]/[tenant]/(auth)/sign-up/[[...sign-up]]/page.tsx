@@ -33,25 +33,28 @@ export default async function TenantSignUpPage({ params }: PageProps) {
           rootBox: {
             width: "100%",
           },
-          card: organization?.imageUrl
-            ? {
-                backgroundColor: "oklch(1 0 0)",
-                "&::before": {
-                  content: '""',
-                  display: "block",
-                  width: "100px",
-                  height: "100px",
-                  backgroundImage: `url(${organization.imageUrl})`,
-                  backgroundSize: "contain",
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "center",
-                  margin: "0 auto auto",
-                  borderRadius: "0.5rem",
-                },
-              }
-            : {},
-          header: {
-            display: "block !important",
+          // card: organization?.imageUrl
+          //   ? {
+          //       backgroundColor: "oklch(1 0 0)",
+          //       "&::before": {
+          //         content: '""',
+          //         display: "block",
+          //         width: "100px",
+          //         height: "100px",
+          //         backgroundImage: `url(${organization.imageUrl})`,
+          //         backgroundSize: "contain",
+          //         backgroundRepeat: "no-repeat",
+          //         backgroundPosition: "center",
+          //         margin: "0 auto auto",
+          //         borderRadius: "0.5rem",
+          //       },
+          //     }
+          //   : {},
+          // header: {
+          //   display: "block !important",
+          // },
+          logoBox: {
+            height: "auto",
           },
           headerTitle: {
             marginTop: "0.5rem",
