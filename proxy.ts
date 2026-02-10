@@ -15,31 +15,38 @@ const DEFAULT_TENANT_SIGN_IN_PATH = `/${DEFAULT_TENANT_SLUG}/sign-in`;
 const DEFAULT_TENANT_SIGN_UP_PATH = `/${DEFAULT_TENANT_SLUG}/sign-up`;
 const DEFAULT_TENANT_APPLICATIONS_PATH = `/${DEFAULT_TENANT_SLUG}/applications`;
 
-// Only sign-in and sign-up routes are public
+// Only sign-in and sign-up routes are public.
+// Note: `createRouteMatcher("/:locale/...")` matches *any* first segment, not just our supported locales.
+// Always expand locale patterns explicitly to avoid redirect loops like `/cpca-sports/sign-in -> /cpca-sports/sign-in`.
 const isPublicRoute = createRouteMatcher([
-  "/:locale/sign-in(.*)",
-  "/:locale/sign-up(.*)",
-  "/:locale/:slug/sign-in(.*)",
-  "/:locale/:slug/sign-up(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/:slug/sign-in(.*)",
   "/:slug/sign-up(.*)",
+  ...locales.flatMap((locale) => [
+    `/${locale}/sign-in(.*)`,
+    `/${locale}/sign-up(.*)`,
+    `/${locale}/:slug/sign-in(.*)`,
+    `/${locale}/:slug/sign-up(.*)`,
+  ]),
 ]);
 
 // Admin routes are blocked at proxy level.
-const isAdminRoute = createRouteMatcher(["/admin(.*)", "/:locale/admin(.*)"]);
+const isAdminRoute = createRouteMatcher([
+  "/admin(.*)",
+  ...locales.map((locale) => `/${locale}/admin(.*)`),
+]);
 const isOrganizationsRoute = createRouteMatcher([
   "/organizations(.*)",
-  "/:locale/organizations(.*)",
+  ...locales.map((locale) => `/${locale}/organizations(.*)`),
 ]);
 const isNonTenantSignInRoute = createRouteMatcher([
   "/sign-in(.*)",
-  "/:locale/sign-in(.*)",
+  ...locales.map((locale) => `/${locale}/sign-in(.*)`),
 ]);
 const isNonTenantSignUpRoute = createRouteMatcher([
   "/sign-up(.*)",
-  "/:locale/sign-up(.*)",
+  ...locales.map((locale) => `/${locale}/sign-up(.*)`),
 ]);
 const isApiRoute = createRouteMatcher(["/api(.*)", "/trpc(.*)"]);
 

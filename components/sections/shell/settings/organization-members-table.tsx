@@ -37,7 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useIsAdmin } from "@/hooks/use-is-admin";
 
 type MemberRole = "superadmin" | "admin" | "member";
 type EditableRole = Exclude<MemberRole, "superadmin">;
@@ -79,7 +78,6 @@ export function OrganizationMembersTable({
   const tTable = useTranslations("Common.table");
   const tActions = useTranslations("Common.actions");
   const { userId: currentClerkUserId } = useAuth();
-  const { isSuperAdmin } = useIsAdmin();
 
   const [deleteTarget, setDeleteTarget] =
     useState<OrganizationMemberRow | null>(null);
@@ -205,7 +203,7 @@ export function OrganizationMembersTable({
           const member = row.original;
           const isSelf = member.clerkUserId === currentClerkUserId;
           const isSuper = member.role === "superadmin";
-          const canDelete = !isSelf && (!isSuper || isSuperAdmin);
+          const canDelete = !isSelf && !isSuper;
 
           return (
             <Button
@@ -229,7 +227,7 @@ export function OrganizationMembersTable({
         },
       },
     ];
-  }, [currentClerkUserId, isSuperAdmin, roleUpdatingClerkUserId, t]);
+  }, [currentClerkUserId, roleUpdatingClerkUserId, t]);
 
   const handleRoleUpdate = async (
     member: OrganizationMemberRow,
@@ -292,7 +290,11 @@ export function OrganizationMembersTable({
         filtersMenuLabel={tTable("filters")}
         exportButtonLabel={tActions("export")}
         initialSorting={[{ id: "createdAt", desc: true }]}
+        pageSize={10}
       />
+      <div className="mt-2 text-xs text-muted-foreground">
+        {t("summary", { count: rows.length })}
+      </div>
 
       <AlertDialog
         open={!!deleteTarget}

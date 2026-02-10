@@ -267,8 +267,17 @@ export const setSingleTenantRole = action({
       throw new Error("Forbidden");
     }
 
+    if (currentUser.clerkId === args.clerkUserId) {
+      throw new Error("You cannot change your own role");
+    }
+
     const targetUser = await clerkClient.users.getUser(args.clerkUserId);
-    if (targetUser.publicMetadata?.isSuperAdmin === true) {
+    const targetRole = targetUser.publicMetadata?.role;
+    const isTargetSuperAdmin =
+      targetUser.publicMetadata?.isSuperAdmin === true ||
+      targetRole === "superadmin" ||
+      targetRole === "org:superadmin";
+    if (isTargetSuperAdmin) {
       throw new Error("Cannot update role for a SuperAdmin");
     }
 
@@ -322,11 +331,13 @@ export const deleteSingleTenantUser = action({
     }
 
     const targetUser = await clerkClient.users.getUser(args.clerkUserId);
-    if (
-      targetUser.publicMetadata?.isSuperAdmin === true &&
-      !currentUser.isSuperAdmin
-    ) {
-      throw new Error("Forbidden");
+    const targetRole = targetUser.publicMetadata?.role;
+    const isTargetSuperAdmin =
+      targetUser.publicMetadata?.isSuperAdmin === true ||
+      targetRole === "superadmin" ||
+      targetRole === "org:superadmin";
+    if (isTargetSuperAdmin) {
+      throw new Error("Cannot delete a SuperAdmin");
     }
 
     await clerkClient.users.deleteUser(args.clerkUserId);

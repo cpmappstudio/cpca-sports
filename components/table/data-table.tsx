@@ -46,7 +46,7 @@ import type { DataTableProps } from "@/lib/table/types";
 import { shouldHandleRowClick } from "@/lib/table/utils";
 import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 
-const PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 50;
 
 export function DataTable<TData>({
   data,
@@ -62,10 +62,12 @@ export function DataTable<TData>({
   nextLabel,
   selectedRowsLabel,
   initialSorting,
+  pageSize,
   onCreate,
   onExport,
   onRowClick,
 }: DataTableProps<TData>) {
+  const resolvedPageSize = pageSize ?? DEFAULT_PAGE_SIZE;
   const [sorting, setSorting] = React.useState<SortingState>(
     initialSorting ?? [],
   );
@@ -91,7 +93,7 @@ export function DataTable<TData>({
     onRowSelectionChange: setRowSelection,
     initialState: {
       pagination: {
-        pageSize: PAGE_SIZE,
+        pageSize: resolvedPageSize,
       },
       sorting: initialSorting,
     },

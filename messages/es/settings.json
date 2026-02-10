@@ -31,6 +31,7 @@
       "table": {
         "searchPlaceholder": "Buscar por nombre, correo o rol...",
         "emptyMessage": "No hay usuarios para mostrar.",
+        "summary": "Total de miembros: {count}",
         "columns": {
           "createdAt": "Creado",
           "user": "Usuario",
