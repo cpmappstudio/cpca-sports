@@ -6,6 +6,7 @@ import SettingsItem from "./settings-item";
 import { OrganizationProfile } from "@clerk/nextjs";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { MemberInviteForm } from "./member-invite-form";
+import { DEFAULT_TENANT_SLUG, isSingleTenantMode } from "@/lib/tenancy/config";
 
 export function GeneralSettings() {
   const tOrganization = useTranslations("Settings.general.organization");
@@ -13,6 +14,7 @@ export function GeneralSettings() {
   const { isAdmin } = useIsAdmin();
   const params = useParams<{ tenant?: string }>();
   const tenant = typeof params.tenant === "string" ? params.tenant : null;
+  const singleTenantMode = isSingleTenantMode();
 
   const organizationProfileAppearance = {
     elements: {
@@ -47,7 +49,13 @@ export function GeneralSettings() {
         title={tOrganization("title")}
         description={tOrganization("description")}
       >
-        <OrganizationProfile appearance={organizationProfileAppearance} />
+        {singleTenantMode ? (
+          <div className="rounded-md border bg-muted/20 p-3 text-sm font-medium">
+            {tenant ?? DEFAULT_TENANT_SLUG}
+          </div>
+        ) : (
+          <OrganizationProfile appearance={organizationProfileAppearance} />
+        )}
       </SettingsItem>
       {isAdmin && (
         <SettingsItem
@@ -55,10 +63,12 @@ export function GeneralSettings() {
           description={tMembers("description")}
         >
           {tenant && <MemberInviteForm tenant={tenant} />}
-          <OrganizationProfile appearance={organizationProfileAppearance}>
-            <OrganizationProfile.Page label="members" />
-            <OrganizationProfile.Page label="general" />
-          </OrganizationProfile>
+          {!singleTenantMode && (
+            <OrganizationProfile appearance={organizationProfileAppearance}>
+              <OrganizationProfile.Page label="members" />
+              <OrganizationProfile.Page label="general" />
+            </OrganizationProfile>
+          )}
         </SettingsItem>
       )}
     </div>

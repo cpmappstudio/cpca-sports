@@ -1,9 +1,23 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
+import { isAdminFromSessionClaims } from "@/lib/auth/roles";
 import { locales, routing, type Locale } from "@/i18n/routing";
+import { DEFAULT_TENANT_SLUG, isSingleTenantMode } from "@/lib/tenancy/config";
 
-const INVITABLE_ROLES = ["org:member", "org:admin"] as const;
-type InvitableRole = (typeof INVITABLE_ROLES)[number];
+const MULTI_TENANT_INVITABLE_ROLES = ["org:member", "org:admin"] as const;
+const SINGLE_TENANT_INVITABLE_ROLES = ["member", "admin"] as const;
+type MultiTenantInvitableRole = (typeof MULTI_TENANT_INVITABLE_ROLES)[number];
+type SingleTenantInvitableRole = (typeof SINGLE_TENANT_INVITABLE_ROLES)[number];
+type InvitationAccessContext =
+  | {
+      mode: "single";
+      userId: string;
+    }
+  | {
+      mode: "multi";
+      userId: string;
+      organizationId: string;
+    };
 
 interface RouteContext {
   params: Promise<{ tenant: string }>;
@@ -22,9 +36,21 @@ function canManageInvitations(role: string | null | undefined) {
   return role === "org:admin" || role === "org:superadmin";
 }
 
-function isInvitableRole(role: unknown): role is InvitableRole {
+function isMultiTenantInvitableRole(
+  role: unknown,
+): role is MultiTenantInvitableRole {
   return (
-    typeof role === "string" && INVITABLE_ROLES.includes(role as InvitableRole)
+    typeof role === "string" &&
+    MULTI_TENANT_INVITABLE_ROLES.includes(role as MultiTenantInvitableRole)
+  );
+}
+
+function isSingleTenantInvitableRole(
+  role: unknown,
+): role is SingleTenantInvitableRole {
+  return (
+    typeof role === "string" &&
+    SINGLE_TENANT_INVITABLE_ROLES.includes(role as SingleTenantInvitableRole)
   );
 }
 
@@ -62,7 +88,24 @@ function resolveErrorMessage(error: unknown, fallback: string): string {
   return firstMessage ?? fallback;
 }
 
-async function requireInvitationAccess(tenant: string) {
+async function requireInvitationAccess(
+  tenant: string,
+): Promise<InvitationAccessContext> {
+  if (isSingleTenantMode()) {
+    const authObject = await auth();
+    if (!authObject.userId) {
+      throw new InvitationAccessError(401, "Unauthorized");
+    }
+    if (tenant !== DEFAULT_TENANT_SLUG) {
+      throw new InvitationAccessError(404, "Organization not found");
+    }
+    if (!isAdminFromSessionClaims(authObject.sessionClaims)) {
+      throw new InvitationAccessError(403, "Forbidden");
+    }
+
+    return { mode: "single", userId: authObject.userId };
+  }
+
   const authObject = await auth();
   const { userId, orgId, orgSlug, has } = authObject;
 
@@ -76,7 +119,7 @@ async function requireInvitationAccess(tenant: string) {
     (has?.({ role: "org:admin" }) || has?.({ role: "org:superadmin" }));
 
   if (hasActiveOrgAccess) {
-    return { userId, organizationId: orgId };
+    return { mode: "multi", userId, organizationId: orgId };
   }
 
   const client = await clerkClient();
@@ -101,13 +144,13 @@ async function requireInvitationAccess(tenant: string) {
     throw new InvitationAccessError(403, "Forbidden");
   }
 
-  return { userId, organizationId: organization.id };
+  return { mode: "multi", userId, organizationId: organization.id };
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
   try {
     const { tenant } = await params;
-    const { userId, organizationId } = await requireInvitationAccess(tenant);
+    const accessContext = await requireInvitationAccess(tenant);
 
     const body = (await request.json()) as {
       emailAddress?: unknown;
@@ -124,10 +167,6 @@ export async function POST(request: Request, { params }: RouteContext) {
       );
     }
 
-    if (!isInvitableRole(body.role)) {
-      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
-    }
-
     const locale = resolveLocale(body.locale);
     const localePrefix = locale === routing.defaultLocale ? "" : `/${locale}`;
     const redirectUrl = new URL(
@@ -136,9 +175,33 @@ export async function POST(request: Request, { params }: RouteContext) {
     ).toString();
 
     const client = await clerkClient();
+    if (accessContext.mode === "single") {
+      if (!isSingleTenantInvitableRole(body.role)) {
+        return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+      }
+
+      const invitation = await client.invitations.createInvitation({
+        emailAddress,
+        redirectUrl,
+        publicMetadata: { role: body.role },
+      });
+
+      return NextResponse.json({
+        invitation: {
+          id: invitation.id,
+          emailAddress: invitation.emailAddress,
+          role: body.role,
+        },
+      });
+    }
+
+    if (!isMultiTenantInvitableRole(body.role)) {
+      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    }
+
     const invitation = await client.organizations.createOrganizationInvitation({
-      organizationId,
-      inviterUserId: userId,
+      organizationId: accessContext.organizationId,
+      inviterUserId: accessContext.userId,
       emailAddress,
       role: body.role,
       redirectUrl,
@@ -155,8 +218,8 @@ export async function POST(request: Request, { params }: RouteContext) {
     const status = resolveErrorStatus(error);
     const fallbackMessage =
       status >= 500
-        ? "Failed to create organization invitation"
-        : "Unable to create organization invitation";
+        ? "Failed to create invitation"
+        : "Unable to create invitation";
     const message = resolveErrorMessage(error, fallbackMessage);
 
     return NextResponse.json({ error: message }, { status });

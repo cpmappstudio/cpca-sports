@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { ROUTES } from "@/lib/navigation/routes";
 import { routing } from "@/i18n/routing";
+import { DEFAULT_TENANT_SLUG, isSingleTenantMode } from "@/lib/tenancy/config";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -9,5 +10,8 @@ interface PageProps {
 export default async function LocaleHomePage({ params }: PageProps) {
   const { locale } = await params;
   const localePrefix = locale === routing.defaultLocale ? "" : `/${locale}`;
-  redirect(`${localePrefix}${ROUTES.auth.organizations}`);
+  const targetPath = isSingleTenantMode()
+    ? ROUTES.org.applications.list(DEFAULT_TENANT_SLUG)
+    : ROUTES.auth.organizations;
+  redirect(`${localePrefix}${targetPath}`);
 }

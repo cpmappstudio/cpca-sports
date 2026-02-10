@@ -2,9 +2,15 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { NextResponse } from "next/server";
 import { routing, locales } from "./i18n/routing";
+import {
+  DEFAULT_TENANT_SLUG,
+  isMultiTenantMode,
+  isSingleTenantMode,
+} from "@/lib/tenancy/config";
 
 const intlMiddleware = createIntlMiddleware(routing);
 const ORGANIZATIONS_PATH = "/organizations";
+const SINGLE_TENANT_MODE = isSingleTenantMode();
 
 // Only sign-in and sign-up routes are public
 const isPublicRoute = createRouteMatcher([
@@ -72,50 +78,88 @@ function buildLocalizedPath(pathname: string, basePath: string): string {
   return locale ? `/${locale}${basePath}` : basePath;
 }
 
-export default clerkMiddleware(
-  async (auth, req) => {
-    if (isAdminRoute(req)) {
-      const redirectPath = buildLocalizedPath(
-        req.nextUrl.pathname,
-        ORGANIZATIONS_PATH,
-      );
-      return NextResponse.redirect(new URL(redirectPath, req.url));
+function replaceTenantInPathname(pathname: string, tenantSlug: string) {
+  const segments = pathname.split("/").filter(Boolean);
+
+  // Skip locale if present
+  let tenantIndex = 0;
+  if (
+    segments[0] &&
+    locales.includes(segments[0] as (typeof locales)[number])
+  ) {
+    tenantIndex = 1;
+  }
+
+  const currentTenant = segments[tenantIndex];
+  if (!currentTenant || RESERVED_PATHS.has(currentTenant)) {
+    return null;
+  }
+
+  if (currentTenant === tenantSlug) {
+    return null;
+  }
+
+  segments[tenantIndex] = tenantSlug;
+  return `/${segments.join("/")}`;
+}
+
+const middlewareOptions = isMultiTenantMode()
+  ? {
+      organizationSyncOptions: {
+        // Sync organization based on URL slug (excludes admin via RESERVED_PATHS)
+        organizationPatterns: [
+          "/:slug",
+          "/:slug/(.*)",
+          "/:locale/:slug",
+          "/:locale/:slug/(.*)",
+        ],
+      },
     }
+  : {};
 
-    const authObject = await auth();
-    const { userId } = authObject;
-    const isAuthenticated = !!userId;
-
-    if (isApiRoute(req)) {
-      if (!isAuthenticated) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      return NextResponse.next();
+export default clerkMiddleware(async (auth, req) => {
+  if (SINGLE_TENANT_MODE) {
+    const canonicalPathname = replaceTenantInPathname(
+      req.nextUrl.pathname,
+      DEFAULT_TENANT_SLUG,
+    );
+    if (canonicalPathname) {
+      const redirectUrl = req.nextUrl.clone();
+      redirectUrl.pathname = canonicalPathname;
+      return NextResponse.redirect(redirectUrl);
     }
+  }
 
-    // Protect all routes except public ones
-    if (!isAuthenticated && !isPublicRoute(req)) {
-      const tenant = extractTenant(req.nextUrl.pathname);
-      const signInPath = tenant ? `/${tenant}/sign-in` : "/sign-in";
-      const signInUrl = new URL(signInPath, req.url);
-      signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
-      return NextResponse.redirect(signInUrl);
+  if (isAdminRoute(req)) {
+    const redirectPath = buildLocalizedPath(
+      req.nextUrl.pathname,
+      ORGANIZATIONS_PATH,
+    );
+    return NextResponse.redirect(new URL(redirectPath, req.url));
+  }
+
+  const authObject = await auth();
+  const { userId } = authObject;
+  const isAuthenticated = !!userId;
+
+  if (isApiRoute(req)) {
+    if (!isAuthenticated) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    return NextResponse.next();
+  }
 
-    return intlMiddleware(req);
-  },
-  {
-    organizationSyncOptions: {
-      // Sync organization based on URL slug (excludes admin via RESERVED_PATHS)
-      organizationPatterns: [
-        "/:slug",
-        "/:slug/(.*)",
-        "/:locale/:slug",
-        "/:locale/:slug/(.*)",
-      ],
-    },
-  },
-);
+  // Protect all routes except public ones
+  if (!isAuthenticated && !isPublicRoute(req)) {
+    const tenant = extractTenant(req.nextUrl.pathname);
+    const signInPath = tenant ? `/${tenant}/sign-in` : "/sign-in";
+    const signInUrl = new URL(signInPath, req.url);
+    signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
+    return NextResponse.redirect(signInUrl);
+  }
+
+  return intlMiddleware(req);
+}, middlewareOptions);
 
 export const config = {
   matcher: [

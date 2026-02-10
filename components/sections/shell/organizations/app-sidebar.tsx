@@ -20,6 +20,9 @@ import { getNavConfig, getNavContext, isItemActive } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
 import { ROUTES } from "@/lib/navigation/routes";
 import { routing } from "@/i18n/routing";
+import { DEFAULT_TENANT_SLUG, isSingleTenantMode } from "@/lib/tenancy/config";
+
+const SINGLE_TENANT_MODE = isSingleTenantMode();
 
 function getLocalePrefix(locale: string): string {
   return locale === routing.defaultLocale ? "" : `/${locale}`;
@@ -83,25 +86,33 @@ export function SidebarAppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <OrganizationSwitcher
-          organizationProfileUrl={organizationProfileUrl}
-          afterLeaveOrganizationUrl={organizationsUrl}
-          afterSelectOrganizationUrl={afterSelectOrgUrl}
-          appearance={{
-            elements: {
-              rootBox: "w-full",
-              organizationSwitcherTrigger: "w-full justify-between text-left",
-              organizationPreviewMainIdentifier:
-                "text-sidebar-foreground text-lg font-semibold",
-              organizationPreviewSecondaryIdentifier:
-                "text-sidebar-foreground/70",
-              organizationSwitcherTriggerIcon: "text-sidebar-foreground",
-              organizationSwitcherPopoverCard: "bg-popover",
-              organizationSwitcherPopoverActionButton: "hover:bg-accent",
-              organizationSwitcherPopoverActionButtonText: "text-foreground",
-            },
-          }}
-        />
+        {SINGLE_TENANT_MODE ? (
+          <div className="w-full rounded-md border px-3 py-2 text-left">
+            <p className="text-lg font-semibold text-sidebar-foreground">
+              {orgSlug ?? DEFAULT_TENANT_SLUG}
+            </p>
+          </div>
+        ) : (
+          <OrganizationSwitcher
+            organizationProfileUrl={organizationProfileUrl}
+            afterLeaveOrganizationUrl={organizationsUrl}
+            afterSelectOrganizationUrl={afterSelectOrgUrl}
+            appearance={{
+              elements: {
+                rootBox: "w-full",
+                organizationSwitcherTrigger: "w-full justify-between text-left",
+                organizationPreviewMainIdentifier:
+                  "text-sidebar-foreground text-lg font-semibold",
+                organizationPreviewSecondaryIdentifier:
+                  "text-sidebar-foreground/70",
+                organizationSwitcherTriggerIcon: "text-sidebar-foreground",
+                organizationSwitcherPopoverCard: "bg-popover",
+                organizationSwitcherPopoverActionButton: "hover:bg-accent",
+                organizationSwitcherPopoverActionButtonText: "text-foreground",
+              },
+            }}
+          />
+        )}
       </SidebarHeader>
 
       <SidebarBody>

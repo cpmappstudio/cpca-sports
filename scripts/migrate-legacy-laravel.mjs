@@ -799,8 +799,10 @@ async function uploadToConvexStorage(convex, file, migrationSecret) {
 }
 
 function mapClerkRoleToConvexRole(clerkRole) {
-  if (clerkRole === "org:admin") return "admin";
-  if (clerkRole === "org:superadmin") return "superadmin";
+  if (clerkRole === "admin" || clerkRole === "org:admin") return "admin";
+  if (clerkRole === "superadmin" || clerkRole === "org:superadmin")
+    return "superadmin";
+  if (clerkRole === "member" || clerkRole === "org:member") return "member";
   return "member";
 }
 
@@ -826,29 +828,63 @@ async function resolveActor({
   migrationSecret,
   source,
   dryRun,
+  singleTenantMode,
   explicitActorEmail,
   explicitActorClerkId,
 }) {
   let actorUser = null;
   let actorMembership = null;
+  let actorIsSuperAdmin = false;
 
   if (explicitActorClerkId) {
     actorUser = await clerk.users.getUser(explicitActorClerkId);
-    const memberships = await clerk.organizations.getOrganizationMembershipList(
-      {
-        organizationId: organization.clerkOrgId,
-        userId: [explicitActorClerkId],
-        limit: 1,
-      },
-    );
-    actorMembership = memberships.data[0] ?? null;
+    if (!singleTenantMode) {
+      const memberships =
+        await clerk.organizations.getOrganizationMembershipList({
+          organizationId: organization.clerkOrgId,
+          userId: [explicitActorClerkId],
+          limit: 1,
+        });
+      actorMembership = memberships.data[0] ?? null;
+    }
   } else if (explicitActorEmail) {
     const users = await clerk.users.getUserList({
       emailAddress: [explicitActorEmail],
       limit: 1,
     });
     actorUser = users.data[0] ?? null;
-    if (actorUser) {
+
+    // In single-tenant mode we can't resolve an actor from org memberships.
+    // For a fresh Clerk production instance, auto-create the actor when running in execute mode.
+    if (!actorUser && singleTenantMode) {
+      if (dryRun) {
+        actorUser = {
+          id: `dryrun_actor_${sha1(explicitActorEmail).slice(0, 24)}`,
+          firstName: "Migration",
+          lastName: "Actor",
+          emailAddresses: [{ emailAddress: explicitActorEmail }],
+          publicMetadata: { role: "admin" },
+        };
+      } else {
+        actorUser = await clerk.users.createUser({
+          emailAddress: [explicitActorEmail],
+          firstName: "Migration",
+          lastName: "Actor",
+          skipPasswordRequirement: true,
+          skipPasswordChecks: true,
+          skipLegalChecks: true,
+          publicMetadata: { role: "admin" },
+          privateMetadata: {
+            legacyMigration: {
+              source,
+              kind: "actor",
+            },
+          },
+        });
+      }
+    }
+
+    if (actorUser && !singleTenantMode) {
       const memberships =
         await clerk.organizations.getOrganizationMembershipList({
           organizationId: organization.clerkOrgId,
@@ -860,6 +896,12 @@ async function resolveActor({
   }
 
   if (!actorUser) {
+    if (singleTenantMode) {
+      throw new Error(
+        "Could not resolve migration actor user in single-tenant mode. Set MIGRATION_ACTOR_CLERK_ID or MIGRATION_ACTOR_EMAIL.",
+      );
+    }
+
     const memberships = await clerk.organizations.getOrganizationMembershipList(
       {
         organizationId: organization.clerkOrgId,
@@ -885,23 +927,43 @@ async function resolveActor({
     throw new Error("Could not resolve migration actor user");
   }
 
-  if (!actorMembership) {
-    const memberships = await clerk.organizations.getOrganizationMembershipList(
-      {
-        organizationId: organization.clerkOrgId,
-        userId: [actorUser.id],
-        limit: 1,
-      },
+  if (singleTenantMode) {
+    const actorPublicMetadata =
+      actorUser.publicMetadata && typeof actorUser.publicMetadata === "object"
+        ? actorUser.publicMetadata
+        : {};
+    actorIsSuperAdmin = actorPublicMetadata.isSuperAdmin === true;
+    const actorRoleFromMetadata = mapClerkRoleToConvexRole(
+      actorPublicMetadata.role,
     );
-    actorMembership = memberships.data[0] ?? null;
-  }
+    const actorRole = actorIsSuperAdmin
+      ? "superadmin"
+      : actorRoleFromMetadata === "member"
+        ? "admin"
+        : actorRoleFromMetadata;
+    actorMembership = {
+      id: `single:${actorUser.id}:${organization._id}`,
+      role: actorRole,
+      publicUserData: null,
+    };
+  } else {
+    if (!actorMembership) {
+      const memberships =
+        await clerk.organizations.getOrganizationMembershipList({
+          organizationId: organization.clerkOrgId,
+          userId: [actorUser.id],
+          limit: 1,
+        });
+      actorMembership = memberships.data[0] ?? null;
+    }
 
-  if (!actorMembership && !dryRun) {
-    actorMembership = await clerk.organizations.createOrganizationMembership({
-      organizationId: organization.clerkOrgId,
-      userId: actorUser.id,
-      role: "org:admin",
-    });
+    if (!actorMembership && !dryRun) {
+      actorMembership = await clerk.organizations.createOrganizationMembership({
+        organizationId: organization.clerkOrgId,
+        userId: actorUser.id,
+        role: "org:admin",
+      });
+    }
   }
 
   const primaryEmail =
@@ -917,7 +979,10 @@ async function resolveActor({
   const actor = {
     clerkUserId: actorUser.id,
     clerkMembershipId: actorMembership?.id ?? `synthetic-${actorUser.id}`,
-    role: mapClerkRoleToConvexRole(actorMembership?.role ?? "org:admin"),
+    role: mapClerkRoleToConvexRole(
+      actorMembership?.role ?? (singleTenantMode ? "admin" : "org:admin"),
+    ),
+    isSuperAdmin: actorIsSuperAdmin,
     email:
       normalizeSpaces(primaryEmail) || `migration+${actorUser.id}@example.com`,
     firstName: normalizeSpaces(firstName) || "Migration",
@@ -936,7 +1001,7 @@ async function resolveActor({
         email: actor.email,
         firstName: actor.firstName,
         lastName: actor.lastName,
-        isSuperAdmin: false,
+        isSuperAdmin: actor.isSuperAdmin,
       },
     );
     actor.convexUserId = accountResult.userId;
@@ -963,6 +1028,7 @@ async function ensureAccount({
   migrationSecret,
   source,
   dryRun,
+  singleTenantMode,
   allowSyntheticUsers,
 }) {
   let clerkUser = null;
@@ -1011,6 +1077,9 @@ async function ensureAccount({
         skipPasswordRequirement: true,
         skipPasswordChecks: true,
         skipLegalChecks: true,
+        publicMetadata: {
+          role: "member",
+        },
         privateMetadata: {
           legacyMigration: {
             source,
@@ -1059,7 +1128,13 @@ async function ensureAccount({
     };
   }
 
-  if (!isSyntheticUser) {
+  if (singleTenantMode) {
+    clerkMembership = {
+      id: `single:${clerkUser.id}:${organization._id}`,
+      role: "member",
+    };
+    clerkMembershipCreated = true;
+  } else if (!isSyntheticUser) {
     const memberships = await clerk.organizations.getOrganizationMembershipList(
       {
         organizationId: organization.clerkOrgId,
@@ -1159,6 +1234,7 @@ function usage() {
       "  LEGACY_FILTER_CONTROL=665",
       "  LEGACY_SOURCE=laravel_mysql_legacy",
       "  TARGET_ORG_SLUG=cpca-sports",
+      "  TENANCY_MODE=single|multi (default: single)",
       "  MIGRATION_ACTOR_EMAIL=<admin@...>",
       "  MIGRATION_ACTOR_CLERK_ID=user_...",
       "  LEGACY_FILES_ROOT=/path/to/legacy/public",
@@ -1194,6 +1270,12 @@ async function main() {
     "--account-strategy",
     process.env.LEGACY_ACCOUNT_STRATEGY ?? "swap",
   );
+  const tenancyModeRaw = normalizeSpaces(
+    process.env.TENANCY_MODE ??
+      process.env.NEXT_PUBLIC_TENANCY_MODE ??
+      "single",
+  ).toLowerCase();
+  const singleTenantMode = tenancyModeRaw !== "multi";
 
   const config = {
     dryRun,
@@ -1201,6 +1283,7 @@ async function main() {
     includeDocs,
     allowSyntheticUsers,
     accountStrategy,
+    singleTenantMode,
     legacyDbHost: process.env.LEGACY_DB_HOST,
     legacyDbPort: toNumber(process.env.LEGACY_DB_PORT ?? 3306, 3306),
     legacyDbUser: process.env.LEGACY_DB_USER,
@@ -1245,7 +1328,7 @@ async function main() {
   }
 
   console.log(
-    `[start] mode=${dryRun ? "dry-run" : "execute"} strategy=${accountStrategy} photos=${includePhotos} docs=${includeDocs} syntheticUsers=${allowSyntheticUsers}`,
+    `[start] mode=${dryRun ? "dry-run" : "execute"} tenancy=${singleTenantMode ? "single" : "multi"} strategy=${accountStrategy} photos=${includePhotos} docs=${includeDocs} syntheticUsers=${allowSyntheticUsers}`,
   );
 
   const connection = await mysql.createConnection({
@@ -1391,6 +1474,7 @@ async function main() {
     migrationSecret: config.migrationSecret,
     source: config.source,
     dryRun,
+    singleTenantMode: config.singleTenantMode,
     explicitActorEmail: config.actorEmail,
     explicitActorClerkId: config.actorClerkId,
   });
@@ -1430,6 +1514,7 @@ async function main() {
         migrationSecret: config.migrationSecret,
         source: config.source,
         dryRun,
+        singleTenantMode: config.singleTenantMode,
         allowSyntheticUsers: config.allowSyntheticUsers,
       });
 

@@ -12,6 +12,8 @@
     "lint": "next lint",
     "migrate:legacy:dry": "node scripts/migrate-legacy-laravel.mjs",
     "migrate:legacy:execute": "node scripts/migrate-legacy-laravel.mjs --execute",
+    "roles:backfill:dry": "node scripts/backfill-single-tenant-roles.mjs",
+    "roles:backfill:execute": "node scripts/backfill-single-tenant-roles.mjs --execute",
     "cleanup:storage:dry": "node scripts/cleanup-convex-storage.mjs",
     "cleanup:storage:execute": "node scripts/cleanup-convex-storage.mjs --execute"
   },

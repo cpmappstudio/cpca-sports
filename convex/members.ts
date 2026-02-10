@@ -19,6 +19,14 @@ const membershipValidator = v.object({
   createdAt: v.number(),
 });
 
+function formatOrganizationNameFromSlug(slug: string) {
+  return slug
+    .split("-")
+    .filter((segment) => segment.length > 0)
+    .map((segment) => segment[0].toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
 /**
  * Get membership by user and organization.
  */
@@ -311,5 +319,82 @@ export const deleteFromClerk = internalMutation({
     }
 
     return null;
+  },
+});
+
+/**
+ * Upsert a user's membership for single-tenant mode based on user metadata.
+ */
+export const upsertFromSingleTenant = internalMutation({
+  args: {
+    clerkUserId: v.string(),
+    organizationSlug: v.string(),
+    role: roleValidator,
+  },
+  returns: v.union(v.id("organizationMembers"), v.null()),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("byClerkId", (q) => q.eq("clerkId", args.clerkUserId))
+      .unique();
+    if (!user) {
+      return null;
+    }
+
+    let organization = await ctx.db
+      .query("organizations")
+      .withIndex("bySlug", (q) => q.eq("slug", args.organizationSlug))
+      .unique();
+
+    if (!organization) {
+      const organizationId = await ctx.db.insert("organizations", {
+        clerkOrgId: `single:${args.organizationSlug}`,
+        name: formatOrganizationNameFromSlug(args.organizationSlug),
+        slug: args.organizationSlug,
+        createdAt: Date.now(),
+      });
+      organization = await ctx.db.get(organizationId);
+      if (!organization) {
+        return null;
+      }
+    }
+
+    const syntheticMembershipId = `single:${args.clerkUserId}:${organization._id}`;
+    const existingBySyntheticId = await ctx.db
+      .query("organizationMembers")
+      .withIndex("byClerkMembershipId", (q) =>
+        q.eq("clerkMembershipId", syntheticMembershipId),
+      )
+      .unique();
+
+    if (existingBySyntheticId) {
+      if (existingBySyntheticId.role !== args.role) {
+        await ctx.db.patch(existingBySyntheticId._id, { role: args.role });
+      }
+      return existingBySyntheticId._id;
+    }
+
+    const existingByUserOrg = await ctx.db
+      .query("organizationMembers")
+      .withIndex("byUserAndOrg", (q) =>
+        q.eq("userId", user._id).eq("organizationId", organization._id),
+      )
+      .unique();
+
+    if (existingByUserOrg) {
+      await ctx.db.patch(existingByUserOrg._id, {
+        role: args.role,
+        clerkMembershipId: syntheticMembershipId,
+      });
+      return existingByUserOrg._id;
+    }
+
+    return await ctx.db.insert("organizationMembers", {
+      userId: user._id,
+      organizationId: organization._id,
+      clerkMembershipId: syntheticMembershipId,
+      role: args.role,
+      createdAt: Date.now(),
+    });
   },
 });

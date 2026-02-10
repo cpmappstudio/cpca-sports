@@ -12,9 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { isSingleTenantMode } from "@/lib/tenancy/config";
 
-const DEFAULT_ROLE = "org:member" as const;
-type InvitableRole = "org:member" | "org:admin";
+const SINGLE_TENANT_MODE = isSingleTenantMode();
+type InvitableRole = "member" | "admin" | "org:member" | "org:admin";
+const DEFAULT_ROLE: InvitableRole = SINGLE_TENANT_MODE
+  ? "member"
+  : "org:member";
 
 interface MemberInviteFormProps {
   tenant: string;
@@ -94,8 +98,17 @@ export function MemberInviteForm({ tenant }: MemberInviteFormProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="org:member">{t("roleMember")}</SelectItem>
-            <SelectItem value="org:admin">{t("roleAdmin")}</SelectItem>
+            {SINGLE_TENANT_MODE ? (
+              <>
+                <SelectItem value="member">{t("roleMember")}</SelectItem>
+                <SelectItem value="admin">{t("roleAdmin")}</SelectItem>
+              </>
+            ) : (
+              <>
+                <SelectItem value="org:member">{t("roleMember")}</SelectItem>
+                <SelectItem value="org:admin">{t("roleAdmin")}</SelectItem>
+              </>
+            )}
           </SelectContent>
         </Select>
         <Button type="submit" disabled={isSubmitting}>
