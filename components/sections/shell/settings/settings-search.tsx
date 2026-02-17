@@ -23,14 +23,20 @@ import { getSettingsIcon } from "@/lib/navigation";
 
 interface SettingsSearchProps {
   basePath: string;
+  enabledLabelKeys: string[];
 }
 
-export function SettingsSearch({ basePath }: SettingsSearchProps) {
+export function SettingsSearch({
+  basePath,
+  enabledLabelKeys,
+}: SettingsSearchProps) {
   const router = useRouter();
   const t = useTranslations("Settings.search");
   const [open, setOpen] = useState(false);
-  const { query, results, search, reset, isSearching } =
-    useSettingsSearch(basePath);
+  const { query, results, search, reset } = useSettingsSearch(
+    basePath,
+    enabledLabelKeys,
+  );
 
   const handleSelect = (path: string) => {
     router.push(path);

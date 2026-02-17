@@ -60,6 +60,34 @@
         }
       }
     },
+    "wireTransfer": {
+      "title": "Pagos por transferencia bancaria",
+      "description": "Configura cuándo el checkout en línea debe reemplazarse por instrucciones de transferencia bancaria para todas las solicitudes.",
+      "enable": "Habilitar regla de transferencia bancaria",
+      "thresholdLabel": "Monto umbral ($)",
+      "thresholdPlaceholder": "0.00",
+      "thresholdHelp": "Si el saldo seleccionado es mayor o igual a este monto, el usuario verá instrucciones de transferencia bancaria en lugar del checkout en línea.",
+      "noPdfUploaded": "No hay PDF cargado",
+      "noPdfDescription": "Sube el PDF de instrucciones de transferencia para los usuarios.",
+      "usingCustomPdf": "Usando un PDF personalizado de transferencia bancaria.",
+      "uploadPdf": "Subir PDF",
+      "uploadingPdf": "Subiendo...",
+      "downloadCurrent": "Descargar actual",
+      "removePdf": "Eliminar PDF",
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "saveSuccess": "Configuración de transferencia bancaria actualizada.",
+      "saveError": "No se pudo guardar la configuración de transferencia bancaria.",
+      "pdfUploadSuccess": "PDF de transferencia bancaria cargado.",
+      "pdfRemovedSuccess": "PDF de transferencia bancaria eliminado.",
+      "errors": {
+        "invalidThreshold": "Ingresa un umbral mayor a $0.00.",
+        "pdfRequired": "Sube un PDF de transferencia bancaria antes de habilitar esta regla.",
+        "invalidPdf": "Sube un archivo PDF válido.",
+        "uploadFailed": "No se pudo cargar el PDF.",
+        "saveFailed": "No se pudo actualizar esta configuración."
+      }
+    },
     "appearance": {
       "title": "Apariencia",
       "description": "Personaliza cómo se ve la aplicación",

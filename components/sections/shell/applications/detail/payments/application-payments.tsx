@@ -416,6 +416,7 @@ export function ApplicationPayments({
     <div className="space-y-6">
       <PaymentActions
         applicationId={applicationId}
+        organizationSlug={organizationSlug}
         selectedFeeIds={Array.from(selectedFeeIds)}
         selectedRemainingTotalCents={selectedRemainingTotalCents}
         selectedSingleRemainingCents={selectedSingleRemainingCents}

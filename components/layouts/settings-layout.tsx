@@ -40,7 +40,10 @@ function SettingsSidebar({
   return (
     <nav className="flex w-56 shrink-0 flex-col gap-y-1 pr-6">
       <div className="mb-4">
-        <SettingsSearch basePath={basePath} />
+        <SettingsSearch
+          basePath={basePath}
+          enabledLabelKeys={items.map((item) => item.labelKey)}
+        />
       </div>
       {items.map((item) => {
         const href = item.href(orgSlug);

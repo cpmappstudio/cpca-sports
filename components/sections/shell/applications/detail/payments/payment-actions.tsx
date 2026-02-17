@@ -8,6 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,7 +48,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, CreditCard, Trash2, Banknote } from "lucide-react";
+import { Plus, CreditCard, Trash2, Banknote, FileDown } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 import {
   centsToDollars,
@@ -43,11 +60,14 @@ import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { DateRangePopover } from "./date-range-popover";
 import { toast } from "sonner";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 type RecurringScope = "single" | "this_and_following";
 
 interface PaymentActionsProps {
   applicationId: Id<"applications">;
+  organizationSlug: string;
   selectedFeeIds: Id<"fees">[];
   selectedRemainingTotalCents: number;
   selectedSingleRemainingCents: number | null;
@@ -99,6 +119,7 @@ function toMonthStart(date: Date): Date {
 
 export function PaymentActions({
   applicationId,
+  organizationSlug,
   selectedFeeIds,
   selectedRemainingTotalCents,
   selectedSingleRemainingCents,
@@ -123,10 +144,21 @@ export function PaymentActions({
   const [recurringDateRange, setRecurringDateRange] = useState<
     DateRange | undefined
   >(undefined);
+  const [isWireTransferDialogOpen, setIsWireTransferDialogOpen] =
+    useState(false);
+  const paymentSettings = useQuery(api.paymentSettings.getByOrganizationSlug, {
+    organizationSlug,
+  });
 
   const hasSelectedFees = selectedFeeIds.length > 0;
   const canMarkAsPaid = hasSelectedFees && !isMarkingAsPaid;
   const canDeleteSelected = hasSelectedFees && !isDeleting;
+  const isWireTransferSettingsLoading = paymentSettings === undefined;
+  const wireTransferEnabled = paymentSettings?.wireTransferEnabled ?? false;
+  const wireTransferThresholdCents =
+    paymentSettings?.wireTransferThresholdCents ?? null;
+  const wireTransferPdfHref = paymentSettings?.wireTransferPdfUrl ?? null;
+  const wireTransferPdfName = paymentSettings?.wireTransferPdfFileName ?? null;
   const [newFee, setNewFee] = useState({
     name: "",
     totalAmountDollars: 0,
@@ -231,7 +263,31 @@ export function PaymentActions({
   };
 
   const handlePay = async () => {
-    if (!hasSelectedFees || isProcessingPayment) return;
+    if (
+      !hasSelectedFees ||
+      isProcessingPayment ||
+      isWireTransferSettingsLoading
+    )
+      return;
+
+    if (wireTransferEnabled) {
+      if (
+        wireTransferThresholdCents === null ||
+        wireTransferThresholdCents <= 0 ||
+        !wireTransferPdfHref ||
+        !wireTransferPdfName
+      ) {
+        toast.error(
+          t("actions.wireTransferDialog.errors.invalidConfiguration"),
+        );
+        return;
+      }
+
+      if (selectedRemainingTotalCents >= wireTransferThresholdCents) {
+        setIsWireTransferDialogOpen(true);
+        return;
+      }
+    }
 
     setIsProcessingPayment(true);
     try {
@@ -367,7 +423,11 @@ export function PaymentActions({
                 <Button
                   size="sm"
                   variant="default"
-                  disabled={!hasSelectedFees || isProcessingPayment}
+                  disabled={
+                    !hasSelectedFees ||
+                    isProcessingPayment ||
+                    isWireTransferSettingsLoading
+                  }
                   onClick={handlePay}
                 >
                   <CreditCard />
@@ -377,11 +437,18 @@ export function PaymentActions({
                 </Button>
               </span>
             </TooltipTrigger>
-            {!hasSelectedFees && !isProcessingPayment && (
+            {isWireTransferSettingsLoading && (
               <TooltipContent>
-                <p>{t("actions.tooltips.selectToPay")}</p>
+                <p>{t("actions.tooltips.loadingPaymentRules")}</p>
               </TooltipContent>
             )}
+            {!hasSelectedFees &&
+              !isProcessingPayment &&
+              !isWireTransferSettingsLoading && (
+                <TooltipContent>
+                  <p>{t("actions.tooltips.selectToPay")}</p>
+                </TooltipContent>
+              )}
           </Tooltip>
           {isAdmin && (
             <>
@@ -672,6 +739,74 @@ export function PaymentActions({
           </Button>
         )}
       </div>
+      <Dialog
+        open={isWireTransferDialogOpen}
+        onOpenChange={setIsWireTransferDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("actions.wireTransferDialog.title")}</DialogTitle>
+            <DialogDescription>
+              {t("actions.wireTransferDialog.description")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {t("actions.wireTransferDialog.amountInfo", {
+                amount: formatCurrency(selectedRemainingTotalCents),
+                threshold: formatCurrency(wireTransferThresholdCents ?? 0),
+              })}
+            </p>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                {t("actions.wireTransferDialog.instructionTitle")}
+              </p>
+              <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+                <li>{t("actions.wireTransferDialog.stepVerify")}</li>
+                <li>{t("actions.wireTransferDialog.stepReference")}</li>
+                <li>{t("actions.wireTransferDialog.stepProof")}</li>
+              </ol>
+              <p className="text-xs text-muted-foreground">
+                {t("actions.wireTransferDialog.safetyNote")}
+              </p>
+            </div>
+            <Item variant="outline" size="sm">
+              <ItemMedia variant="icon">
+                <FileDown />
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle>
+                  {t("actions.wireTransferDialog.downloadTitle")}
+                </ItemTitle>
+                <ItemDescription>
+                  {t("actions.wireTransferDialog.downloadDescription")}
+                </ItemDescription>
+              </ItemContent>
+              <ItemActions>
+                {wireTransferPdfHref && wireTransferPdfName && (
+                  <Button type="button" variant="outline" asChild>
+                    <a
+                      href={wireTransferPdfHref}
+                      download={wireTransferPdfName}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("actions.wireTransferDialog.downloadAction")}
+                    </a>
+                  </Button>
+                )}
+              </ItemActions>
+            </Item>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                {t("actions.wireTransferDialog.close")}
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {isAddingFee && (
         <Card>
           <CardContent className="space-y-4">

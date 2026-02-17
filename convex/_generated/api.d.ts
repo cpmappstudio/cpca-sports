@@ -23,6 +23,7 @@ import type * as lib_tenancy from "../lib/tenancy.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as members from "../members.js";
 import type * as organizations from "../organizations.js";
+import type * as paymentSettings from "../paymentSettings.js";
 import type * as square from "../square.js";
 import type * as square_webhook from "../square_webhook.js";
 import type * as transactions from "../transactions.js";
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   "lib/validators": typeof lib_validators;
   members: typeof members;
   organizations: typeof organizations;
+  paymentSettings: typeof paymentSettings;
   square: typeof square;
   square_webhook: typeof square_webhook;
   transactions: typeof transactions;

@@ -49,6 +49,18 @@ export function ApplicationsTable({
         );
       }
     : undefined;
+  const resultsCountLabel = (
+    filtered: number,
+    total: number,
+    isFiltered: boolean,
+  ) => {
+    if (isFiltered) {
+      return t("table.filteredCount", { count: filtered, total });
+    }
+    return isAdmin
+      ? t("table.totalCountAdmin", { count: total })
+      : t("table.totalCountClient", { count: total });
+  };
 
   return (
     <DataTable
@@ -62,6 +74,7 @@ export function ApplicationsTable({
       filtersMenuLabel={tTable("filters")}
       filterConfigs={isAdmin ? filters : undefined}
       initialSorting={[{ id: "_creationTime", desc: true }]}
+      resultsCountLabel={resultsCountLabel}
       onCreate={!isAdmin ? handleCreate : undefined}
       onExport={handleExport}
       onRowClick={handleRowClick}

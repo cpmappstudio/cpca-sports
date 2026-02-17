@@ -268,6 +268,20 @@ export function useAdminApplicationColumns(): ColumnDef<ApplicationListItem>[] {
       cell: ({ row }) => <ApplicantCell row={row.original} t={t} />,
     },
     {
+      id: "sex",
+      accessorFn: (row) => row.athlete.sex,
+      header: t("detail.sex"),
+      enableSorting: false,
+      enableHiding: false,
+      cell: ({ row }) => row.original.athlete.sex,
+      meta: {
+        className: "hidden",
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id));
+      },
+    },
+    {
       id: "program",
       header: createSortableHeader(t("program")),
       meta: { className: "hidden lg:table-cell" },
@@ -514,6 +528,7 @@ export function useApplicationFilters(): FilterConfig[] {
   const t = useTranslations("Applications");
   const tStatus = useTranslations("Applications.statusOptions");
   const tPrograms = useTranslations("Applications.programs");
+  const tGender = useTranslations("Common.gender");
 
   return [
     {
@@ -525,6 +540,14 @@ export function useApplicationFilters(): FilterConfig[] {
         { value: "pre-admitted", label: tStatus("pre-admitted") },
         { value: "admitted", label: tStatus("admitted") },
         { value: "denied", label: tStatus("denied") },
+      ],
+    },
+    {
+      id: "sex",
+      label: t("detail.sex"),
+      options: [
+        { value: "male", label: tGender("male") },
+        { value: "female", label: tGender("female") },
       ],
     },
     {

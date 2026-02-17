@@ -41,6 +41,11 @@
     "volleyballClub": "Volleyball Club",
     "pgBasketball": "PG Basketball"
   },
+  "table": {
+    "totalCountAdmin": "Todas las solicitudes: {count}",
+    "totalCountClient": "Mis solicitudes: {count}",
+    "filteredCount": "Mostrando {count} de {total}"
+  },
   "tabs": {
     "application": "Aplicación",
     "payments": "Pagos",
@@ -159,8 +164,26 @@
         "selectToPay": "Selecciona una o más tarifas para realizar un pago",
         "selectToMarkAsPaid": "Selecciona una o más tarifas para marcar como pagadas en efectivo",
         "selectToDelete": "Selecciona una o más tarifas para eliminar",
+        "loadingPaymentRules": "Cargando reglas de pago...",
         "editFee": "Editar tarifa",
         "saveChanges": "Guardar cambios"
+      },
+      "wireTransferDialog": {
+        "title": "Completa el pago por transferencia bancaria",
+        "description": "Este pago alcanza el umbral configurado, por lo que el checkout en línea no está disponible para esta transacción.",
+        "amountInfo": "Saldo seleccionado: {amount} (umbral: {threshold}).",
+        "instructionTitle": "Cómo completar tu transferencia bancaria",
+        "stepVerify": "Usa exactamente los datos del beneficiario del PDF y valida con tu banco cuenta/ruta/SWIFT antes de enviar.",
+        "stepReference": "Incluye la referencia del solicitante o de la solicitud indicada en tus instrucciones para que el pago se pueda conciliar correctamente.",
+        "stepProof": "Conserva el comprobante de la transferencia y compártelo con la organización. Un admin registrará el pago manualmente cuando se confirmen los fondos.",
+        "safetyNote": "Las transferencias bancarias suelen ser difíciles de revertir una vez enviadas. Revisa todos los datos cuidadosamente antes de confirmar.",
+        "downloadTitle": "Instrucciones de transferencia bancaria",
+        "downloadDescription": "Descarga el PDF y completa la transferencia con tu banco.",
+        "downloadAction": "Descargar PDF",
+        "close": "Cerrar",
+        "errors": {
+          "invalidConfiguration": "La transferencia bancaria está habilitada, pero su configuración está incompleta (falta umbral o PDF). Contacta al administrador."
+        }
       },
       "deleteDialog": {
         "title": "¿Eliminar tarifas?",

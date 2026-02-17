@@ -24,6 +24,11 @@ export interface DataTableProps<TData> {
   previousLabel?: string;
   nextLabel?: string;
   selectedRowsLabel?: (selected: number, total: number) => string;
+  resultsCountLabel?: (
+    filtered: number,
+    total: number,
+    isFiltered: boolean,
+  ) => string;
   initialSorting?: SortingState;
   pageSize?: number;
   onCreate?: () => void;

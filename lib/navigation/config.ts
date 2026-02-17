@@ -1,10 +1,8 @@
 import {
   BuildingLibraryIcon,
   UsersIcon,
-  CreditCardIcon,
   Cog6ToothIcon,
   ShieldCheckIcon,
-  CalendarIcon,
 } from "@heroicons/react/20/solid";
 import { Palette } from "lucide-react";
 import { ROUTES } from "@/lib/navigation/routes";
@@ -237,8 +235,5 @@ export function getNavContext(
  */
 export function getSettingsIcon(labelKey: SettingsLabelKey): NavIcon {
   const item = ADMIN_SETTINGS_ITEMS.find((item) => item.labelKey === labelKey);
-  if (!item) {
-    throw new Error(`Unknown settings labelKey: ${labelKey}`);
-  }
-  return item.icon;
+  return item?.icon ?? Cog6ToothIcon;
 }

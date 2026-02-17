@@ -54,13 +54,10 @@ export function DataTable<TData>({
   filterColumn,
   filterPlaceholder,
   emptyMessage,
-  columnsMenuLabel,
   exportButtonLabel,
   filterConfigs,
   filtersMenuLabel,
-  previousLabel,
-  nextLabel,
-  selectedRowsLabel,
+  resultsCountLabel,
   initialSorting,
   pageSize,
   onCreate,
@@ -110,6 +107,26 @@ export function DataTable<TData>({
   const filterColumnInstance = filterColumn
     ? table.getColumn(filterColumn)
     : undefined;
+  const filteredRowsCount = table.getFilteredRowModel().rows.length;
+  const totalRowsCount = table.getCoreRowModel().rows.length;
+  const hasFilteredRows = filteredRowsCount !== totalRowsCount;
+  const resolvedResultsCountLabel = resultsCountLabel?.(
+    filteredRowsCount,
+    totalRowsCount,
+    hasFilteredRows,
+  );
+  const renderResultsCount = (withSeparator: boolean) => {
+    if (!resolvedResultsCountLabel) {
+      return null;
+    }
+
+    return (
+      <>
+        <span>{resolvedResultsCountLabel}</span>
+        {withSeparator && <span aria-hidden="true">•</span>}
+      </>
+    );
+  };
 
   const handleRowClick = React.useCallback(
     (rowData: TData) => {
@@ -210,6 +227,14 @@ export function DataTable<TData>({
         </div>
       </div>
 
+      {resolvedResultsCountLabel && (
+        <div className="pb-2 text-muted-foreground text-sm font-medium">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {renderResultsCount(false)}
+          </div>
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-md border">
         <Table className="bg-card">
           <TableHeader className="bg-primary sticky top-0 z-10 ">
@@ -296,10 +321,15 @@ export function DataTable<TData>({
                 </div> */}
 
         <div className="flex-1 text-muted-foreground text-sm font-medium">
-          {t("table.pageInfo", {
-            current: table.getState().pagination.pageIndex + 1,
-            total: table.getPageCount(),
-          })}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {renderResultsCount(true)}
+            <span>
+              {t("table.pageInfo", {
+                current: table.getState().pagination.pageIndex + 1,
+                total: table.getPageCount(),
+              })}
+            </span>
+          </div>
         </div>
 
         <div className="space-x-2">

@@ -13,12 +13,21 @@ export type SettingsSearchResult = SettingsSearchItem & {
   parentLabel: string;
 };
 
-export function useSettingsSearch(basePath: string) {
+export function useSettingsSearch(
+  basePath: string,
+  enabledLabelKeys: string[],
+) {
   const t = useTranslations("Settings");
   const [query, setQuery] = useState("");
+  const enabledKeySet = useMemo(
+    () => new Set(enabledLabelKeys),
+    [enabledLabelKeys],
+  );
 
   const searchIndex = useMemo(() => {
-    return SETTINGS_SEARCH_ITEMS.map((item) => {
+    return SETTINGS_SEARCH_ITEMS.filter((item) =>
+      enabledKeySet.has(item.labelKey),
+    ).map((item) => {
       let title: string;
       let description: string;
 
@@ -52,7 +61,7 @@ export function useSettingsSearch(basePath: string) {
         fullPath: item.path ? `${basePath}/${item.path}` : basePath,
       };
     });
-  }, [t, basePath]);
+  }, [t, basePath, enabledKeySet]);
 
   const results = useMemo(() => {
     if (!query.trim()) return [];

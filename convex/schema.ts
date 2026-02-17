@@ -277,6 +277,17 @@ export default defineSchema({
     .index("byApplication", ["applicationId"])
     .index("byApplicationAndType", ["applicationId", "documentTypeId"]),
 
+  organizationPaymentSettings: defineTable({
+    organizationId: v.id("organizations"),
+    wireTransferEnabled: v.boolean(),
+    wireTransferThresholdCents: v.optional(v.number()),
+    wireTransferPdfStorageId: v.optional(v.id("_storage")),
+    wireTransferPdfFileName: v.optional(v.string()),
+    wireTransferPdfContentType: v.optional(v.string()),
+    updatedAt: v.number(),
+    updatedBy: v.id("users"),
+  }).index("byOrganization", ["organizationId"]),
+
   legacyMigrationMappings: defineTable({
     source: v.string(),
     entityType: legacyEntityType,

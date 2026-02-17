@@ -24,6 +24,7 @@ const applicationListAthleteValidator = v.object({
   lastName: v.string(),
   email: v.string(),
   telephone: v.string(),
+  sex: v.string(),
   program: v.string(),
   gradeEntering: v.string(),
   birthDate: v.string(),
@@ -135,6 +136,7 @@ function mapToApplicationListItem(
         "athlete",
         "telephone",
       ),
+      sex: getFormDataString(application.formData, "athlete", "sex"),
       program: getFormDataString(application.formData, "athlete", "program"),
       gradeEntering: getFormDataString(
         application.formData,

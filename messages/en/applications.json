@@ -41,6 +41,11 @@
     "volleyballClub": "Volleyball Club",
     "pgBasketball": "PG Basketball"
   },
+  "table": {
+    "totalCountAdmin": "All applications: {count}",
+    "totalCountClient": "My applications: {count}",
+    "filteredCount": "Showing {count} of {total}"
+  },
   "tabs": {
     "application": "Application",
     "payments": "Payments",
@@ -159,8 +164,26 @@
         "selectToPay": "Select one or more fees to make a payment",
         "selectToMarkAsPaid": "Select one or more fees to mark as paid in cash",
         "selectToDelete": "Select one or more fees to delete",
+        "loadingPaymentRules": "Loading payment rules...",
         "editFee": "Edit fee",
         "saveChanges": "Save changes"
+      },
+      "wireTransferDialog": {
+        "title": "Complete payment by wire transfer",
+        "description": "This payment meets the wire transfer threshold, so online checkout is not available for this transaction.",
+        "amountInfo": "Selected balance: {amount} (threshold: {threshold}).",
+        "instructionTitle": "How to complete your wire transfer",
+        "stepVerify": "Use the beneficiary details exactly as listed in the PDF and verify the bank account/routing/SWIFT details with your bank before sending.",
+        "stepReference": "Include the applicant or application reference specified in your instructions so the payment can be matched correctly.",
+        "stepProof": "Keep your wire confirmation or receipt and share it with the organization. An admin will register the payment manually once funds are confirmed.",
+        "safetyNote": "Wire transfers are usually difficult to reverse after they are sent. Review all details carefully before confirming the transfer.",
+        "downloadTitle": "Wire transfer instructions",
+        "downloadDescription": "Download the PDF and complete the transfer with your bank.",
+        "downloadAction": "Download PDF",
+        "close": "Close",
+        "errors": {
+          "invalidConfiguration": "Wire transfer is enabled but its configuration is incomplete (threshold or PDF missing). Contact your administrator."
+        }
       },
       "deleteDialog": {
         "title": "Delete fees?",

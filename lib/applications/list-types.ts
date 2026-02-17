@@ -12,6 +12,7 @@ export interface ApplicationListItem {
     lastName: string;
     email: string;
     telephone: string;
+    sex: string;
     program: string;
     gradeEntering: string;
     birthDate: string;
