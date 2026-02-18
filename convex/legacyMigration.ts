@@ -85,6 +85,30 @@ function toFeeStatus(
   return "partially_paid";
 }
 
+function normalizeHumanText(value: string): string {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function normalizeEmail(value: string): string {
+  return String(value).trim().toLowerCase();
+}
+
+function buildApplicantLookupKey(fullName: string, email: string): string {
+  const normalizedFullName = normalizeHumanText(fullName);
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedFullName || !normalizedEmail) {
+    return "";
+  }
+  return `${normalizedFullName}::${normalizedEmail}`;
+}
+
 async function getLegacyMapping(
   ctx: MutationCtx,
   source: string,
@@ -205,6 +229,183 @@ export const ensureFormTemplate = mutation({
     return {
       formTemplateId: template._id,
       formTemplateVersion: template.version,
+    };
+  },
+});
+
+export const fixApplicationSexFromFemaleReport = mutation({
+  args: {
+    secret: v.string(),
+    organizationSlug: v.string(),
+    reportRows: v.array(
+      v.object({
+        fullName: v.string(),
+        email: v.string(),
+      }),
+    ),
+    dryRun: v.optional(v.boolean()),
+  },
+  returns: v.object({
+    organizationId: v.id("organizations"),
+    reportRows: v.number(),
+    applicationsInOrganization: v.number(),
+    matchedRows: v.number(),
+    updatedApplications: v.number(),
+    alreadyFemaleApplications: v.number(),
+    ambiguousMatches: v.array(
+      v.object({
+        key: v.string(),
+        applicationIds: v.array(v.id("applications")),
+      }),
+    ),
+    unmatchedRows: v.array(
+      v.object({
+        fullName: v.string(),
+        email: v.string(),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    assertMigrationSecret(args.secret);
+
+    const dryRun = args.dryRun ?? true;
+    const organization = await ctx.db
+      .query("organizations")
+      .withIndex("bySlug", (q) => q.eq("slug", args.organizationSlug))
+      .unique();
+
+    if (!organization) {
+      throw new Error(`Organization not found: ${args.organizationSlug}`);
+    }
+
+    const applications = await ctx.db
+      .query("applications")
+      .withIndex("byOrganizationId", (q) =>
+        q.eq("organizationId", organization._id),
+      )
+      .collect();
+
+    const applicationsById = new Map<string, (typeof applications)[number]>();
+    const applicationsByKey = new Map<string, Array<Id<"applications">>>();
+
+    for (const application of applications) {
+      applicationsById.set(String(application._id), application);
+
+      const athleteSection = application.formData.athlete;
+      if (!athleteSection || typeof athleteSection !== "object") {
+        continue;
+      }
+
+      const firstName =
+        typeof athleteSection.firstName === "string"
+          ? athleteSection.firstName
+          : "";
+      const lastName =
+        typeof athleteSection.lastName === "string"
+          ? athleteSection.lastName
+          : "";
+      const email =
+        typeof athleteSection.email === "string" ? athleteSection.email : "";
+
+      const key = buildApplicantLookupKey(`${firstName} ${lastName}`, email);
+      if (!key) {
+        continue;
+      }
+
+      const existing = applicationsByKey.get(key);
+      if (existing) {
+        existing.push(application._id);
+      } else {
+        applicationsByKey.set(key, [application._id]);
+      }
+    }
+
+    const unmatchedRows: Array<{ fullName: string; email: string }> = [];
+    const ambiguousMatches: Array<{
+      key: string;
+      applicationIds: Array<Id<"applications">>;
+    }> = [];
+    const ambiguousKeys = new Set<string>();
+    const updatedApplicationIds = new Set<string>();
+    const alreadyFemaleApplicationIds = new Set<string>();
+    const processedApplicationIds = new Set<string>();
+    let matchedRows = 0;
+
+    for (const row of args.reportRows) {
+      const key = buildApplicantLookupKey(row.fullName, row.email);
+      if (!key) {
+        unmatchedRows.push({
+          fullName: row.fullName,
+          email: row.email,
+        });
+        continue;
+      }
+
+      const applicationIds = applicationsByKey.get(key);
+      if (!applicationIds || applicationIds.length === 0) {
+        unmatchedRows.push({
+          fullName: row.fullName,
+          email: row.email,
+        });
+        continue;
+      }
+
+      if (applicationIds.length > 1 && !ambiguousKeys.has(key)) {
+        ambiguousMatches.push({ key, applicationIds });
+        ambiguousKeys.add(key);
+      }
+
+      matchedRows += 1;
+      for (const applicationId of applicationIds) {
+        const applicationIdKey = String(applicationId);
+        if (processedApplicationIds.has(applicationIdKey)) {
+          continue;
+        }
+        processedApplicationIds.add(applicationIdKey);
+
+        const application = applicationsById.get(applicationIdKey);
+        if (!application) {
+          continue;
+        }
+
+        const athleteSection = application.formData.athlete;
+        if (!athleteSection || typeof athleteSection !== "object") {
+          continue;
+        }
+
+        const currentSexRaw =
+          typeof athleteSection.sex === "string" ? athleteSection.sex : "";
+        const currentSex = normalizeHumanText(currentSexRaw);
+        if (currentSex === "female") {
+          alreadyFemaleApplicationIds.add(applicationIdKey);
+          continue;
+        }
+
+        if (!dryRun) {
+          await ctx.db.patch(application._id, {
+            formData: {
+              ...application.formData,
+              athlete: {
+                ...athleteSection,
+                sex: "female",
+              },
+            },
+          });
+        }
+
+        updatedApplicationIds.add(applicationIdKey);
+      }
+    }
+
+    return {
+      organizationId: organization._id,
+      reportRows: args.reportRows.length,
+      applicationsInOrganization: applications.length,
+      matchedRows,
+      updatedApplications: updatedApplicationIds.size,
+      alreadyFemaleApplications: alreadyFemaleApplicationIds.size,
+      ambiguousMatches,
+      unmatchedRows,
     };
   },
 });

@@ -363,10 +363,10 @@ function buildFormData(pre, params, countryResolver) {
   const aboutUsName = params.name(pre.p_about_us);
 
   const sexNormalized = normalizeKey(sexName);
-  const sex = sexNormalized.includes("male")
-    ? "male"
-    : sexNormalized.includes("female")
-      ? "female"
+  const sex = sexNormalized.includes("female")
+    ? "female"
+    : sexNormalized.includes("male")
+      ? "male"
       : "other";
 
   const program = mapProgram(programName);

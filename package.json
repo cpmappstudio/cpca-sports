@@ -15,7 +15,9 @@
     "roles:backfill:dry": "node scripts/backfill-single-tenant-roles.mjs",
     "roles:backfill:execute": "node scripts/backfill-single-tenant-roles.mjs --execute",
     "cleanup:storage:dry": "node scripts/cleanup-convex-storage.mjs",
-    "cleanup:storage:execute": "node scripts/cleanup-convex-storage.mjs --execute"
+    "cleanup:storage:execute": "node scripts/cleanup-convex-storage.mjs --execute",
+    "sex:fix:female:dry": "node scripts/fix-female-sex-from-report.mjs",
+    "sex:fix:female:execute": "node scripts/fix-female-sex-from-report.mjs --execute"
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",
