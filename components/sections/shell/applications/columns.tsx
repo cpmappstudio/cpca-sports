@@ -131,8 +131,8 @@ function ApplicantCell({
         />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <div className="font-medium">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="font-medium whitespace-normal wrap-break-word">
             {firstName} {lastName}
           </div>
           <div className="md:hidden flex items-center gap-1">
