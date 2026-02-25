@@ -37,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 type MemberRole = "superadmin" | "admin" | "member";
 type EditableRole = Exclude<MemberRole, "superadmin">;
@@ -141,12 +142,16 @@ export function OrganizationMembersTable({
 
           return (
             <div className="flex items-center gap-2 min-w-0">
-              <Avatar
-                src={user.imageUrl}
-                initials={getUserInitials(user)}
-                alt={displayName}
-                className="size-7 bg-muted text-muted-foreground"
-              />
+              <div className="w-10 h-10 rounded-full overflow-hidden">
+                <AspectRatio ratio={1} className="w-full h-full">
+                  <Avatar
+                    src={user.imageUrl}
+                    initials={getUserInitials(user)}
+                    alt={displayName}
+                    className="bg-muted text-muted-foreground object-cover object-center"
+                  />
+                </AspectRatio>
+              </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium" title={displayName}>
                   {displayName}
