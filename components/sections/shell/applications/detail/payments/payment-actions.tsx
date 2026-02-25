@@ -639,18 +639,10 @@ export function PaymentActions({
                           {t("actions.deleteRecurringScopeDialog.description")}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel variant="outline">
-                          {t("actions.deleteDialog.cancel")}
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                          variant="outline"
-                          onClick={() => void handleDelete("single")}
-                        >
-                          {t("actions.deleteRecurringScopeDialog.single")}
-                        </AlertDialogAction>
+                      <div className="flex flex-col gap-2 sm:flex-col">
                         <AlertDialogAction
                           variant="destructive"
+                          className="w-full sm:w-auto"
                           onClick={() =>
                             void handleDelete("this_and_following")
                           }
@@ -659,7 +651,22 @@ export function PaymentActions({
                             "actions.deleteRecurringScopeDialog.thisAndFollowing",
                           )}
                         </AlertDialogAction>
-                      </AlertDialogFooter>
+
+                        <AlertDialogAction
+                            variant="outline"
+                            className="w-full sm:w-auto border-destructive"
+                            onClick={() => void handleDelete("single")}
+                          >
+                            {t("actions.deleteRecurringScopeDialog.single")}
+                          </AlertDialogAction>
+
+                        <AlertDialogCancel
+                          variant="outline"
+                          className="w-full mt-0"
+                        >
+                          {t("actions.deleteDialog.cancel")}
+                        </AlertDialogCancel>
+                      </div>
                     </AlertDialogContent>
                   </AlertDialog>
                 ) : (

@@ -22,7 +22,7 @@ export function ApplicationPhoto({
 }: ApplicationPhotoProps) {
   const photoUrl = useQuery(api.files.getUrl, { storageId, applicationId });
 
-  const sizeClasses = size === "sm" ? "w-10 h-10" : "w-20 h-20";
+  const sizeClasses = size === "sm" ? "w-10 h-10" : "w-30 h-30";
 
   if (photoUrl === undefined) {
     return <Skeleton className={`${sizeClasses} rounded-md`} />;

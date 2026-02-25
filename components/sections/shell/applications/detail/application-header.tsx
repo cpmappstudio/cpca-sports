@@ -289,7 +289,7 @@ export function ApplicationHeader({
         <CardContent className="relative">
           <div className="space-y-4">
             <div className="flex items-start gap-4">
-              <div className="w-20 h-20 shrink-0 relative">
+              <div className="w-30 h-30 shrink-0 relative">
                 {currentPhoto ? (
                   <ApplicationPhoto
                     storageId={currentPhoto}
@@ -343,32 +343,46 @@ export function ApplicationHeader({
                 </div>
                 <div className="flex items-start gap-2 mt-1">
                   {isAdmin ? (
-                    <Select
-                      value={status}
-                      onValueChange={handleStatusChange}
-                      disabled={isUpdating}
-                    >
-                      <SelectTrigger className="w-fit h-7 text-xs font-medium">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">
-                          {tStatus("pending")}
-                        </SelectItem>
-                        <SelectItem value="reviewing">
-                          {tStatus("reviewing")}
-                        </SelectItem>
-                        <SelectItem value="pre-admitted">
-                          {tStatus("pre-admitted")}
-                        </SelectItem>
-                        <SelectItem value="admitted">
-                          {tStatus("admitted")}
-                        </SelectItem>
-                        <SelectItem value="denied">
-                          {tStatus("denied")}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <>
+                      <Select
+                        value={status}
+                        onValueChange={handleStatusChange}
+                        disabled={isUpdating}
+                      >
+                        <SelectTrigger className="w-fit h-7 text-xs font-medium">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">
+                            {tStatus("pending")}
+                          </SelectItem>
+                          <SelectItem value="reviewing">
+                            {tStatus("reviewing")}
+                          </SelectItem>
+                          <SelectItem value="pre-admitted">
+                            {tStatus("pre-admitted")}
+                          </SelectItem>
+                          <SelectItem value="admitted">
+                            {tStatus("admitted")}
+                          </SelectItem>
+                          <SelectItem value="denied">
+                            {tStatus("denied")}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {currentAssociatedUser && (
+                        <Button
+                          variant="outline"
+                          className="hidden md:flex h-9 max-w-56 justify-start gap-2 px-2"
+                          onClick={handleOpenTransferDialog}
+                        >
+                          <ArrowRightLeft className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="truncate text-xs font-medium">
+                            Transfer
+                          </span>
+                        </Button>
+                      )}
+                    </>
                   ) : (
                     <Badge variant={statusInfo.variant} className="w-fit">
                       {statusInfo.label}
@@ -377,7 +391,7 @@ export function ApplicationHeader({
                   {isAdmin && (
                     <>
                       {/* Vista móvil: Dropdown con todas las acciones */}
-                      <div className="md:hidden">
+                      <div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -392,18 +406,10 @@ export function ApplicationHeader({
                             {currentAssociatedUser && (
                               <DropdownMenuItem
                                 onSelect={handleOpenTransferDialog}
-                                className="flex items-center gap-2 max-w-56"
+                                className="md:hidden flex items-center gap-2 max-w-56"
                               >
-                                <Avatar
-                                  src={currentAssociatedUser?.imageUrl}
-                                  initials={associatedUserInitials}
-                                  alt={associatedUserDisplayName}
-                                  className="size-5 bg-muted text-muted-foreground"
-                                />
-                                <span className="truncate">
-                                  {associatedUserDisplayName}
-                                </span>
-                                <ArrowRightLeft className="h-4 w-4 ml-auto text-muted-foreground" />
+                                <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+                                <span className="truncate">Transfer</span>
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem asChild>
@@ -425,6 +431,7 @@ export function ApplicationHeader({
                               </a>
                             </DropdownMenuItem>
                             <DropdownMenuItem
+                            className="flex md:hidden"
                               variant="destructive"
                               onClick={() => setIsDeleteDialogOpen(true)}
                             >
@@ -433,47 +440,6 @@ export function ApplicationHeader({
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </div>
-                      {/* Vista medium y large: Botones individuales */}
-                      <div className="hidden md:flex gap-2">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-9 w-9"
-                          asChild
-                        >
-                          <a href={`tel:${telephone}`}>
-                            <Phone className="h-4 w-4" />
-                          </a>
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-9 w-9"
-                          asChild
-                        >
-                          <a href={`mailto:${email}`}>
-                            <Mail className="h-4 w-4" />
-                          </a>
-                        </Button>
-                        {currentAssociatedUser && (
-                          <Button
-                            variant="outline"
-                            className="h-9 max-w-56 justify-start gap-2 px-2"
-                            onClick={handleOpenTransferDialog}
-                          >
-                            <Avatar
-                              src={currentAssociatedUser?.imageUrl}
-                              initials={associatedUserInitials}
-                              alt={associatedUserDisplayName}
-                              className="size-5 bg-muted text-muted-foreground"
-                            />
-                            <span className="truncate text-xs font-medium">
-                              {associatedUserDisplayName}
-                            </span>
-                            <ArrowRightLeft className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          </Button>
-                        )}
                       </div>
                     </>
                   )}

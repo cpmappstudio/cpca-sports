@@ -168,7 +168,7 @@ export function ApplicationOverviewCard({
 
   const validateData = (data: EditableFormData): Record<string, string> => {
     const newErrors: Record<string, string> = {};
-    
+
     // Required fields from DEFAULT_FORM_SECTIONS
     if (!data.firstName.trim()) newErrors.firstName = tValidation("required");
     if (!data.lastName.trim()) newErrors.lastName = tValidation("required");
@@ -180,15 +180,19 @@ export function ApplicationOverviewCard({
     if (!data.telephone.trim()) newErrors.telephone = tValidation("required");
     if (!data.birthDate) newErrors.birthDate = tValidation("required");
     if (!data.sex) newErrors.sex = tValidation("required");
-    if (!data.countryOfBirth) newErrors.countryOfBirth = tValidation("required");
-    if (!data.countryOfCitizenship) newErrors.countryOfCitizenship = tValidation("required");
+    if (!data.countryOfBirth)
+      newErrors.countryOfBirth = tValidation("required");
+    if (!data.countryOfCitizenship)
+      newErrors.countryOfCitizenship = tValidation("required");
     if (!data.format) newErrors.format = tValidation("required");
     if (!data.program) newErrors.program = tValidation("required");
-    if (!data.enrollmentYear) newErrors.enrollmentYear = tValidation("required");
-    if (!data.graduationYear) newErrors.graduationYear = tValidation("required");
+    if (!data.enrollmentYear)
+      newErrors.enrollmentYear = tValidation("required");
+    if (!data.graduationYear)
+      newErrors.graduationYear = tValidation("required");
     if (!data.gradeEntering) newErrors.gradeEntering = tValidation("required");
     if (!data.needsI20) newErrors.needsI20 = tValidation("required");
-    
+
     return newErrors;
   };
 
@@ -234,7 +238,9 @@ export function ApplicationOverviewCard({
                         className={`h-8 text-sm ${errors.firstName ? "border-destructive" : ""}`}
                       />
                       {errors.firstName && (
-                        <p className="text-xs text-destructive mt-1">{errors.firstName}</p>
+                        <p className="text-xs text-destructive mt-1">
+                          {errors.firstName}
+                        </p>
                       )}
                     </div>
                     <div className="flex-1">
@@ -247,7 +253,9 @@ export function ApplicationOverviewCard({
                         className={`h-8 text-sm ${errors.lastName ? "border-destructive" : ""}`}
                       />
                       {errors.lastName && (
-                        <p className="text-xs text-destructive mt-1">{errors.lastName}</p>
+                        <p className="text-xs text-destructive mt-1">
+                          {errors.lastName}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -259,7 +267,7 @@ export function ApplicationOverviewCard({
               )}
             </div>
 
-                        <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold text-foreground">
                 {t("sex")}
                 <span className="text-destructive ml-1">*</span>
@@ -270,22 +278,28 @@ export function ApplicationOverviewCard({
                     value={editData.sex}
                     onValueChange={(value) => handleFieldChange("sex", value)}
                   >
-                    <SelectTrigger className={`h-8 w-full text-sm ${errors.sex ? "border-destructive" : ""}`}>
+                    <SelectTrigger
+                      className={`h-8 w-full text-sm ${errors.sex ? "border-destructive" : ""}`}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="male">{tAthlete("sexMale")}</SelectItem>
-                    <SelectItem value="female">
-                      {tAthlete("sexFemale")}
-                    </SelectItem>
-                    <SelectItem value="other">
-                      {tAthlete("sexOther")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.sex && (
-                  <p className="text-xs text-destructive mt-1">{errors.sex}</p>
-                )}
+                      <SelectItem value="male">
+                        {tAthlete("sexMale")}
+                      </SelectItem>
+                      <SelectItem value="female">
+                        {tAthlete("sexFemale")}
+                      </SelectItem>
+                      <SelectItem value="other">
+                        {tAthlete("sexOther")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.sex && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.sex}
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="text-sm break-words">
@@ -316,7 +330,9 @@ export function ApplicationOverviewCard({
                     className={`h-8 text-sm ${errors.birthDate ? "border-destructive" : ""}`}
                   />
                   {errors.birthDate && (
-                    <p className="text-xs text-destructive mt-1">{errors.birthDate}</p>
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.birthDate}
+                    </p>
                   )}
                 </>
               ) : (
@@ -378,11 +394,15 @@ export function ApplicationOverviewCard({
                     placeholder={tAthlete("countryOfBirthPlaceholder")}
                   />
                   {errors.countryOfBirth && (
-                    <p className="text-xs text-destructive mt-1">{errors.countryOfBirth}</p>
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.countryOfBirth}
+                    </p>
                   )}
                 </>
               ) : (
-                <p className="text-sm break-words">{getCountryName(countryOfBirth) || "-"}</p>
+                <p className="text-sm break-words">
+                  {getCountryName(countryOfBirth) || "-"}
+                </p>
               )}
             </div>
 
@@ -401,7 +421,9 @@ export function ApplicationOverviewCard({
                     placeholder={tAthlete("countryOfCitizenshipPlaceholder")}
                   />
                   {errors.countryOfCitizenship && (
-                    <p className="text-xs text-destructive mt-1">{errors.countryOfCitizenship}</p>
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.countryOfCitizenship}
+                    </p>
                   )}
                 </>
               ) : (
@@ -425,7 +447,9 @@ export function ApplicationOverviewCard({
                     className={`h-8 text-sm ${errors.email ? "border-destructive" : ""}`}
                   />
                   {errors.email && (
-                    <p className="text-xs text-destructive mt-1">{errors.email}</p>
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.email}
+                    </p>
                   )}
                 </>
               ) : (
@@ -449,7 +473,9 @@ export function ApplicationOverviewCard({
                     className={`h-8 text-sm ${errors.telephone ? "border-destructive" : ""}`}
                   />
                   {errors.telephone && (
-                    <p className="text-xs text-destructive mt-1">{errors.telephone}</p>
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.telephone}
+                    </p>
                   )}
                 </>
               ) : (
@@ -500,9 +526,13 @@ export function ApplicationOverviewCard({
                 <>
                   <Select
                     value={editData.format}
-                    onValueChange={(value) => handleFieldChange("format", value)}
+                    onValueChange={(value) =>
+                      handleFieldChange("format", value)
+                    }
                   >
-                    <SelectTrigger className={`h-8 text-sm w-full ${errors.format ? "border-destructive" : ""}`}>
+                    <SelectTrigger
+                      className={`h-8 text-sm w-full ${errors.format ? "border-destructive" : ""}`}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -515,7 +545,9 @@ export function ApplicationOverviewCard({
                     </SelectContent>
                   </Select>
                   {errors.format && (
-                    <p className="text-xs text-destructive mt-1">{errors.format}</p>
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.format}
+                    </p>
                   )}
                 </>
               ) : (
@@ -537,9 +569,13 @@ export function ApplicationOverviewCard({
                 <>
                   <Select
                     value={editData.program}
-                    onValueChange={(value) => handleFieldChange("program", value)}
+                    onValueChange={(value) =>
+                      handleFieldChange("program", value)
+                    }
                   >
-                    <SelectTrigger className={`h-8 text-sm w-full ${errors.program ? "border-destructive" : ""}`}>
+                    <SelectTrigger
+                      className={`h-8 text-sm w-full ${errors.program ? "border-destructive" : ""}`}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -576,7 +612,9 @@ export function ApplicationOverviewCard({
                     </SelectContent>
                   </Select>
                   {errors.program && (
-                    <p className="text-xs text-destructive mt-1">{errors.program}</p>
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.program}
+                    </p>
                   )}
                 </>
               ) : (
@@ -603,7 +641,9 @@ export function ApplicationOverviewCard({
                       handleFieldChange("enrollmentYear", value)
                     }
                   >
-                    <SelectTrigger className={`h-8 text-sm ${errors.enrollmentYear ? "border-destructive" : ""}`}>
+                    <SelectTrigger
+                      className={`h-8 text-sm ${errors.enrollmentYear ? "border-destructive" : ""}`}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -618,13 +658,13 @@ export function ApplicationOverviewCard({
                     </SelectContent>
                   </Select>
                   {errors.enrollmentYear && (
-                    <p className="text-xs text-destructive mt-1">{errors.enrollmentYear}</p>
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.enrollmentYear}
+                    </p>
                   )}
                 </>
               ) : (
-                <p className="text-sm">
-                  {enrollmentYear || "-"}
-                </p>
+                <p className="text-sm">{enrollmentYear || "-"}</p>
               )}
             </div>
 
@@ -641,7 +681,9 @@ export function ApplicationOverviewCard({
                       handleFieldChange("graduationYear", value)
                     }
                   >
-                    <SelectTrigger className={`h-8 text-sm ${errors.graduationYear ? "border-destructive" : ""}`}>
+                    <SelectTrigger
+                      className={`h-8 text-sm ${errors.graduationYear ? "border-destructive" : ""}`}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -656,13 +698,13 @@ export function ApplicationOverviewCard({
                     </SelectContent>
                   </Select>
                   {errors.graduationYear && (
-                    <p className="text-xs text-destructive mt-1">{errors.graduationYear}</p>
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.graduationYear}
+                    </p>
                   )}
                 </>
               ) : (
-                <p className="text-sm">
-                  {graduationYear || "-"}
-                </p>
+                <p className="text-sm">{graduationYear || "-"}</p>
               )}
             </div>
 
@@ -718,31 +760,35 @@ export function ApplicationOverviewCard({
                     onValueChange={(value) =>
                       handleFieldChange("gradeEntering", value)
                     }
-                >
-                  <SelectTrigger className={`h-8 text-sm w-full ${errors.gradeEntering ? "border-destructive" : ""}`}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">{tAthlete("grade1")}</SelectItem>
-                    <SelectItem value="2">{tAthlete("grade2")}</SelectItem>
-                    <SelectItem value="3">{tAthlete("grade3")}</SelectItem>
-                    <SelectItem value="4">{tAthlete("grade4")}</SelectItem>
-                    <SelectItem value="5">{tAthlete("grade5")}</SelectItem>
-                    <SelectItem value="6">{tAthlete("grade6")}</SelectItem>
-                    <SelectItem value="7">{tAthlete("grade7")}</SelectItem>
-                    <SelectItem value="8">{tAthlete("grade8")}</SelectItem>
-                    <SelectItem value="9">{tAthlete("grade9")}</SelectItem>
-                    <SelectItem value="10">{tAthlete("grade10")}</SelectItem>
-                    <SelectItem value="11">{tAthlete("grade11")}</SelectItem>
-                    <SelectItem value="12">{tAthlete("grade12")}</SelectItem>
-                    <SelectItem value="postgraduate">
-                      {tAthlete("gradePostgraduate")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.gradeEntering && (
-                  <p className="text-xs text-destructive mt-1">{errors.gradeEntering}</p>
-                )}
+                  >
+                    <SelectTrigger
+                      className={`h-8 text-sm w-full ${errors.gradeEntering ? "border-destructive" : ""}`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">{tAthlete("grade1")}</SelectItem>
+                      <SelectItem value="2">{tAthlete("grade2")}</SelectItem>
+                      <SelectItem value="3">{tAthlete("grade3")}</SelectItem>
+                      <SelectItem value="4">{tAthlete("grade4")}</SelectItem>
+                      <SelectItem value="5">{tAthlete("grade5")}</SelectItem>
+                      <SelectItem value="6">{tAthlete("grade6")}</SelectItem>
+                      <SelectItem value="7">{tAthlete("grade7")}</SelectItem>
+                      <SelectItem value="8">{tAthlete("grade8")}</SelectItem>
+                      <SelectItem value="9">{tAthlete("grade9")}</SelectItem>
+                      <SelectItem value="10">{tAthlete("grade10")}</SelectItem>
+                      <SelectItem value="11">{tAthlete("grade11")}</SelectItem>
+                      <SelectItem value="12">{tAthlete("grade12")}</SelectItem>
+                      <SelectItem value="postgraduate">
+                        {tAthlete("gradePostgraduate")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.gradeEntering && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.gradeEntering}
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="text-sm capitalize">
@@ -773,28 +819,28 @@ export function ApplicationOverviewCard({
                     <SelectTrigger
                       className={`h-8 text-sm w-full ${errors.needsI20 ? "border-destructive" : ""}`}
                     >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no-citizen">
-                      {tAthlete("i20NoCitizen")}
-                    </SelectItem>
-                    <SelectItem value="no-non-citizen">
-                      {tAthlete("i20NoNonCitizen")}
-                    </SelectItem>
-                    <SelectItem value="yes-new">
-                      {tAthlete("i20YesNew")}
-                    </SelectItem>
-                    <SelectItem value="yes-transfer">
-                      {tAthlete("i20YesTransfer")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.needsI20 && (
-                  <p className="text-xs text-destructive mt-1">
-                    {errors.needsI20}
-                  </p>
-                )}
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-citizen">
+                        {tAthlete("i20NoCitizen")}
+                      </SelectItem>
+                      <SelectItem value="no-non-citizen">
+                        {tAthlete("i20NoNonCitizen")}
+                      </SelectItem>
+                      <SelectItem value="yes-new">
+                        {tAthlete("i20YesNew")}
+                      </SelectItem>
+                      <SelectItem value="yes-transfer">
+                        {tAthlete("i20YesTransfer")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.needsI20 && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.needsI20}
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="text-sm capitalize">

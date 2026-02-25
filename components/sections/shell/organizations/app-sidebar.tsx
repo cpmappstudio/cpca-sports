@@ -21,6 +21,7 @@ import { useTranslations } from "next-intl";
 import { ROUTES } from "@/lib/navigation/routes";
 import { routing } from "@/i18n/routing";
 import { DEFAULT_TENANT_SLUG, isSingleTenantMode } from "@/lib/tenancy/config";
+import Image from "next/image";
 
 const SINGLE_TENANT_MODE = isSingleTenantMode();
 
@@ -87,10 +88,8 @@ export function SidebarAppSidebar() {
     <Sidebar>
       <SidebarHeader>
         {SINGLE_TENANT_MODE ? (
-          <div className="w-full rounded-md px-3 py-2 text-left">
-            <p className="text-lg font-serif font-semibold text-sidebar-foreground">
-              {orgSlug ?? DEFAULT_TENANT_SLUG}
-            </p>
+          <div className="w-full rounded-md px-3 py-2 flex items-center justify-center">
+            <Image src={"/cpca-logo-v2.png"} width={150} height={100} alt="CPCA Logo" />
           </div>
         ) : (
           <OrganizationSwitcher
