@@ -289,7 +289,7 @@ export function ApplicationHeader({
         <CardContent className="relative">
           <div className="space-y-4">
             <div className="flex items-start gap-4">
-              <div className="w-30 h-30 shrink-0 relative">
+              <div className="w-20 h-20 shrink-0 relative">
                 {currentPhoto ? (
                   <ApplicationPhoto
                     storageId={currentPhoto}
