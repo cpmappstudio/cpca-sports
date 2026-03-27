@@ -153,7 +153,14 @@ export function DataTableFilters<TData>({
                           toggleFilterValue(config.id, option.value)
                         }
                       >
-                        {option.label}
+                        <div className="flex w-full items-center justify-between gap-2">
+                          <span>{option.label}</span>
+                          {option.count !== undefined ? (
+                            <Badge color="zinc" className="h-5 px-1.5">
+                              {option.count}
+                            </Badge>
+                          ) : null}
+                        </div>
                       </DropdownMenuCheckboxItem>
                     ))}
                   </div>
@@ -182,7 +189,14 @@ export function DataTableFilters<TData>({
                       toggleFilterValue(config.id, option.value)
                     }
                   >
-                    {option.label}
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <span>{option.label}</span>
+                      {option.count !== undefined ? (
+                        <Badge color="zinc" className="h-5 px-1.5">
+                          {option.count}
+                        </Badge>
+                      ) : null}
+                    </div>
                   </DropdownMenuCheckboxItem>
                 ))}
               </DropdownMenuSubContent>

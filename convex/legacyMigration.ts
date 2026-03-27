@@ -2,6 +2,12 @@ import { mutation, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { applicationStatus } from "./lib/validators";
+import {
+  LEGACY_IMPORTED_TEMPLATE_DESCRIPTION,
+  LEGACY_IMPORTED_TEMPLATE_NAME,
+  legacyPreadmissionSerializedFormDefinition,
+  legacyPreadmissionTemplateSections,
+} from "../lib/forms/legacy-preadmission-template";
 
 const orgMemberRole = v.union(
   v.literal("superadmin"),
@@ -42,14 +48,6 @@ const legacyPaymentValidator = v.object({
   legacyMethod: v.optional(v.string()),
   reference: v.optional(v.string()),
 });
-
-const defaultTemplateSections = [
-  { key: "athlete", label: "Athlete Information", order: 1, fields: [] },
-  { key: "address", label: "Address", order: 2, fields: [] },
-  { key: "school", label: "School Information", order: 3, fields: [] },
-  { key: "parents", label: "Parents/Guardians", order: 4, fields: [] },
-  { key: "general", label: "Additional Information", order: 5, fields: [] },
-];
 
 function assertMigrationSecret(secret: string) {
   const expected = process.env.LEGACY_MIGRATION_SECRET;
@@ -201,9 +199,10 @@ async function getPublishedTemplateForOrg(
   const templateId = await ctx.db.insert("formTemplates", {
     organizationId,
     version: 1,
-    name: "Legacy Imported Pre-admission Form",
-    description: "Auto-created template for legacy migration",
-    sections: defaultTemplateSections,
+    name: LEGACY_IMPORTED_TEMPLATE_NAME,
+    description: LEGACY_IMPORTED_TEMPLATE_DESCRIPTION,
+    formDefinition: legacyPreadmissionSerializedFormDefinition,
+    sections: legacyPreadmissionTemplateSections,
     isPublished: true,
   });
   const template = await ctx.db.get(templateId);
@@ -265,6 +264,84 @@ export const backfillPublishedProgramsFromSavedDrafts = mutation({
       matchedPrograms: affectedPrograms.length,
       updatedPrograms: args.dryRun ? 0 : affectedPrograms.length,
       affectedProgramIds: affectedPrograms.map((program) => program._id),
+    };
+  },
+});
+
+export const removeFormTemplateModeField = mutation({
+  args: {
+    secret: v.string(),
+    dryRun: v.optional(v.boolean()),
+  },
+  returns: v.object({
+    templatesChecked: v.number(),
+    matchedTemplates: v.number(),
+    updatedTemplates: v.number(),
+    affectedTemplateIds: v.array(v.id("formTemplates")),
+  }),
+  handler: async (ctx, args) => {
+    assertMigrationSecret(args.secret);
+
+    const templates = await ctx.db.query("formTemplates").collect();
+    const affectedTemplates = templates.filter(
+      (template) => "mode" in template && template.mode !== undefined,
+    );
+
+    if (!args.dryRun) {
+      for (const template of affectedTemplates) {
+        const { mode, ...nextTemplate } = template as typeof template & {
+          mode?: "base" | "custom";
+        };
+        void mode;
+        await ctx.db.replace(template._id, nextTemplate);
+      }
+    }
+
+    return {
+      templatesChecked: templates.length,
+      matchedTemplates: affectedTemplates.length,
+      updatedTemplates: args.dryRun ? 0 : affectedTemplates.length,
+      affectedTemplateIds: affectedTemplates.map((template) => template._id),
+    };
+  },
+});
+
+export const backfillLegacyImportedTemplateDefinition = mutation({
+  args: {
+    secret: v.string(),
+    dryRun: v.optional(v.boolean()),
+  },
+  returns: v.object({
+    templatesChecked: v.number(),
+    matchedTemplates: v.number(),
+    updatedTemplates: v.number(),
+    affectedTemplateIds: v.array(v.id("formTemplates")),
+  }),
+  handler: async (ctx, args) => {
+    assertMigrationSecret(args.secret);
+
+    const templates = await ctx.db.query("formTemplates").collect();
+    const affectedTemplates = templates.filter(
+      (template) =>
+        template.name === LEGACY_IMPORTED_TEMPLATE_NAME &&
+        template.description === LEGACY_IMPORTED_TEMPLATE_DESCRIPTION &&
+        !template.formDefinition,
+    );
+
+    if (!args.dryRun) {
+      for (const template of affectedTemplates) {
+        await ctx.db.patch(template._id, {
+          formDefinition: legacyPreadmissionSerializedFormDefinition,
+          sections: legacyPreadmissionTemplateSections,
+        });
+      }
+    }
+
+    return {
+      templatesChecked: templates.length,
+      matchedTemplates: affectedTemplates.length,
+      updatedTemplates: args.dryRun ? 0 : affectedTemplates.length,
+      affectedTemplateIds: affectedTemplates.map((template) => template._id),
     };
   },
 });

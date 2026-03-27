@@ -245,6 +245,17 @@ function useApplicationColumnsBase() {
           return value.includes(row.getValue(id));
         },
       },
+      {
+        id: "sex",
+        accessorFn: (row) => row.sex ?? "",
+        enableHiding: false,
+        meta: {
+          className: "hidden",
+        },
+        filterFn: (row, id, value) => {
+          return value.includes(row.getValue(id));
+        },
+      },
     ];
   }, [locale, statusMap, t]);
 }
@@ -262,22 +273,60 @@ export function useApplicationFilters(
 ): FilterConfig[] {
   const t = useTranslations("Applications");
   const tStatus = useTranslations("Applications.statusOptions");
+  const tAthlete = useTranslations("preadmission.athlete");
 
   return useMemo(() => {
+    const countValues = (values: string[]) =>
+      values.reduce<Record<string, number>>((counts, value) => {
+        counts[value] = (counts[value] ?? 0) + 1;
+        return counts;
+      }, {});
+
+    const statusCounts = countValues(applications.map((row) => row.status));
     const programs = [...new Set(applications.map((row) => row.program.name))]
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b));
+    const programCounts = countValues(
+      applications.map((row) => row.program.name).filter(Boolean),
+    );
+    const sexCounts = countValues(
+      applications
+        .map((row) => row.sex)
+        .filter((value): value is NonNullable<ApplicationListItem["sex"]> =>
+          Boolean(value),
+        ),
+    );
 
-    return [
+    const filters: FilterConfig[] = [
       {
         id: "status",
         label: t("status"),
         options: [
-          { value: "pending", label: tStatus("pending") },
-          { value: "reviewing", label: tStatus("reviewing") },
-          { value: "pre-admitted", label: tStatus("pre-admitted") },
-          { value: "admitted", label: tStatus("admitted") },
-          { value: "denied", label: tStatus("denied") },
+          {
+            value: "pending",
+            label: tStatus("pending"),
+            count: statusCounts.pending ?? 0,
+          },
+          {
+            value: "reviewing",
+            label: tStatus("reviewing"),
+            count: statusCounts.reviewing ?? 0,
+          },
+          {
+            value: "pre-admitted",
+            label: tStatus("pre-admitted"),
+            count: statusCounts["pre-admitted"] ?? 0,
+          },
+          {
+            value: "admitted",
+            label: tStatus("admitted"),
+            count: statusCounts.admitted ?? 0,
+          },
+          {
+            value: "denied",
+            label: tStatus("denied"),
+            count: statusCounts.denied ?? 0,
+          },
         ],
       },
       {
@@ -286,8 +335,30 @@ export function useApplicationFilters(
         options: programs.map((program) => ({
           value: program,
           label: program,
+          count: programCounts[program] ?? 0,
         })),
       },
     ];
-  }, [applications, t, tStatus]);
+
+    const sexOptions = [
+      { value: "male", label: tAthlete("sexMale") },
+      { value: "female", label: tAthlete("sexFemale") },
+      { value: "other", label: tAthlete("sexOther") },
+    ]
+      .filter((option) => (sexCounts[option.value] ?? 0) > 0)
+      .map((option) => ({
+        ...option,
+        count: sexCounts[option.value] ?? 0,
+      }));
+
+    if (sexOptions.length > 0) {
+      filters.splice(1, 0, {
+        id: "sex",
+        label: t("sex"),
+        options: sexOptions,
+      });
+    }
+
+    return filters;
+  }, [applications, t, tAthlete, tStatus]);
 }

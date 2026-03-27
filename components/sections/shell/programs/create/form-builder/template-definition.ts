@@ -1,4 +1,8 @@
 import type { Doc } from "@/convex/_generated/dataModel";
+import {
+  isLegacyImportedTemplateMissingDefinition,
+  legacyPreadmissionFormDefinition,
+} from "@/lib/forms/legacy-preadmission-template";
 import type {
   ProgramFormDefinition,
   ProgramFormElement,
@@ -118,6 +122,10 @@ export function buildProgramFormDefinitionFromTemplate(
   template: Doc<"formTemplates">,
   copy: ProgramFormCopy = DEFAULT_PROGRAM_FORM_COPY,
 ) {
+  if (isLegacyImportedTemplateMissingDefinition(template)) {
+    return legacyPreadmissionFormDefinition;
+  }
+
   if (template.formDefinition) {
     const parsedDefinition = parseProgramFormDefinition(
       template.formDefinition,

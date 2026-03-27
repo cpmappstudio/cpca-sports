@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 export interface FilterOption {
   value: string;
   label: string;
+  count?: number;
 }
 
 export interface FilterConfig {

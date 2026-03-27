@@ -43,6 +43,9 @@ export const applicationListItemValidator = v.object({
   programIconKey: v.optional(v.string()),
   applicationCode: v.string(),
   status: applicationStatus,
+  sex: v.optional(
+    v.union(v.literal("male"), v.literal("female"), v.literal("other")),
+  ),
   applicant: applicationListApplicantValidator,
   program: applicationListProgramValidator,
   account: applicationListAccountValidator,
@@ -68,6 +71,21 @@ type ApplicationAccountSummary = {
   imageUrl?: string;
 } | null;
 
+type ApplicationListSex = "male" | "female" | "other";
+
+function getApplicationSex(
+  formData: ApplicationFormData,
+): ApplicationListSex | undefined {
+  const sex = getFormDataString(formData, "athlete", "sex")
+    .trim()
+    .toLowerCase();
+  if (sex === "male" || sex === "female" || sex === "other") {
+    return sex;
+  }
+
+  return undefined;
+}
+
 function mapToApplicationListItem(
   application: ApplicationSummarySource,
   account: ApplicationAccountSummary,
@@ -75,6 +93,7 @@ function mapToApplicationListItem(
   const applicant = getApplicationApplicant(application);
   const programSnapshot = getApplicationProgramSnapshot(application);
   const photoStorageId = getApplicationPhotoStorageId(application);
+  const sex = getApplicationSex(application.formData);
 
   return {
     _id: application._id,
@@ -86,6 +105,7 @@ function mapToApplicationListItem(
       : {}),
     applicationCode: application.applicationCode,
     status: application.status,
+    ...(sex ? { sex } : {}),
     applicant: {
       firstName:
         applicant?.firstName ??
@@ -146,12 +166,19 @@ export async function buildApplicationListSummary(
   ctx: QueryCtx,
   applications: ApplicationSummarySource[],
 ) {
-  const userIds = [...new Set(applications.map((application) => application.userId))];
+  const userIds = [
+    ...new Set(applications.map((application) => application.userId)),
+  ];
   const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
-  const userMap = new Map(users.filter(Boolean).map((item) => [item!._id, item!]));
+  const userMap = new Map(
+    users.filter(Boolean).map((item) => [item!._id, item!]),
+  );
 
   const summary = applications.map((application) =>
-    mapToApplicationListItem(application, userMap.get(application.userId) ?? null),
+    mapToApplicationListItem(
+      application,
+      userMap.get(application.userId) ?? null,
+    ),
   );
 
   return await withPhotoUrls(ctx, summary);

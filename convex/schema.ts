@@ -109,6 +109,7 @@ export default defineSchema({
     version: v.number(),
     name: v.string(),
     description: v.optional(v.string()),
+    mode: v.optional(v.union(v.literal("base"), v.literal("custom"))),
     isArchived: v.optional(v.boolean()),
     formDefinition: v.optional(v.string()),
     sections: v.array(
