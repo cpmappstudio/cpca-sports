@@ -354,7 +354,7 @@ export function useApplicationFilters(
     if (sexOptions.length > 0) {
       filters.splice(1, 0, {
         id: "sex",
-        label: t("sex"),
+        label: tAthlete("sex"),
         options: sexOptions,
       });
     }
