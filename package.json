@@ -9,7 +9,7 @@
     "predev": "convex dev --until-success",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint app components convex lib i18n --ignore-pattern '.next/**' --ignore-pattern 'convex/_generated/**'",
     "migrate:legacy:dry": "node scripts/migrate-legacy-laravel.mjs",
     "migrate:legacy:execute": "node scripts/migrate-legacy-laravel.mjs --execute",
     "roles:backfill:dry": "node scripts/backfill-single-tenant-roles.mjs",

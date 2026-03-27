@@ -1,21 +1,22 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getCurrentUser } from "./lib/auth";
+import {
+  clearTemplateDocumentConfigs,
+  defaultDocumentConfigValidator,
+  replaceTemplateDocumentConfigs,
+} from "./lib/defaultDocuments";
+import {
+  clearTemplatePaymentConfigs,
+  defaultPaymentConfigValidator,
+  replaceTemplatePaymentConfigs,
+} from "./lib/defaultPayments";
+import {
+  duplicateTemplateAsDraft,
+  getNextTemplateVersion,
+  templateSectionValidator,
+} from "./lib/formTemplates";
 import { hasOrgAdminAccess } from "./lib/permissions";
-
-const sectionValidator = v.object({
-  key: v.string(),
-  label: v.string(),
-  order: v.number(),
-  fields: v.array(
-    v.object({
-      key: v.string(),
-      label: v.string(),
-      type: v.string(),
-      required: v.boolean(),
-    }),
-  ),
-});
 
 const templateValidator = v.object({
   _id: v.id("formTemplates"),
@@ -24,8 +25,9 @@ const templateValidator = v.object({
   version: v.number(),
   name: v.string(),
   description: v.optional(v.string()),
-  mode: v.union(v.literal("base"), v.literal("custom")),
-  sections: v.array(sectionValidator),
+  isArchived: v.optional(v.boolean()),
+  formDefinition: v.optional(v.string()),
+  sections: v.array(templateSectionValidator),
   isPublished: v.boolean(),
 });
 
@@ -52,9 +54,9 @@ export const getPublished = query({
         q.eq("organizationId", organization._id),
       )
       .filter((q) => q.eq(q.field("isPublished"), true))
-      .first();
+      .collect();
 
-    return template;
+    return template.find((item) => item.isArchived !== true) ?? null;
   },
 });
 
@@ -65,12 +67,23 @@ export const listByOrganization = query({
   args: { organizationId: v.id("organizations") },
   returns: v.array(templateValidator),
   handler: async (ctx, args) => {
-    return await ctx.db
+    const user = await getCurrentUser(ctx);
+
+    const isAdmin = await hasOrgAdminAccess(ctx, user._id, args.organizationId);
+    if (!isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    const templates = await ctx.db
       .query("formTemplates")
       .withIndex("byOrganization", (q) =>
         q.eq("organizationId", args.organizationId),
       )
       .collect();
+
+    return templates
+      .filter((template) => template.isArchived !== true)
+      .sort((a, b) => b._creationTime - a._creationTime);
   },
 });
 
@@ -81,7 +94,23 @@ export const getById = query({
   args: { templateId: v.id("formTemplates") },
   returns: v.union(templateValidator, v.null()),
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.templateId);
+    const user = await getCurrentUser(ctx);
+    const template = await ctx.db.get(args.templateId);
+
+    if (!template) {
+      return null;
+    }
+
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      template.organizationId,
+    );
+    if (!isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    return template;
   },
 });
 
@@ -93,8 +122,8 @@ export const create = mutation({
     organizationId: v.id("organizations"),
     name: v.string(),
     description: v.optional(v.string()),
-    mode: v.union(v.literal("base"), v.literal("custom")),
-    sections: v.array(sectionValidator),
+    formDefinition: v.optional(v.string()),
+    sections: v.array(templateSectionValidator),
   },
   returns: v.id("formTemplates"),
   handler: async (ctx, args) => {
@@ -106,24 +135,12 @@ export const create = mutation({
       throw new Error("Admin access required");
     }
 
-    const existingTemplates = await ctx.db
-      .query("formTemplates")
-      .withIndex("byOrganization", (q) =>
-        q.eq("organizationId", args.organizationId),
-      )
-      .collect();
-
-    const maxVersion = existingTemplates.reduce(
-      (max, t) => Math.max(max, t.version),
-      0,
-    );
-
     return await ctx.db.insert("formTemplates", {
       organizationId: args.organizationId,
-      version: maxVersion + 1,
+      version: await getNextTemplateVersion(ctx, args.organizationId),
       name: args.name,
       description: args.description,
-      mode: args.mode,
+      formDefinition: args.formDefinition,
       sections: args.sections,
       isPublished: false,
     });
@@ -139,8 +156,10 @@ export const update = mutation({
     templateId: v.id("formTemplates"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
-    mode: v.optional(v.union(v.literal("base"), v.literal("custom"))),
-    sections: v.optional(v.array(sectionValidator)),
+    formDefinition: v.optional(v.string()),
+    sections: v.optional(v.array(templateSectionValidator)),
+    documentConfigs: v.optional(v.array(defaultDocumentConfigValidator)),
+    paymentConfigs: v.optional(v.array(defaultPaymentConfigValidator)),
   },
   returns: v.id("formTemplates"),
   handler: async (ctx, args) => {
@@ -161,24 +180,59 @@ export const update = mutation({
     }
 
     if (template.isPublished) {
-      const newTemplateId = await ctx.db.insert("formTemplates", {
-        organizationId: template.organizationId,
-        version: template.version + 1,
+      const newTemplateId = await duplicateTemplateAsDraft(ctx, {
+        template,
+        userId: user._id,
+      });
+
+      await ctx.db.patch(newTemplateId, {
         name: args.name ?? template.name,
         description: args.description ?? template.description,
-        mode: args.mode ?? template.mode,
+        formDefinition: args.formDefinition ?? template.formDefinition,
         sections: args.sections ?? template.sections,
-        isPublished: false,
       });
+
+      if (args.documentConfigs !== undefined) {
+        await replaceTemplateDocumentConfigs(ctx, {
+          templateId: newTemplateId,
+          userId: user._id,
+          documents: args.documentConfigs,
+        });
+      }
+      if (args.paymentConfigs !== undefined) {
+        await replaceTemplatePaymentConfigs(ctx, {
+          templateId: newTemplateId,
+          userId: user._id,
+          fees: args.paymentConfigs,
+        });
+      }
+
       return newTemplateId;
     }
 
     await ctx.db.patch(args.templateId, {
       ...(args.name && { name: args.name }),
       ...(args.description !== undefined && { description: args.description }),
-      ...(args.mode && { mode: args.mode }),
+      ...(args.formDefinition !== undefined && {
+        formDefinition: args.formDefinition,
+      }),
       ...(args.sections && { sections: args.sections }),
     });
+
+    if (args.documentConfigs !== undefined) {
+      await replaceTemplateDocumentConfigs(ctx, {
+        templateId: args.templateId,
+        userId: user._id,
+        documents: args.documentConfigs,
+      });
+    }
+    if (args.paymentConfigs !== undefined) {
+      await replaceTemplatePaymentConfigs(ctx, {
+        templateId: args.templateId,
+        userId: user._id,
+        fees: args.paymentConfigs,
+      });
+    }
 
     return args.templateId;
   },
@@ -223,5 +277,53 @@ export const publish = mutation({
     await ctx.db.patch(args.templateId, { isPublished: true });
 
     return null;
+  },
+});
+
+export const remove = mutation({
+  args: { templateId: v.id("formTemplates") },
+  returns: v.union(v.literal("deleted"), v.literal("archived")),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const template = await ctx.db.get(args.templateId);
+
+    if (!template) {
+      throw new Error("Template not found");
+    }
+
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      template.organizationId,
+    );
+    if (!isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    const linkedApplications = await ctx.db
+      .query("applications")
+      .withIndex("byOrganizationId", (q) =>
+        q.eq("organizationId", template.organizationId),
+      )
+      .collect();
+
+    if (
+      linkedApplications.some(
+        (application) => application.formTemplateId === template._id,
+      )
+    ) {
+      await ctx.db.patch(args.templateId, {
+        isArchived: true,
+        isPublished: false,
+      });
+
+      return "archived";
+    }
+
+    await clearTemplateDocumentConfigs(ctx, args.templateId);
+    await clearTemplatePaymentConfigs(ctx, args.templateId);
+    await ctx.db.delete(args.templateId);
+
+    return "deleted";
   },
 });

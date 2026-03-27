@@ -4,6 +4,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
@@ -15,6 +16,7 @@ interface PhotoUploadProps {
 }
 
 export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
+  const t = useTranslations("preadmission.core.photo");
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -33,12 +35,12 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
+      setError(t("invalidType"));
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setError("File size must be less than 10MB");
+      setError(t("maxSize"));
       return;
     }
 
@@ -56,7 +58,7 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
       });
 
       if (!result.ok) {
-        throw new Error("Upload failed");
+        throw new Error(t("uploadFailed"));
       }
 
       const { storageId } = await result.json();
@@ -67,7 +69,7 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
       onChange(storageId);
     } catch (err) {
       URL.revokeObjectURL(localPreviewUrl);
-      setError("Failed to upload photo");
+      setError(t("uploadFailed"));
       console.error("[PhotoUpload] Upload error:", err);
     } finally {
       setIsUploading(false);
@@ -78,11 +80,9 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
     <div className="space-y-4">
       <div>
         <Label htmlFor="photo">
-          Photo {required && <span className="text-destructive">*</span>}
+          {t("label")} {required && <span className="text-destructive">*</span>}
         </Label>
-        <p className="text-sm text-muted-foreground mt-1">
-          Upload a recent photo. Max size: 10MB
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">{t("description")}</p>
       </div>
 
       <div className="flex items-start gap-4">
@@ -107,13 +107,11 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
             required={required && !value}
           />
           {isUploading && (
-            <p className="text-sm text-muted-foreground">Uploading photo...</p>
+            <p className="text-sm text-muted-foreground">{t("uploading")}</p>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           {value && !isUploading && (
-            <p className="text-sm text-green-600">
-              ✓ Photo uploaded successfully
-            </p>
+            <p className="text-sm text-green-600">{t("uploaded")}</p>
           )}
         </div>
       </div>

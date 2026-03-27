@@ -1,7 +1,9 @@
 {
   "title": "Pre-Admission Application",
-  "description": "Follow the simple 5 steps to complete your application.",
+  "description": "Select a program and complete the required steps for your application.",
   "steps": {
+    "stepDescription": "Step {current}/{total}",
+    "programStepFallback": "Step {current}",
     "athlete": "Athlete",
     "athleteDescription": "Step 1/5",
     "athleteTitle": "Athlete Information",
@@ -22,6 +24,32 @@
     "generalDescription": "Step 5/5",
     "generalTitle": "Additional Information",
     "generalCardDescription": "Please provide any additional information to complete your application."
+  },
+  "core": {
+    "stepLabel": "Application",
+    "title": "Application Information",
+    "cardDescription": "Choose a program and provide the applicant's basic information.",
+    "programTitle": "Program",
+    "programDescription": "Select the program you want to apply for.",
+    "emptyPrograms": "There are no programs available right now. Please try again later.",
+    "firstName": "First Name",
+    "firstNamePlaceholder": "Type the applicant's first name...",
+    "lastName": "Last Name",
+    "lastNamePlaceholder": "Type the applicant's last name...",
+    "email": "Email",
+    "emailPlaceholder": "Type the applicant's email...",
+    "telephone": "Phone Number",
+    "telephonePlaceholder": "Type the applicant's phone number...",
+    "submitError": "We couldn't submit the application. Please try again.",
+    "photo": {
+      "label": "Photo",
+      "description": "Upload a recent photo. Max size: 10MB.",
+      "uploading": "Uploading photo...",
+      "uploaded": "Photo uploaded successfully",
+      "invalidType": "Please select an image file",
+      "maxSize": "File size must be less than 10MB",
+      "uploadFailed": "Failed to upload photo"
+    }
   },
   "navigation": {
     "back": "Back",

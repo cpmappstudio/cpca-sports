@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useAction, useQuery } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
@@ -97,6 +97,26 @@ export function OrganizationMembersTable({
 
   const setSingleTenantRole = useAction(api.users.setSingleTenantRole);
   const deleteSingleTenantUser = useAction(api.users.deleteSingleTenantUser);
+
+  const handleRoleUpdate = useCallback(
+    async (member: OrganizationMemberRow, role: EditableRole) => {
+      setRoleUpdatingClerkUserId(member.clerkUserId);
+      try {
+        await setSingleTenantRole({
+          organizationSlug,
+          clerkUserId: member.clerkUserId,
+          role,
+        });
+        toast.success(t("toasts.roleUpdated"));
+      } catch (error) {
+        console.error("Failed to update member role:", error);
+        toast.error(t("toasts.roleUpdateError"));
+      } finally {
+        setRoleUpdatingClerkUserId(null);
+      }
+    },
+    [organizationSlug, setSingleTenantRole, t],
+  );
 
   const rows = useMemo<OrganizationMemberRow[]>(() => {
     if (!members) {
@@ -232,27 +252,7 @@ export function OrganizationMembersTable({
         },
       },
     ];
-  }, [currentClerkUserId, roleUpdatingClerkUserId, t]);
-
-  const handleRoleUpdate = async (
-    member: OrganizationMemberRow,
-    role: EditableRole,
-  ) => {
-    setRoleUpdatingClerkUserId(member.clerkUserId);
-    try {
-      await setSingleTenantRole({
-        organizationSlug,
-        clerkUserId: member.clerkUserId,
-        role,
-      });
-      toast.success(t("toasts.roleUpdated"));
-    } catch (error) {
-      console.error("Failed to update member role:", error);
-      toast.error(t("toasts.roleUpdateError"));
-    } finally {
-      setRoleUpdatingClerkUserId(null);
-    }
-  };
+  }, [currentClerkUserId, handleRoleUpdate, roleUpdatingClerkUserId, t]);
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) {

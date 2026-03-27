@@ -1,4 +1,5 @@
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import type { ReactNode } from "react";
 
 export interface FilterOption {
   value: string;
@@ -34,6 +35,7 @@ export interface DataTableProps<TData> {
   onCreate?: () => void;
   onExport?: (rows: TData[]) => void;
   onRowClick?: (row: TData) => void;
+  renderRowContextMenu?: (row: TData) => ReactNode;
 }
 
 export type Translator = (key: string) => string;

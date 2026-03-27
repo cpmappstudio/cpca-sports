@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { UserProfile, useUser } from "@clerk/nextjs";
+import { UserProfile } from "@clerk/nextjs";
 import SettingsItem from "./settings-item";
 
 export function SecuritySettings() {

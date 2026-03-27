@@ -7,8 +7,6 @@ const orgMemberRole = v.union(
   v.literal("member"),
 );
 
-const mode = v.union(v.literal("base"), v.literal("custom"));
-
 const status = v.union(
   v.literal("pending"),
   v.literal("reviewing"),
@@ -111,7 +109,8 @@ export default defineSchema({
     version: v.number(),
     name: v.string(),
     description: v.optional(v.string()),
-    mode: mode,
+    isArchived: v.optional(v.boolean()),
+    formDefinition: v.optional(v.string()),
     sections: v.array(
       v.object({
         key: v.string(),
@@ -130,13 +129,122 @@ export default defineSchema({
     isPublished: v.boolean(),
   }).index("byOrganization", ["organizationId"]),
 
+  programs: defineTable({
+    organizationId: v.id("organizations"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    iconKey: v.optional(v.string()),
+    formTemplateId: v.optional(v.id("formTemplates")),
+    formDefinition: v.optional(v.string()),
+    isDraft: v.boolean(),
+    isActive: v.optional(v.boolean()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("byOrganization", ["organizationId"]),
+
+  programRecurringFeeConfig: defineTable({
+    programId: v.id("programs"),
+    planKey: v.string(),
+    name: v.string(),
+    cadence: recurringCadence,
+    dueDayOfMonth: v.number(),
+    timezone: v.string(),
+    totalAmount: v.number(),
+    downPaymentAmount: v.optional(v.number()),
+    installmentCount: v.number(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("byProgram", ["programId"])
+    .index("byProgramAndPlanKey", ["programId", "planKey"]),
+
+  programFeeConfig: defineTable({
+    programId: v.id("programs"),
+    feeKey: v.string(),
+    name: v.string(),
+    totalAmount: v.number(),
+    downPaymentPercent: v.number(),
+    isRefundable: v.boolean(),
+    isIncluded: v.boolean(),
+    isRequired: v.boolean(),
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+    recurringPlanId: v.optional(v.id("programRecurringFeeConfig")),
+    installmentIndex: v.optional(v.number()),
+    installmentCount: v.optional(v.number()),
+    dueDayOfMonth: v.optional(v.number()),
+    timezone: v.optional(v.string()),
+    isRecurring: v.optional(v.boolean()),
+  })
+    .index("byProgram", ["programId"])
+    .index("byProgramAndFeeKey", ["programId", "feeKey"])
+    .index("byRecurringPlan", ["recurringPlanId"]),
+
+  templateRecurringFeeConfig: defineTable({
+    templateId: v.id("formTemplates"),
+    planKey: v.string(),
+    name: v.string(),
+    cadence: recurringCadence,
+    dueDayOfMonth: v.number(),
+    timezone: v.string(),
+    totalAmount: v.number(),
+    downPaymentAmount: v.optional(v.number()),
+    installmentCount: v.number(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("byTemplate", ["templateId"])
+    .index("byTemplateAndPlanKey", ["templateId", "planKey"]),
+
+  templateFeeConfig: defineTable({
+    templateId: v.id("formTemplates"),
+    feeKey: v.string(),
+    name: v.string(),
+    totalAmount: v.number(),
+    downPaymentPercent: v.number(),
+    isRefundable: v.boolean(),
+    isIncluded: v.boolean(),
+    isRequired: v.boolean(),
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+    recurringPlanId: v.optional(v.id("templateRecurringFeeConfig")),
+    installmentIndex: v.optional(v.number()),
+    installmentCount: v.optional(v.number()),
+    dueDayOfMonth: v.optional(v.number()),
+    timezone: v.optional(v.string()),
+    isRecurring: v.optional(v.boolean()),
+  })
+    .index("byTemplate", ["templateId"])
+    .index("byTemplateAndFeeKey", ["templateId", "feeKey"])
+    .index("byRecurringPlan", ["recurringPlanId"]),
+
   applications: defineTable({
     userId: v.id("users"),
     organizationId: v.id("organizations"),
-    formTemplateId: v.id("formTemplates"),
-    formTemplateVersion: v.number(),
+    programId: v.optional(v.id("programs")),
+    formTemplateId: v.optional(v.id("formTemplates")),
+    formTemplateVersion: v.optional(v.number()),
     applicationCode: v.string(),
     status: status,
+    applicant: v.optional(
+      v.object({
+        photoStorageId: v.optional(v.id("_storage")),
+        firstName: v.string(),
+        lastName: v.string(),
+        email: v.string(),
+        telephone: v.string(),
+      }),
+    ),
+    programSnapshot: v.optional(
+      v.object({
+        name: v.string(),
+        iconKey: v.optional(v.string()),
+      }),
+    ),
+    formDefinitionSnapshot: v.optional(v.string()),
     formData: v.record(
       v.string(),
       v.record(
@@ -156,6 +264,7 @@ export default defineSchema({
     .index("byUserId", ["userId"])
     .index("byUserIdAndOrganizationId", ["userId", "organizationId"])
     .index("byOrganizationId", ["organizationId"])
+    .index("byProgram", ["programId"])
     .index("byOrganizationIdAndStatus", ["organizationId", "status"])
     .index("byStatus", ["status"])
     .index("byApplicationCode", ["applicationCode"]),
@@ -276,6 +385,30 @@ export default defineSchema({
   })
     .index("byApplication", ["applicationId"])
     .index("byApplicationAndType", ["applicationId", "documentTypeId"]),
+
+  programDocumentConfig: defineTable({
+    programId: v.id("programs"),
+    documentTypeId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    visibility: documentVisibility,
+    updatedAt: v.number(),
+    updatedBy: v.id("users"),
+  })
+    .index("byProgram", ["programId"])
+    .index("byProgramAndType", ["programId", "documentTypeId"]),
+
+  templateDocumentConfig: defineTable({
+    templateId: v.id("formTemplates"),
+    documentTypeId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    visibility: documentVisibility,
+    updatedAt: v.number(),
+    updatedBy: v.id("users"),
+  })
+    .index("byTemplate", ["templateId"])
+    .index("byTemplateAndType", ["templateId", "documentTypeId"]),
 
   organizationPaymentSettings: defineTable({
     organizationId: v.id("organizations"),

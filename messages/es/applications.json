@@ -44,7 +44,14 @@
   "table": {
     "totalCountAdmin": "Todas las solicitudes: {count}",
     "totalCountClient": "Mis solicitudes: {count}",
-    "filteredCount": "Mostrando {count} de {total}"
+    "filteredCount": "Mostrando {count} de {total}",
+    "exportHeaders": {
+      "code": "Código",
+      "email": "Correo electrónico",
+      "phone": "Teléfono",
+      "accountEmail": "Correo de la cuenta",
+      "createdAt": "Fecha de creación"
+    }
   },
   "tabs": {
     "application": "Aplicación",
@@ -62,6 +69,8 @@
   "detail": {
     "code": "Código",
     "program": "Programa",
+    "applicantInfo": "Información del solicitante",
+    "noAdditionalFields": "Esta solicitud no requiere campos adicionales en el formulario.",
     "backToList": "Volver a la lista",
     "call": "Llamar",
     "delete": "Eliminar",
@@ -153,6 +162,7 @@
       "pay": "Pagar",
       "edit": "Editar",
       "save": "Guardar",
+      "saving": "Guardando...",
       "processing": "Procesando...",
       "markAsPaid": "Marcar como Pagado",
       "markingAsPaid": "Marcando como Pagado...",
@@ -191,6 +201,12 @@
         "cancel": "Cancelar",
         "confirm": "Eliminar"
       },
+      "deleteFeeDialog": {
+        "title": "¿Eliminar cobro?",
+        "description": "Esto eliminará permanentemente esta configuración de cobro. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
+      },
       "deleteRecurringScopeDialog": {
         "title": "¿Eliminar cuotas recurrentes?",
         "description": "Elige si los cobros recurrentes deben eliminar solo la(s) cuota(s) seleccionada(s) o también cada cuota siguiente del mismo plan.",
@@ -220,11 +236,15 @@
     "form": {
       "feeName": "Nombre de la Tarifa",
       "feeNamePlaceholder": "Ingresa el nombre de la tarifa",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Opcional",
       "totalAmount": "Monto Total ($)",
       "amountPlaceholder": "0.00",
       "recurring": "Cobro mensual recurrente",
       "startDate": "Mes de inicio",
       "endDate": "Mes final",
+      "installmentCount": "Cantidad de meses",
+      "installmentCountPlaceholder": "Ingresa la cantidad de meses",
       "dueDayOfMonth": "Día límite de pago",
       "timezone": "Zona horaria",
       "downPaymentAmount": "Primer pago ($)",
@@ -283,6 +303,7 @@
       "fields": {
         "name": "Nombre de la tarifa",
         "totalAmount": "Monto total de las cuotas proyectadas ($)",
+        "installmentCount": "Cantidad de meses",
         "startDate": "Mes de inicio",
         "endDate": "Mes final",
         "rangePlaceholder": "Selecciona mes de inicio y fin",

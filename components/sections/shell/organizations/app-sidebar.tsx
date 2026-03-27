@@ -20,7 +20,7 @@ import { getNavConfig, getNavContext, isItemActive } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
 import { ROUTES } from "@/lib/navigation/routes";
 import { routing } from "@/i18n/routing";
-import { DEFAULT_TENANT_SLUG, isSingleTenantMode } from "@/lib/tenancy/config";
+import { isSingleTenantMode } from "@/lib/tenancy/config";
 import Image from "next/image";
 
 const SINGLE_TENANT_MODE = isSingleTenantMode();
@@ -62,7 +62,13 @@ export function NavbarAppSidebar() {
   );
 }
 
-export function SidebarAppSidebar() {
+interface SidebarAppSidebarProps {
+  isTenantAdmin?: boolean;
+}
+
+export function SidebarAppSidebar({
+  isTenantAdmin = false,
+}: SidebarAppSidebarProps) {
   const params = useParams();
   const pathname = usePathname();
   const locale = useLocale();
@@ -70,8 +76,10 @@ export function SidebarAppSidebar() {
 
   const orgSlug = (params.tenant as string) || null;
 
-  const localePrefix = getLocalePrefix(locale);
-  const afterSelectOrgUrl = `${localePrefix}/:slug/applications`;
+  const afterSelectOrgUrl = withLocalePrefix(
+    locale,
+    ROUTES.org.applications.list(":slug"),
+  );
   const organizationsUrl = withLocalePrefix(locale, ROUTES.auth.organizations);
   const afterSignOutUrl = getTenantSignInUrl(locale, orgSlug);
   const organizationProfileUrl = orgSlug
@@ -82,14 +90,21 @@ export function SidebarAppSidebar() {
     : organizationsUrl;
 
   const context = getNavContext(pathname, orgSlug);
-  const { items, settingsHref } = getNavConfig(context);
+  const { items, settingsHref } = getNavConfig(context, {
+    isTenantAdmin,
+  });
 
   return (
     <Sidebar>
       <SidebarHeader>
         {SINGLE_TENANT_MODE ? (
           <div className="w-full rounded-md px-3 py-2 flex items-center justify-center">
-            <Image src={"/cpca-logo-v2.png"} width={150} height={100} alt="CPCA Logo" />
+            <Image
+              src={"/cpca-logo-v2.png"}
+              width={150}
+              height={100}
+              alt={t("organizationLogoAlt")}
+            />
           </div>
         ) : (
           <OrganizationSwitcher

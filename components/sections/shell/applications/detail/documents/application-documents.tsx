@@ -4,20 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -35,42 +21,29 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Upload,
   FileIcon,
   CheckCircle2,
   XCircle,
   Eye,
   Trash2,
-  Plus,
-  MoreHorizontal,
-  Pencil,
 } from "lucide-react";
-import {
-  APPLICATION_DOCUMENTS,
-  type DocumentType,
-  type DocumentVisibility,
-  type ApplicationDocumentWithUser,
-  type DocumentConfig,
-} from "@/lib/applications/document-types";
-import { cn } from "@/lib/utils";
-import { Id } from "@/convex/_generated/dataModel";
 import { useTranslations } from "next-intl";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { Id } from "@/convex/_generated/dataModel";
+import {
+  APPLICATION_DOCUMENTS,
+  type ApplicationDocumentWithUser,
+  type DocumentConfig,
+  type DocumentType,
+  type DocumentVisibility,
+} from "@/lib/applications/document-types";
+import { cn } from "@/lib/utils";
+import {
+  AddDocumentTypeForm,
+  DocumentTypeActions,
+  DocumentTypeCard,
+} from "@/components/sections/shell/documents/document-type-components";
 
 interface ApplicationDocumentsProps {
   applicationId: Id<"applications">;
@@ -115,140 +88,6 @@ interface ApplicationDocumentsProps {
   }) => Promise<null>;
 }
 
-interface DocumentActionsProps {
-  isAddingDocument: boolean;
-  setIsAddingDocument: (value: boolean) => void;
-}
-
-function DocumentActions({
-  isAddingDocument,
-  setIsAddingDocument,
-}: DocumentActionsProps) {
-  const t = useTranslations("Applications.documents");
-  const { isAdmin } = useIsAdmin();
-
-  if (!isAdmin) return null;
-
-  return (
-    <div className="flex items-center justify-end">
-      <Button
-        size="sm"
-        variant={isAddingDocument ? "outline" : "default"}
-        onClick={() => setIsAddingDocument(!isAddingDocument)}
-      >
-        {isAddingDocument ? (
-          <span className="hidden md:inline">{t("actions.cancel")}</span>
-        ) : (
-          <>
-            <Plus />
-            <span className="hidden md:inline">{t("actions.addDocument")}</span>
-          </>
-        )}
-      </Button>
-    </div>
-  );
-}
-
-interface AddDocumentFormProps {
-  applicationId: Id<"applications">;
-  onAddDocument: (document: {
-    name: string;
-    description?: string;
-    required: boolean;
-  }) => Promise<void>;
-  onClose: () => void;
-}
-
-function AddDocumentForm({
-  applicationId,
-  onAddDocument,
-  onClose,
-}: AddDocumentFormProps) {
-  const t = useTranslations("Applications.documents");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newDocument, setNewDocument] = useState({
-    name: "",
-    description: "",
-    required: false,
-  });
-
-  const handleAdd = async () => {
-    if (!newDocument.name) return;
-
-    setIsSubmitting(true);
-    try {
-      await onAddDocument({
-        name: newDocument.name,
-        description: newDocument.description || undefined,
-        required: newDocument.required,
-      });
-
-      setNewDocument({ name: "", description: "", required: false });
-      onClose();
-    } catch (error) {
-      console.error("Failed to add document:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Card>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="document-name">{t("form.documentName")}</Label>
-            <Input
-              id="document-name"
-              placeholder={t("form.documentNamePlaceholder")}
-              value={newDocument.name}
-              onChange={(e) =>
-                setNewDocument({ ...newDocument, name: e.target.value })
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="document-description">
-              {t("form.description")}
-            </Label>
-            <Input
-              id="document-description"
-              placeholder={t("form.descriptionPlaceholder")}
-              value={newDocument.description}
-              onChange={(e) =>
-                setNewDocument({ ...newDocument, description: e.target.value })
-              }
-            />
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="document-required"
-              checked={newDocument.required}
-              onChange={(e) =>
-                setNewDocument({ ...newDocument, required: e.target.checked })
-              }
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            <Label htmlFor="document-required" className="cursor-pointer">
-              {t("form.required")}
-            </Label>
-          </div>
-        </div>
-        <Button
-          onClick={handleAdd}
-          className="w-full"
-          disabled={isSubmitting || !newDocument.name}
-        >
-          {isSubmitting ? t("form.adding") : t("form.addButton")}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function ApplicationDocuments({
   applicationId,
   documents,
@@ -262,11 +101,9 @@ export function ApplicationDocuments({
   onUpdateCustomDocumentType,
   onDeleteCustomDocumentType,
 }: ApplicationDocumentsProps) {
-  const t = useTranslations("Applications.documents");
   const { isAdmin } = useIsAdmin();
   const [isAddingDocument, setIsAddingDocument] = useState(false);
 
-  // Extract custom document types from configs with their configId
   const customDocumentsWithConfig = documentConfigs
     .filter((config) => config.isCustom && config.name)
     .map((config) => ({
@@ -278,80 +115,82 @@ export function ApplicationDocuments({
     }));
 
   const customDocuments: DocumentType[] = customDocumentsWithConfig.map(
-    ({ configId, ...doc }) => doc,
+    (document) => ({
+      id: document.id,
+      name: document.name,
+      description: document.description,
+      required: document.required,
+    }),
   );
+
+  const allDocuments = [...APPLICATION_DOCUMENTS, ...customDocuments];
 
   const getCustomConfigId = (
     documentTypeId: string,
   ): Id<"applicationDocumentConfig"> | null => {
-    const custom = customDocumentsWithConfig.find(
-      (c) => c.id === documentTypeId,
+    const customDocument = customDocumentsWithConfig.find(
+      (document) => document.id === documentTypeId,
     );
-    return custom?.configId ?? null;
+
+    return customDocument?.configId ?? null;
   };
 
-  const isCustomDocument = (documentTypeId: string): boolean => {
-    return customDocumentsWithConfig.some((c) => c.id === documentTypeId);
-  };
-
-  const allDocuments = [...APPLICATION_DOCUMENTS, ...customDocuments];
-
-  const handleAddDocument = async (document: {
-    name: string;
-    description?: string;
-    required: boolean;
-  }) => {
-    await onCreateCustomDocumentType({
-      applicationId,
-      name: document.name,
-      description: document.description,
-      required: document.required,
-    });
+  const isCustomDocument = (documentTypeId: string) => {
+    return customDocumentsWithConfig.some(
+      (document) => document.id === documentTypeId,
+    );
   };
 
   const getDocumentVisibility = (
     documentType: DocumentType,
   ): DocumentVisibility => {
     const config = documentConfigs.find(
-      (c) => c.documentTypeId === documentType.id,
+      (entry) => entry.documentTypeId === documentType.id,
     );
+
     if (config) {
       return config.visibility;
     }
+
     return documentType.required ? "required" : "optional";
   };
 
-  const getUploadedDocument = (
-    documentTypeId: string,
-  ): ApplicationDocumentWithUser | null => {
+  const getUploadedDocument = (documentTypeId: string) => {
     return (
-      documents.find((doc) => doc.documentTypeId === documentTypeId) || null
+      documents.find(
+        (document) => document.documentTypeId === documentTypeId,
+      ) || null
     );
   };
 
-  const visibleDocuments = allDocuments.filter((doc) => {
-    const visibility = getDocumentVisibility(doc);
-    if (visibility === "hidden" && !isAdmin) {
-      return false;
-    }
-    return true;
+  const visibleDocuments = allDocuments.filter((document) => {
+    const visibility = getDocumentVisibility(document);
+    return visibility !== "hidden" || isAdmin;
   });
 
   return (
     <div className="space-y-4">
-      <DocumentActions
+      <DocumentTypeActions
         isAddingDocument={isAddingDocument}
         setIsAddingDocument={setIsAddingDocument}
       />
-      {isAddingDocument && (
-        <AddDocumentForm
-          applicationId={applicationId}
-          onAddDocument={handleAddDocument}
+
+      {isAddingDocument ? (
+        <AddDocumentTypeForm
+          onAddDocument={async ({ name, description, required }) => {
+            await onCreateCustomDocumentType({
+              applicationId,
+              name,
+              description,
+              required,
+            });
+          }}
           onClose={() => setIsAddingDocument(false)}
         />
-      )}
+      ) : null}
+
       {visibleDocuments.map((document) => (
-        <DocumentCard
+        <ApplicationDocumentCard
           key={document.id}
           applicationId={applicationId}
           document={document}
@@ -372,7 +211,7 @@ export function ApplicationDocuments({
   );
 }
 
-interface DocumentCardProps {
+interface ApplicationDocumentCardProps {
   applicationId: Id<"applications">;
   document: DocumentType;
   uploadedDocument: ApplicationDocumentWithUser | null;
@@ -388,7 +227,7 @@ interface DocumentCardProps {
   onDeleteCustomDocumentType: ApplicationDocumentsProps["onDeleteCustomDocumentType"];
 }
 
-function DocumentCard({
+function ApplicationDocumentCard({
   applicationId,
   document,
   uploadedDocument,
@@ -402,52 +241,17 @@ function DocumentCard({
   onRemove,
   onUpdateCustomDocumentType,
   onDeleteCustomDocumentType,
-}: DocumentCardProps) {
+}: ApplicationDocumentCardProps) {
   const t = useTranslations("Applications.documents");
   const { isAdmin } = useIsAdmin();
   const [isUploading, setIsUploading] = useState(false);
-  const [visibilityPopoverOpen, setVisibilityPopoverOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
-  const [editForm, setEditForm] = useState({
-    name: document.name,
-    description: document.description || "",
-    required: visibility === "required",
-  });
+  const canDeleteFile = !!uploadedDocument;
 
-  const canDelete = !!uploadedDocument;
-
-  const handleEditSave = async () => {
-    if (!customConfigId || !editForm.name) return;
-    setIsSavingEdit(true);
-    try {
-      await onUpdateCustomDocumentType({
-        configId: customConfigId,
-        name: editForm.name,
-        description: editForm.description || undefined,
-        required: editForm.required,
-      });
-      setIsEditDialogOpen(false);
-    } catch (error) {
-      console.error("Failed to update document type:", error);
-    } finally {
-      setIsSavingEdit(false);
+  const handleRemoveFile = async () => {
+    if (!uploadedDocument) {
+      return;
     }
-  };
 
-  const handleDeleteType = async () => {
-    if (!customConfigId) return;
-    try {
-      await onDeleteCustomDocumentType({ configId: customConfigId });
-      setIsDeleteDialogOpen(false);
-    } catch (error) {
-      console.error("Failed to delete document type:", error);
-    }
-  };
-
-  const handleRemove = async () => {
-    if (!uploadedDocument) return;
     try {
       await onRemove({ documentId: uploadedDocument._id });
     } catch (error) {
@@ -455,21 +259,23 @@ function DocumentCard({
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
 
     setIsUploading(true);
     try {
       const uploadUrl = await onGenerateUploadUrl();
-
-      const result = await fetch(uploadUrl, {
+      const response = await fetch(uploadUrl, {
         method: "POST",
         headers: { "Content-Type": file.type },
         body: file,
       });
-
-      const { storageId } = await result.json();
+      const { storageId } = await response.json();
 
       await onUpload({
         applicationId,
@@ -485,95 +291,8 @@ function DocumentCard({
       console.error("Failed to upload document:", error);
     } finally {
       setIsUploading(false);
-      e.target.value = "";
+      event.target.value = "";
     }
-  };
-
-  const handleVisibilityChange = async (newVisibility: DocumentVisibility) => {
-    try {
-      await onUpdateVisibility({
-        applicationId,
-        documentTypeId: document.id,
-        visibility: newVisibility,
-      });
-      setVisibilityPopoverOpen(false);
-    } catch (error) {
-      console.error("Failed to update visibility:", error);
-    }
-  };
-
-  const getVisibilityBadge = () => {
-    const variants: Record<
-      DocumentVisibility,
-      { variant: "secondary" | "outline"; className?: string }
-    > = {
-      required: { variant: "secondary" },
-      optional: { variant: "outline" },
-      hidden: {
-        variant: "outline",
-        className: "bg-muted text-muted-foreground",
-      },
-    };
-
-    const config = variants[visibility];
-
-    if (isAdmin) {
-      return (
-        <Popover
-          open={visibilityPopoverOpen}
-          onOpenChange={setVisibilityPopoverOpen}
-        >
-          <PopoverTrigger asChild>
-            <Badge
-              variant={config.variant}
-              className={cn(
-                "text-xs cursor-pointer hover:bg-accent",
-                config.className,
-              )}
-            >
-              {t(`visibility.${visibility}`)}
-            </Badge>
-          </PopoverTrigger>
-          <PopoverContent className="w-40 p-2" align="end">
-            <div className="flex flex-col gap-1">
-              <Button
-                variant={visibility === "required" ? "secondary" : "ghost"}
-                size="sm"
-                className="justify-start"
-                onClick={() => handleVisibilityChange("required")}
-              >
-                {t("visibility.required")}
-              </Button>
-              <Button
-                variant={visibility === "optional" ? "secondary" : "ghost"}
-                size="sm"
-                className="justify-start"
-                onClick={() => handleVisibilityChange("optional")}
-              >
-                {t("visibility.optional")}
-              </Button>
-              <Button
-                variant={visibility === "hidden" ? "secondary" : "ghost"}
-                size="sm"
-                className="justify-start"
-                onClick={() => handleVisibilityChange("hidden")}
-              >
-                {t("visibility.hidden")}
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-      );
-    }
-
-    return (
-      <Badge
-        variant={config.variant}
-        className={cn("text-xs", config.className)}
-      >
-        {t(`visibility.${visibility}`)}
-      </Badge>
-    );
   };
 
   const getStatusBadge = () => {
@@ -591,7 +310,7 @@ function DocumentCard({
         return (
           <Badge
             variant="secondary"
-            className="gap-1 bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20"
+            className="gap-1 bg-green-500/10 text-green-700 hover:bg-green-500/20 dark:text-green-400"
           >
             <CheckCircle2 className="h-3 w-3" />
             {t("status.approved")}
@@ -618,316 +337,205 @@ function DocumentCard({
   };
 
   return (
-    <Card
+    <DocumentTypeCard
+      name={document.name}
+      description={document.description}
+      visibility={visibility}
+      statusBadge={getStatusBadge()}
       className={cn(
-        "transition-colors",
         uploadedDocument?.status === "rejected" && "border-destructive",
-        visibility === "hidden" && "bg-muted/50",
       )}
+      canEdit={isAdmin && isCustom && !!customConfigId}
+      canDelete={isAdmin && isCustom && !!customConfigId}
+      onSaveEdit={
+        customConfigId
+          ? async ({ name, description, required }) => {
+              await onUpdateCustomDocumentType({
+                configId: customConfigId,
+                name,
+                description,
+                required,
+              });
+            }
+          : undefined
+      }
+      onDelete={
+        customConfigId
+          ? async () => {
+              await onDeleteCustomDocumentType({ configId: customConfigId });
+            }
+          : undefined
+      }
+      onVisibilityChange={async (nextVisibility) => {
+        await onUpdateVisibility({
+          applicationId,
+          documentTypeId: document.id,
+          visibility: nextVisibility,
+        });
+      }}
     >
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <CardTitle className="text-base">{document.name}</CardTitle>
-              {getVisibilityBadge()}
+      {uploadedDocument ? (
+        <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+          <div className="flex items-center gap-3">
+            <FileIcon className="h-5 w-5 text-muted-foreground" />
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">
+                {uploadedDocument.fileName}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {t("uploadedBy", {
+                  date: formatDate(uploadedDocument.uploadedAt),
+                  name: uploadedDocument.uploadedByUser
+                    ? `${uploadedDocument.uploadedByUser.firstName} ${uploadedDocument.uploadedByUser.lastName}`
+                    : "Unknown",
+                })}
+              </span>
             </div>
-            {document.description && (
-              <CardDescription className="mt-1 text-sm">
-                {document.description}
-              </CardDescription>
-            )}
           </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge()}
-            {isAdmin && isCustom && customConfigId && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7"
-                    aria-label={t("actions.moreOptions")}
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
-                      <Pencil className="h-4 w-4" />
-                      {t("actions.edit")}
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setIsDeleteDialogOpen(true)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      {t("actions.deleteType")}
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
+          {uploadedDocument.url ? (
+            <Button size="sm" variant="ghost" className="gap-1" asChild>
+              <a
+                href={uploadedDocument.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Eye className="h-4 w-4" />
+                {t("actions.view")}
+              </a>
+            </Button>
+          ) : null}
         </div>
-      </CardHeader>
+      ) : null}
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("actions.editDialog.title")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">{t("form.documentName")}</Label>
-              <Input
-                id="edit-name"
-                value={editForm.name}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, name: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">{t("form.description")}</Label>
-              <Input
-                id="edit-description"
-                value={editForm.description}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, description: e.target.value })
-                }
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="edit-required"
-                checked={editForm.required}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, required: e.target.checked })
-                }
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <Label htmlFor="edit-required" className="cursor-pointer">
-                {t("form.required")}
-              </Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
-              {t("actions.cancel")}
-            </Button>
-            <Button
-              onClick={handleEditSave}
-              disabled={isSavingEdit || !editForm.name}
-            >
-              {isSavingEdit
-                ? t("actions.editDialog.saving")
-                : t("actions.editDialog.save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {uploadedDocument?.status === "rejected" &&
+      uploadedDocument.rejectionReason ? (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
+          <p className="text-sm text-destructive">
+            <strong>{t("rejectionReason")}:</strong>{" "}
+            {uploadedDocument.rejectionReason}
+          </p>
+        </div>
+      ) : null}
 
-      {/* Delete Type Dialog */}
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
-        <AlertDialogContent size="sm">
-          <AlertDialogHeader>
-            <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
-              <Trash2 />
-            </AlertDialogMedia>
-            <AlertDialogTitle>
-              {t("actions.deleteTypeDialog.title")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("actions.deleteTypeDialog.description")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel variant="outline">
-              {t("actions.deleteTypeDialog.cancel")}
-            </AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDeleteType}>
-              {t("actions.deleteTypeDialog.confirm")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <input
+            type="file"
+            id={`file-${document.id}`}
+            className="hidden"
+            onChange={handleFileChange}
+            disabled={isUploading}
+            accept=".pdf,.jpg,.jpeg,.png"
+          />
+          <Button
+            asChild
+            size="sm"
+            className="w-full cursor-pointer"
+            disabled={isUploading}
+          >
+            <label htmlFor={`file-${document.id}`} className="cursor-pointer">
+              <Upload />
+              {isUploading
+                ? "Uploading..."
+                : uploadedDocument
+                  ? t("actions.replace")
+                  : t("actions.upload")}
+            </label>
+          </Button>
+        </div>
 
-      <CardContent className="space-y-3">
-        {uploadedDocument && (
-          <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
-            <div className="flex items-center gap-3">
-              <FileIcon className="h-5 w-5 text-muted-foreground" />
-              <div className="flex flex-col">
-                <span className="text-sm font-medium">
-                  {uploadedDocument.fileName}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {t("uploadedBy", {
-                    date: formatDate(uploadedDocument.uploadedAt),
-                    name: uploadedDocument.uploadedByUser
-                      ? `${uploadedDocument.uploadedByUser.firstName} ${uploadedDocument.uploadedByUser.lastName}`
-                      : "Unknown",
-                  })}
-                </span>
-              </div>
-            </div>
-            {uploadedDocument.url && (
-              <Button size="sm" variant="ghost" className="gap-1" asChild>
-                <a
-                  href={uploadedDocument.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Eye className="h-4 w-4" />
-                  {t("actions.view")}
-                </a>
-              </Button>
-            )}
-          </div>
-        )}
-
-        {uploadedDocument?.status === "rejected" &&
-          uploadedDocument.rejectionReason && (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
-              <p className="text-sm text-destructive">
-                <strong>{t("rejectionReason")}:</strong>{" "}
-                {uploadedDocument.rejectionReason}
-              </p>
-            </div>
-          )}
-
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <input
-              type="file"
-              id={`file-${document.id}`}
-              className="hidden"
-              onChange={handleFileChange}
-              disabled={isUploading}
-              accept=".pdf,.jpg,.jpeg,.png"
-            />
-            <Button
-              asChild
-              size="sm"
-              className="w-full cursor-pointer"
-              disabled={isUploading}
-            >
-              <label htmlFor={`file-${document.id}`} className="cursor-pointer">
-                <Upload />
-                {isUploading
-                  ? "Uploading..."
-                  : uploadedDocument
-                    ? t("actions.replace")
-                    : t("actions.upload")}
-              </label>
-            </Button>
-          </div>
-
-          {isAdmin && uploadedDocument && (
-            <>
-              {uploadedDocument.status !== "approved" && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="bg-green-500 hover:bg-green-600 text-white"
-                      onClick={() =>
-                        onUpdateStatus({
-                          documentId: uploadedDocument._id,
-                          status: "approved",
-                        })
-                      }
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{t("actions.approve")}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {uploadedDocument.status !== "rejected" && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() =>
-                        onUpdateStatus({
-                          documentId: uploadedDocument._id,
-                          status: "rejected",
-                          rejectionReason:
-                            "Document quality is not sufficient. Please upload a clearer version.",
-                        })
-                      }
-                    >
-                      <XCircle className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{t("actions.reject")}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </>
-          )}
-
-          {canDelete && (
-            <AlertDialog>
+        {isAdmin && uploadedDocument ? (
+          <>
+            {uploadedDocument.status !== "approved" ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="bg-green-500 text-white hover:bg-green-600"
+                    onClick={() =>
+                      onUpdateStatus({
+                        documentId: uploadedDocument._id,
+                        status: "approved",
+                      })
+                    }
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{t("actions.delete")}</p>
+                  <p>{t("actions.approve")}</p>
                 </TooltipContent>
               </Tooltip>
-              <AlertDialogContent size="sm">
-                <AlertDialogHeader>
-                  <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
-                    <Trash2 />
-                  </AlertDialogMedia>
-                  <AlertDialogTitle>
-                    {t("actions.deleteDialog.title")}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t("actions.deleteDialog.description")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel variant="outline">
-                    {t("actions.deleteDialog.cancel")}
-                  </AlertDialogCancel>
-                  <AlertDialogAction
+            ) : null}
+
+            {uploadedDocument.status !== "rejected" ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
                     variant="destructive"
-                    onClick={handleRemove}
+                    onClick={() =>
+                      onUpdateStatus({
+                        documentId: uploadedDocument._id,
+                        status: "rejected",
+                        rejectionReason:
+                          "Document quality is not sufficient. Please upload a clearer version.",
+                      })
+                    }
                   >
-                    {t("actions.deleteDialog.confirm")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t("actions.reject")}</p>
+                </TooltipContent>
+              </Tooltip>
+            ) : null}
+          </>
+        ) : null}
+
+        {canDeleteFile ? (
+          <AlertDialog>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t("actions.delete")}</p>
+              </TooltipContent>
+            </Tooltip>
+            <AlertDialogContent size="sm">
+              <AlertDialogHeader>
+                <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
+                  <Trash2 />
+                </AlertDialogMedia>
+                <AlertDialogTitle>
+                  {t("actions.deleteDialog.title")}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t("actions.deleteDialog.description")}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel variant="outline">
+                  {t("actions.deleteDialog.cancel")}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={handleRemoveFile}
+                >
+                  {t("actions.deleteDialog.confirm")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
+      </div>
+    </DocumentTypeCard>
   );
 }

@@ -1,7 +1,9 @@
 {
   "title": "Solicitud de Pre-Admisión",
-  "description": "Sigue los 5 sencillos pasos para completar tu solicitud.",
+  "description": "Selecciona un programa y completa los pasos requeridos para tu solicitud.",
   "steps": {
+    "stepDescription": "Paso {current}/{total}",
+    "programStepFallback": "Paso {current}",
     "athlete": "Atleta",
     "athleteDescription": "Paso 1/5",
     "athleteTitle": "Información del Atleta",
@@ -22,6 +24,32 @@
     "generalDescription": "Paso 5/5",
     "generalTitle": "Información Adicional",
     "generalCardDescription": "Por favor proporciona información adicional para completar tu solicitud."
+  },
+  "core": {
+    "stepLabel": "Solicitud",
+    "title": "Información de la Solicitud",
+    "cardDescription": "Elige un programa y proporciona la información básica del solicitante.",
+    "programTitle": "Programa",
+    "programDescription": "Selecciona el programa al que deseas aplicar.",
+    "emptyPrograms": "No hay programas disponibles en este momento. Inténtalo más tarde.",
+    "firstName": "Nombre",
+    "firstNamePlaceholder": "Escribe el nombre del solicitante...",
+    "lastName": "Apellido",
+    "lastNamePlaceholder": "Escribe el apellido del solicitante...",
+    "email": "Correo Electrónico",
+    "emailPlaceholder": "Escribe el correo del solicitante...",
+    "telephone": "Número de Teléfono",
+    "telephonePlaceholder": "Escribe el número de teléfono del solicitante...",
+    "submitError": "No pudimos enviar la solicitud. Inténtalo de nuevo.",
+    "photo": {
+      "label": "Foto",
+      "description": "Sube una foto reciente. Tamaño máximo: 10MB.",
+      "uploading": "Subiendo foto...",
+      "uploaded": "Foto subida correctamente",
+      "invalidType": "Selecciona un archivo de imagen",
+      "maxSize": "El archivo debe pesar menos de 10MB",
+      "uploadFailed": "No se pudo subir la foto"
+    }
   },
   "navigation": {
     "back": "Atrás",

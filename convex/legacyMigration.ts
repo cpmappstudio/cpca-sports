@@ -203,7 +203,6 @@ async function getPublishedTemplateForOrg(
     version: 1,
     name: "Legacy Imported Pre-admission Form",
     description: "Auto-created template for legacy migration",
-    mode: "custom",
     sections: defaultTemplateSections,
     isPublished: true,
   });
@@ -229,6 +228,43 @@ export const ensureFormTemplate = mutation({
     return {
       formTemplateId: template._id,
       formTemplateVersion: template.version,
+    };
+  },
+});
+
+export const backfillPublishedProgramsFromSavedDrafts = mutation({
+  args: {
+    secret: v.string(),
+    dryRun: v.optional(v.boolean()),
+  },
+  returns: v.object({
+    programsChecked: v.number(),
+    matchedPrograms: v.number(),
+    updatedPrograms: v.number(),
+    affectedProgramIds: v.array(v.id("programs")),
+  }),
+  handler: async (ctx, args) => {
+    assertMigrationSecret(args.secret);
+
+    const programs = await ctx.db.query("programs").collect();
+    const affectedPrograms = programs.filter(
+      (program) =>
+        program.isDraft &&
+        Boolean(program.formDefinition) &&
+        program.updatedAt > program.createdAt,
+    );
+
+    if (!args.dryRun) {
+      for (const program of affectedPrograms) {
+        await ctx.db.patch(program._id, { isDraft: false });
+      }
+    }
+
+    return {
+      programsChecked: programs.length,
+      matchedPrograms: affectedPrograms.length,
+      updatedPrograms: args.dryRun ? 0 : affectedPrograms.length,
+      affectedProgramIds: affectedPrograms.map((program) => program._id),
     };
   },
 });

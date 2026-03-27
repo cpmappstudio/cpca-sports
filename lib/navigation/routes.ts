@@ -70,6 +70,11 @@ export const ROUTES = {
       create: (orgSlug: string) => `/${orgSlug}/preadmission`,
     },
 
+    programs: {
+      list: (orgSlug: string) => `/${orgSlug}/programs`,
+      create: (orgSlug: string) => `/${orgSlug}/programs/create`,
+    },
+
     members: {
       list: (orgSlug: string) => `/${orgSlug}/members`,
       detail: (orgSlug: string, memberId: string) =>

@@ -4,7 +4,6 @@ import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/lib/utils";
-import { Divider } from "./divider";
 import { LayoutGroup, motion } from "motion/react";
 
 function Tabs({
@@ -14,7 +13,7 @@ function Tabs({
   return (
     <TabsPrimitive.Root
       data-slot="tabs"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn("flex flex-col gap-0", className)}
       {...props}
     />
   );
@@ -29,7 +28,10 @@ function TabsList({
     <LayoutGroup id={groupId}>
       <TabsPrimitive.List
         data-slot="tabs-list"
-        className={cn("", className)}
+        className={cn(
+          "relative z-10 mb-6 flex min-h-9 w-full border-b border-border/70 pb-2.5",
+          className,
+        )}
         {...props}
       />
     </LayoutGroup>
@@ -58,6 +60,7 @@ const TabsTriggerButton = React.forwardRef<
     </button>
   );
 });
+TabsTriggerButton.displayName = "TabsTriggerButton";
 
 const TabsTrigger = React.forwardRef<
   HTMLButtonElement,
@@ -66,7 +69,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger {...props} ref={ref} data-slot="tabs-trigger" asChild>
     <TabsTriggerButton
       className={cn(
-        'inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center mr-3 gap-1.5 rounded-lg p-2 text-base/6 font-medium text-zinc-950 sm:text-sm/5 cursor-pointer whitespace-nowrap transition-[color,box-shadow] hover:bg-zinc-950/5 dark:hover:bg-white/5 dark:text-white dark:data-[state=active]:border-input [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*="size-"])]:size-4 relative',
+        'relative mr-3 inline-flex h-[calc(100%-1px)] shrink-0 items-center justify-center gap-1.5 rounded-lg p-2 text-base/6 font-medium whitespace-nowrap text-zinc-950 transition-[color,box-shadow] cursor-pointer hover:bg-zinc-950/5 dark:text-white dark:data-[state=active]:border-input dark:hover:bg-white/5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*="size-"])]:size-4',
         className,
       )}
     >
@@ -74,6 +77,7 @@ const TabsTrigger = React.forwardRef<
     </TabsTriggerButton>
   </TabsPrimitive.Trigger>
 ));
+TabsTrigger.displayName = "TabsTrigger";
 
 function TabsContent({
   className,

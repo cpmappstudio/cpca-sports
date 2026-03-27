@@ -48,6 +48,7 @@ export function createOrganizationColumns(
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           {row.original.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={row.original.logoUrl}
               alt={row.original.name}

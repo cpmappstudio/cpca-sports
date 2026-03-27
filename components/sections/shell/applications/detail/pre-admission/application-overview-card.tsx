@@ -206,7 +206,9 @@ export function ApplicationOverviewCard({
     onValidationChange?.(Object.keys(newErrors).length === 0);
 
     // Report to parent only athlete section fields (exclude interestedInBoarding which belongs to general)
-    const { interestedInBoarding: _, ...athleteData } = newData;
+    const athleteData = Object.fromEntries(
+      Object.entries(newData).filter(([key]) => key !== "interestedInBoarding"),
+    ) as Omit<EditableFormData, "interestedInBoarding">;
     onDataChange?.(athleteData);
   };
 

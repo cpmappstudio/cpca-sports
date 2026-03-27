@@ -15,12 +15,12 @@ interface LayoutProps {
 export default async function OrgLayout({ children, params }: LayoutProps) {
   const { tenant } = await params;
   const { orgSlug } = await auth();
+  const tenantAccess = await getTenantAccess(tenant);
 
   // Handle active-org lag after sign-in by falling back to membership check.
   // If user still has no access to this tenant, show the mismatch resolver.
   if (orgSlug !== tenant) {
-    const { hasAccess } = await getTenantAccess(tenant);
-    if (!hasAccess) {
+    if (!tenantAccess.hasAccess) {
       return <OrgMismatchError urlSlug={tenant} />;
     }
   }
@@ -29,7 +29,7 @@ export default async function OrgLayout({ children, params }: LayoutProps) {
     <SidebarLayout
       fullWidth
       navbar={<NavbarAppSidebar />}
-      sidebar={<SidebarAppSidebar />}
+      sidebar={<SidebarAppSidebar isTenantAdmin={tenantAccess.isAdmin} />}
     >
       <main className="flex-1">{children}</main>
     </SidebarLayout>

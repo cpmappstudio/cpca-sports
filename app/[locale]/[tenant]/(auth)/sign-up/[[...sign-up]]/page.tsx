@@ -1,7 +1,4 @@
 import { SignUp } from "@clerk/nextjs";
-import { preloadQuery, preloadedQueryResult } from "convex/nextjs";
-import { api } from "@/convex/_generated/api";
-import { getAuthToken } from "@/lib/auth/auth";
 import { isMultiTenantMode } from "@/lib/tenancy/config";
 
 interface PageProps {
@@ -10,18 +7,9 @@ interface PageProps {
 
 export default async function TenantSignUpPage({ params }: PageProps) {
   const { tenant } = await params;
-  const token = await getAuthToken();
   const signUpProps = isMultiTenantMode()
     ? { unsafeMetadata: { pendingOrganizationSlug: tenant } }
     : {};
-
-  // Get organization data for logo
-  const preloadedOrganization = await preloadQuery(
-    api.organizations.getBySlug,
-    { slug: tenant },
-    { token },
-  );
-  const organization = preloadedQueryResult(preloadedOrganization);
 
   return (
     <SignUp

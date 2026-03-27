@@ -1,8 +1,7 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useCallback, useMemo } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Pipette, Plus } from "lucide-react";
-import { RgbaColorPicker } from "react-colorful";
+import { RgbaColorPicker, type RgbaColor } from "react-colorful";
 import { debounce } from "lodash";
 import { Button } from "./button";
 import { Input } from "./input";
@@ -50,13 +49,13 @@ const ColorPicker: React.FC<TColorPicker> = ({
   };
 
   const handleChangeColor = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newColor: any = e.target.value;
+    const newColor = e.target.value;
     onChange(newColor);
   };
 
   function rgbaToHex(r: number, g: number, b: number, a: number = 1) {
     const toHex = (n: number) => {
-      let hex = n.toString(16);
+      const hex = n.toString(16);
       return hex.length === 1 ? "0" + hex : hex;
     };
 
@@ -89,7 +88,7 @@ const ColorPicker: React.FC<TColorPicker> = ({
   }
 
   const handleColorChange = useCallback(
-    (newColor: { r: number; g: number; b: number; a: number }) => {
+    (newColor: RgbaColor) => {
       const { r, g, b, a } = newColor;
       const newHex = rgbaToHex(r, g, b, a);
       debouncedOnChange(newHex);
@@ -104,7 +103,7 @@ const ColorPicker: React.FC<TColorPicker> = ({
         <div className="size-full flex flex-col items-center justify-between">
           <h1 className="font-medium text-xl">Colour Picker</h1>
           <RgbaColorPicker
-            color={hexToRgba(color.hex) as any}
+            color={hexToRgba(color.hex) ?? { r: 0, g: 0, b: 0, a: 1 }}
             onChange={handleColorChange}
             className="w-full! aspect-square"
           />

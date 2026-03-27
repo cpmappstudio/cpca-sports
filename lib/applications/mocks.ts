@@ -1,5 +1,3 @@
-import type { Application } from "./types";
-
 // Note: These mocks use string IDs cast to Convex Id types for development/testing
 // In production, real Convex IDs would be used
 export const MOCK_APPLICATIONS = [

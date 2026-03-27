@@ -57,12 +57,9 @@ import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { ROUTES } from "@/lib/navigation/routes";
-import { Avatar } from "@/components/ui/avatar";
 import {
   ApplicationTransferDialog,
   type TransferUser,
-  getTransferUserDisplayName,
-  getTransferUserInitials,
 } from "./application-transfer-dialog";
 
 interface ApplicationHeaderProps {
@@ -90,11 +87,14 @@ export function ApplicationHeader({
   const tStatus = useTranslations("Applications.statusOptions");
 
   const { formData } = application;
+  const applicant = application.applicant;
+  const programSnapshot = application.programSnapshot;
 
   const [status, setStatus] = useState<ApplicationStatus>(application.status);
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentPhoto, setCurrentPhoto] = useState<Id<"_storage"> | null>(
-    (formData.athlete?.photo as Id<"_storage">) || null,
+    applicant?.photoStorageId ??
+      ((formData.athlete?.photo as Id<"_storage">) || null),
   );
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
@@ -109,10 +109,13 @@ export function ApplicationHeader({
     userId: application.userId,
   });
 
-  const firstName = getFormField(formData, "athlete", "firstName");
-  const lastName = getFormField(formData, "athlete", "lastName");
-  const email = getFormField(formData, "athlete", "email");
-  const telephone = getFormField(formData, "athlete", "telephone");
+  const firstName =
+    applicant?.firstName || getFormField(formData, "athlete", "firstName");
+  const lastName =
+    applicant?.lastName || getFormField(formData, "athlete", "lastName");
+  const email = applicant?.email || getFormField(formData, "athlete", "email");
+  const telephone =
+    applicant?.telephone || getFormField(formData, "athlete", "telephone");
   const birthDate = getFormField(formData, "athlete", "birthDate");
   const countryOfBirth = getFormField(formData, "athlete", "countryOfBirth");
   const countryOfCitizenship = getFormField(
@@ -121,7 +124,8 @@ export function ApplicationHeader({
     "countryOfCitizenship",
   );
   const format = getFormField(formData, "athlete", "format");
-  const program = getFormField(formData, "athlete", "program");
+  const program =
+    programSnapshot?.name || getFormField(formData, "athlete", "program");
   const gradeEntering = getFormField(formData, "athlete", "gradeEntering");
   const enrollmentYear = getFormField(formData, "athlete", "enrollmentYear");
   const graduationYear = getFormField(formData, "athlete", "graduationYear");
@@ -147,11 +151,6 @@ export function ApplicationHeader({
             imageUrl: liveAssociatedUser.imageUrl,
           }
         : null;
-  const associatedUserDisplayName = getTransferUserDisplayName(
-    currentAssociatedUser,
-  );
-  const associatedUserInitials = getTransferUserInitials(currentAssociatedUser);
-
   const statusMap = {
     pending: { label: tStatus("pending"), variant: "outline" as const },
     reviewing: { label: tStatus("reviewing"), variant: "secondary" as const },
@@ -431,7 +430,7 @@ export function ApplicationHeader({
                               </a>
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                            className="flex md:hidden"
+                              className="flex md:hidden"
                               variant="destructive"
                               onClick={() => setIsDeleteDialogOpen(true)}
                             >

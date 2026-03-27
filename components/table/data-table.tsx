@@ -35,6 +35,11 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -63,6 +68,7 @@ export function DataTable<TData>({
   onCreate,
   onExport,
   onRowClick,
+  renderRowContextMenu,
 }: DataTableProps<TData>) {
   const resolvedPageSize = pageSize ?? DEFAULT_PAGE_SIZE;
   const [sorting, setSorting] = React.useState<SortingState>(
@@ -267,37 +273,62 @@ export function DataTable<TData>({
 
           <TableBody>
             {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className={
-                    onRowClick ? "cursor-pointer transition-colors" : undefined
-                  }
-                  onClick={
-                    onRowClick
-                      ? (event) => handleRowContainerClick(event, row.original)
-                      : undefined
-                  }
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const meta = cell.column.columnDef.meta as
-                      | { className?: string }
-                      | undefined;
-                    return (
-                      <TableCell
-                        key={cell.id}
-                        className={meta?.className || ""}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))
+              table.getRowModel().rows.map((row) => {
+                const rowContextMenu = renderRowContextMenu?.(row.original);
+
+                const rowElement = (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className={
+                      onRowClick
+                        ? "cursor-pointer transition-colors"
+                        : undefined
+                    }
+                    onClick={
+                      onRowClick
+                        ? (event) =>
+                            handleRowContainerClick(event, row.original)
+                        : undefined
+                    }
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const meta = cell.column.columnDef.meta as
+                        | { className?: string }
+                        | undefined;
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={meta?.className || ""}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+
+                if (!rowContextMenu) {
+                  return rowElement;
+                }
+
+                return (
+                  <ContextMenu key={row.id}>
+                    <ContextMenuTrigger asChild>
+                      {rowElement}
+                    </ContextMenuTrigger>
+                    <ContextMenuContent
+                      onClick={(event) => event.stopPropagation()}
+                      onPointerDown={(event) => event.stopPropagation()}
+                    >
+                      {rowContextMenu}
+                    </ContextMenuContent>
+                  </ContextMenu>
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell

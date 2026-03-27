@@ -1,234 +1,56 @@
-import { query, mutation, QueryCtx } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { getCurrentUser, getCurrentUserOrNull } from "./lib/auth";
 import { requireOrgAccess, hasOrgAdminAccess } from "./lib/permissions";
-import { formDataValidator, applicationStatus } from "./lib/validators";
+import {
+  cloneProgramDocumentConfigsToApplication,
+  cloneProgramPaymentConfigsToApplication,
+} from "./lib/applicationDefaults";
+import {
+  buildApplicationListSummary,
+  applicationListItemValidator,
+} from "./lib/applicationSummary";
+import {
+  getApplicantFromFormData,
+  getApplicationApplicant,
+  getApplicationPhotoStorageId,
+  getProgramSnapshotFromFormData,
+} from "./lib/applicationSnapshots";
+import {
+  applicantValidator,
+  applicationStatus,
+  formDataValidator,
+  programSnapshotValidator,
+} from "./lib/validators";
 
 const applicationValidator = v.object({
   _id: v.id("applications"),
   _creationTime: v.number(),
   userId: v.id("users"),
   organizationId: v.id("organizations"),
-  formTemplateId: v.id("formTemplates"),
-  formTemplateVersion: v.number(),
+  programId: v.optional(v.id("programs")),
+  formTemplateId: v.optional(v.id("formTemplates")),
+  formTemplateVersion: v.optional(v.number()),
   applicationCode: v.string(),
   status: applicationStatus,
+  applicant: v.optional(applicantValidator),
+  programSnapshot: v.optional(programSnapshotValidator),
+  formDefinitionSnapshot: v.optional(v.string()),
   formData: formDataValidator,
   reviewedBy: v.optional(v.id("users")),
   reviewedAt: v.optional(v.number()),
 });
 
-const applicationListAthleteValidator = v.object({
-  firstName: v.string(),
-  lastName: v.string(),
-  email: v.string(),
-  telephone: v.string(),
-  sex: v.string(),
-  program: v.string(),
-  gradeEntering: v.string(),
-  birthDate: v.string(),
-  countryOfBirth: v.string(),
-  countryOfCitizenship: v.string(),
-  graduationYear: v.string(),
-  needsI20: v.string(),
-  photoStorageId: v.optional(v.id("_storage")),
-  photoUrl: v.optional(v.string()),
-});
-
-const applicationListSchoolValidator = v.object({
-  currentSchoolName: v.string(),
-  currentGPA: v.string(),
-});
-
-const applicationListParentValidator = v.object({
-  firstName: v.string(),
-  lastName: v.string(),
-  email: v.string(),
-  telephone: v.string(),
-});
-
-const applicationListAccountValidator = v.object({
-  firstName: v.string(),
-  lastName: v.string(),
-  email: v.string(),
-  imageUrl: v.optional(v.string()),
-});
-
-const applicationListItemValidator = v.object({
-  _id: v.id("applications"),
-  _creationTime: v.number(),
-  organizationId: v.id("organizations"),
-  applicationCode: v.string(),
-  status: applicationStatus,
-  athlete: applicationListAthleteValidator,
-  school: applicationListSchoolValidator,
-  parent: applicationListParentValidator,
-  account: applicationListAccountValidator,
-});
-
-function getFormDataString(
-  formData: Record<
-    string,
-    Record<string, string | number | boolean | null | Id<"_storage">>
-  >,
-  sectionKey: string,
-  fieldKey: string,
-): string {
-  const value = formData[sectionKey]?.[fieldKey];
-  return value != null ? String(value) : "";
-}
-
-function getPhotoStorageId(
-  formData: Record<
-    string,
-    Record<string, string | number | boolean | null | Id<"_storage">>
-  >,
-): Id<"_storage"> | undefined {
-  const raw = formData.athlete?.photo;
-  if (typeof raw !== "string") {
-    return undefined;
-  }
-  // Ignore legacy path-like values and only keep storage document ids.
-  if (raw.includes("/") || raw.includes(".")) {
-    return undefined;
-  }
-  return raw as Id<"_storage">;
-}
-
-function mapToApplicationListItem(
-  application: {
-    _id: Id<"applications">;
-    _creationTime: number;
-    userId: Id<"users">;
-    organizationId: Id<"organizations">;
-    applicationCode: string;
-    status: "pending" | "reviewing" | "pre-admitted" | "admitted" | "denied";
-    formData: Record<
-      string,
-      Record<string, string | number | boolean | null | Id<"_storage">>
-    >;
-  },
-  account: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    imageUrl?: string;
-  } | null,
-) {
-  const photoStorageId = getPhotoStorageId(application.formData);
-  return {
-    _id: application._id,
-    _creationTime: application._creationTime,
-    organizationId: application.organizationId,
-    applicationCode: application.applicationCode,
-    status: application.status,
-    athlete: {
-      firstName: getFormDataString(
-        application.formData,
-        "athlete",
-        "firstName",
-      ),
-      lastName: getFormDataString(application.formData, "athlete", "lastName"),
-      email: getFormDataString(application.formData, "athlete", "email"),
-      telephone: getFormDataString(
-        application.formData,
-        "athlete",
-        "telephone",
-      ),
-      sex: getFormDataString(application.formData, "athlete", "sex"),
-      program: getFormDataString(application.formData, "athlete", "program"),
-      gradeEntering: getFormDataString(
-        application.formData,
-        "athlete",
-        "gradeEntering",
-      ),
-      birthDate: getFormDataString(
-        application.formData,
-        "athlete",
-        "birthDate",
-      ),
-      countryOfBirth: getFormDataString(
-        application.formData,
-        "athlete",
-        "countryOfBirth",
-      ),
-      countryOfCitizenship: getFormDataString(
-        application.formData,
-        "athlete",
-        "countryOfCitizenship",
-      ),
-      graduationYear: getFormDataString(
-        application.formData,
-        "athlete",
-        "graduationYear",
-      ),
-      needsI20: getFormDataString(application.formData, "athlete", "needsI20"),
-      ...(photoStorageId ? { photoStorageId } : {}),
-    },
-    school: {
-      currentSchoolName: getFormDataString(
-        application.formData,
-        "school",
-        "currentSchoolName",
-      ),
-      currentGPA: getFormDataString(
-        application.formData,
-        "school",
-        "currentGPA",
-      ),
-    },
-    parent: {
-      firstName: getFormDataString(
-        application.formData,
-        "parents",
-        "parent1FirstName",
-      ),
-      lastName: getFormDataString(
-        application.formData,
-        "parents",
-        "parent1LastName",
-      ),
-      email: getFormDataString(application.formData, "parents", "parent1Email"),
-      telephone: getFormDataString(
-        application.formData,
-        "parents",
-        "parent1Telephone",
-      ),
-    },
-    account: {
-      firstName: account?.firstName ?? "",
-      lastName: account?.lastName ?? "",
-      email: account?.email ?? "",
-      ...(account?.imageUrl ? { imageUrl: account.imageUrl } : {}),
-    },
-  };
-}
-
-async function withPhotoUrls(
-  ctx: QueryCtx,
-  items: Array<ReturnType<typeof mapToApplicationListItem>>,
-) {
-  const cache: Record<Id<"_storage">, string | null> = {};
-
-  return await Promise.all(
-    items.map(async (item) => {
-      if (!item.athlete.photoStorageId) {
-        return item;
-      }
-      const storageId = item.athlete.photoStorageId;
-      if (cache[storageId] === undefined) {
-        cache[storageId] = await ctx.storage.getUrl(storageId);
-      }
-      const photoUrl = cache[storageId];
-      return {
-        ...item,
-        athlete: {
-          ...item.athlete,
-          ...(photoUrl ? { photoUrl } : {}),
-        },
-      };
-    }),
+function canReceiveApplications(program: {
+  isDraft: boolean;
+  isActive?: boolean;
+  formDefinition?: string;
+}) {
+  return (
+    !program.isDraft &&
+    Boolean(program.formDefinition) &&
+    program.isActive !== false
   );
 }
 
@@ -242,255 +64,13 @@ function generateApplicationCode(): string {
 }
 
 /**
- * Default form template sections for pre-admission.
- */
-const DEFAULT_FORM_SECTIONS = [
-  {
-    key: "athlete",
-    label: "Athlete Information",
-    order: 1,
-    fields: [
-      { key: "photo", label: "Photo", type: "string", required: true },
-      { key: "firstName", label: "First Name", type: "text", required: true },
-      { key: "lastName", label: "Last Name", type: "text", required: true },
-      { key: "email", label: "Email", type: "email", required: true },
-      { key: "telephone", label: "Phone", type: "tel", required: true },
-      { key: "birthDate", label: "Birth Date", type: "date", required: true },
-      { key: "sex", label: "Sex", type: "select", required: true },
-      { key: "height", label: "Height", type: "text", required: false },
-      {
-        key: "countryOfBirth",
-        label: "Country of Birth",
-        type: "select",
-        required: true,
-      },
-      {
-        key: "citizenship",
-        label: "Citizenship",
-        type: "select",
-        required: true,
-      },
-      {
-        key: "highlightsUrl",
-        label: "Highlights URL",
-        type: "url",
-        required: false,
-      },
-    ],
-  },
-  {
-    key: "program",
-    label: "Program Information",
-    order: 2,
-    fields: [
-      { key: "format", label: "Format", type: "select", required: true },
-      { key: "program", label: "Program", type: "select", required: true },
-      {
-        key: "enrollmentYear",
-        label: "Enrollment Year",
-        type: "select",
-        required: true,
-      },
-      {
-        key: "graduationYear",
-        label: "Graduation Year",
-        type: "select",
-        required: true,
-      },
-      {
-        key: "gradeEntering",
-        label: "Grade Entering",
-        type: "select",
-        required: true,
-      },
-      {
-        key: "programOfInterest",
-        label: "Program of Interest",
-        type: "select",
-        required: false,
-      },
-      { key: "needsI20", label: "Needs I-20", type: "select", required: true },
-    ],
-  },
-  {
-    key: "address",
-    label: "Address",
-    order: 3,
-    fields: [
-      { key: "country", label: "Country", type: "select", required: true },
-      { key: "state", label: "State", type: "text", required: true },
-      { key: "city", label: "City", type: "text", required: true },
-      {
-        key: "streetAddress",
-        label: "Street Address",
-        type: "text",
-        required: true,
-      },
-      { key: "zipCode", label: "Zip Code", type: "text", required: true },
-    ],
-  },
-  {
-    key: "school",
-    label: "School Information",
-    order: 4,
-    fields: [
-      {
-        key: "currentSchoolName",
-        label: "Current School Name",
-        type: "text",
-        required: true,
-      },
-      {
-        key: "schoolType",
-        label: "School Type",
-        type: "select",
-        required: true,
-      },
-      {
-        key: "schoolCountry",
-        label: "School Country",
-        type: "select",
-        required: true,
-      },
-      {
-        key: "schoolState",
-        label: "School State",
-        type: "text",
-        required: true,
-      },
-      {
-        key: "schoolCity",
-        label: "School City",
-        type: "text",
-        required: true,
-      },
-      {
-        key: "currentGPA",
-        label: "Current GPA",
-        type: "text",
-        required: true,
-      },
-      {
-        key: "referenceName",
-        label: "Reference Name",
-        type: "text",
-        required: true,
-      },
-      {
-        key: "referencePhone",
-        label: "Reference Phone",
-        type: "tel",
-        required: true,
-      },
-      {
-        key: "referenceRelationship",
-        label: "Reference Relationship",
-        type: "text",
-        required: true,
-      },
-    ],
-  },
-  {
-    key: "parents",
-    label: "Parents/Guardians",
-    order: 5,
-    fields: [
-      {
-        key: "parent1FirstName",
-        label: "Parent 1 First Name",
-        type: "text",
-        required: true,
-      },
-      {
-        key: "parent1LastName",
-        label: "Parent 1 Last Name",
-        type: "text",
-        required: true,
-      },
-      {
-        key: "parent1Relationship",
-        label: "Parent 1 Relationship",
-        type: "select",
-        required: true,
-      },
-      {
-        key: "parent1Email",
-        label: "Parent 1 Email",
-        type: "email",
-        required: true,
-      },
-      {
-        key: "parent1Telephone",
-        label: "Parent 1 Phone",
-        type: "tel",
-        required: true,
-      },
-      {
-        key: "parent2FirstName",
-        label: "Parent 2 First Name",
-        type: "text",
-        required: false,
-      },
-      {
-        key: "parent2LastName",
-        label: "Parent 2 Last Name",
-        type: "text",
-        required: false,
-      },
-      {
-        key: "parent2Relationship",
-        label: "Parent 2 Relationship",
-        type: "select",
-        required: false,
-      },
-      {
-        key: "parent2Email",
-        label: "Parent 2 Email",
-        type: "email",
-        required: false,
-      },
-      {
-        key: "parent2Telephone",
-        label: "Parent 2 Phone",
-        type: "tel",
-        required: false,
-      },
-    ],
-  },
-  {
-    key: "additional",
-    label: "Additional Information",
-    order: 6,
-    fields: [
-      {
-        key: "personSubmitting",
-        label: "Person Submitting",
-        type: "select",
-        required: true,
-      },
-      {
-        key: "howDidYouHear",
-        label: "How Did You Hear About Us",
-        type: "select",
-        required: true,
-      },
-      {
-        key: "interestedInBoarding",
-        label: "Interested in Boarding",
-        type: "checkbox",
-        required: true,
-      },
-      { key: "message", label: "Message", type: "textarea", required: false },
-    ],
-  },
-];
-
-/**
  * Submit a new application (authenticated user).
  */
 export const submit = mutation({
   args: {
     organizationSlug: v.string(),
+    programId: v.id("programs"),
+    applicant: applicantValidator,
     formData: formDataValidator,
   },
   returns: v.object({
@@ -503,29 +83,20 @@ export const submit = mutation({
       args.organizationSlug,
     );
 
-    let template = await ctx.db
-      .query("formTemplates")
-      .withIndex("byOrganization", (q) =>
-        q.eq("organizationId", organization._id),
-      )
-      .filter((q) => q.eq(q.field("isPublished"), true))
-      .first();
+    const submittedAt = Date.now();
+    const program = await ctx.db.get(args.programId);
 
-    // Auto-create default form template if none exists
-    if (!template) {
-      const templateId = await ctx.db.insert("formTemplates", {
-        organizationId: organization._id,
-        version: 1,
-        name: "Pre-admission Form",
-        description: "Default pre-admission application form",
-        mode: "base",
-        sections: DEFAULT_FORM_SECTIONS,
-        isPublished: true,
-      });
-      template = await ctx.db.get(templateId);
-      if (!template) {
-        throw new Error("Failed to create form template");
-      }
+    if (!program) {
+      throw new Error("Program not found");
+    }
+    if (program.organizationId !== organization._id) {
+      throw new Error("Program does not belong to this organization");
+    }
+    if (!canReceiveApplications(program)) {
+      throw new Error("Program is not available for applications");
+    }
+    if (!program.formDefinition) {
+      throw new Error("Program form is not configured");
     }
 
     const applicationCode = generateApplicationCode();
@@ -541,14 +112,34 @@ export const submit = mutation({
       throw new Error("Application code collision. Please try again.");
     }
 
+    const programSnapshot = {
+      name: program.name,
+      ...(program.iconKey ? { iconKey: program.iconKey } : {}),
+    };
+
     const applicationId = await ctx.db.insert("applications", {
       userId: user._id,
       organizationId: organization._id,
-      formTemplateId: template._id,
-      formTemplateVersion: template.version,
+      programId: program._id,
       applicationCode,
       status: "pending",
+      applicant: args.applicant,
+      programSnapshot,
+      formDefinitionSnapshot: program.formDefinition,
       formData: args.formData,
+    });
+
+    await cloneProgramDocumentConfigsToApplication(ctx, {
+      programId: program._id,
+      applicationId,
+      userId: user._id,
+      updatedAt: submittedAt,
+    });
+    await cloneProgramPaymentConfigsToApplication(ctx, {
+      programId: program._id,
+      applicationId,
+      userId: user._id,
+      submittedAt,
     });
 
     return {
@@ -659,21 +250,7 @@ export const listMineByOrganizationSummary = query({
       .order("desc")
       .collect();
 
-    const userIds = [
-      ...new Set(applications.map((application) => application.userId)),
-    ];
-    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
-    const userMap = new Map(
-      users.filter(Boolean).map((item) => [item!._id, item!]),
-    );
-
-    const summary = applications.map((application) =>
-      mapToApplicationListItem(
-        application,
-        userMap.get(application.userId) ?? null,
-      ),
-    );
-    return await withPhotoUrls(ctx, summary);
+    return await buildApplicationListSummary(ctx, applications);
   },
 });
 
@@ -719,21 +296,7 @@ export const listByOrganizationSummary = query({
           .order("desc")
           .collect();
 
-    const userIds = [
-      ...new Set(applications.map((application) => application.userId)),
-    ];
-    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
-    const userMap = new Map(
-      users.filter(Boolean).map((item) => [item!._id, item!]),
-    );
-
-    const summary = applications.map((application) =>
-      mapToApplicationListItem(
-        application,
-        userMap.get(application.userId) ?? null,
-      ),
-    );
-    return await withPhotoUrls(ctx, summary);
+    return await buildApplicationListSummary(ctx, applications);
   },
 });
 
@@ -940,9 +503,7 @@ export const updatePhoto = mutation({
     }
 
     // Delete old photo from storage if it exists
-    const oldPhotoId = application.formData.athlete?.photo as
-      | Id<"_storage">
-      | undefined;
+    const oldPhotoId = getApplicationPhotoStorageId(application);
     if (oldPhotoId) {
       await ctx.storage.delete(oldPhotoId);
     }
@@ -957,6 +518,15 @@ export const updatePhoto = mutation({
     };
 
     await ctx.db.patch(args.applicationId, {
+      applicant: {
+        ...(getApplicationApplicant(application) ?? {
+          firstName: "",
+          lastName: "",
+          email: "",
+          telephone: "",
+        }),
+        photoStorageId: args.photoStorageId,
+      },
       formData: updatedFormData,
     });
 
@@ -972,6 +542,8 @@ export const updateFormData = mutation({
   args: {
     applicationId: v.id("applications"),
     formData: formDataValidator,
+    applicant: v.optional(applicantValidator),
+    replaceAll: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -993,21 +565,38 @@ export const updateFormData = mutation({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    // Preserve the photo field from the original formData
     const photoStorageId = application.formData.athlete?.photo;
-
-    // Merge the new formData with the existing one, preserving photo
-    const updatedFormData = {
-      ...application.formData,
-      ...args.formData,
-      athlete: {
-        ...application.formData.athlete,
-        ...args.formData.athlete,
-        ...(photoStorageId ? { photo: photoStorageId } : {}),
-      },
-    };
+    const updatedFormData = args.replaceAll
+      ? {
+          ...args.formData,
+          ...(photoStorageId
+            ? {
+                athlete: {
+                  ...args.formData.athlete,
+                  photo: photoStorageId,
+                },
+              }
+            : {}),
+        }
+      : {
+          ...application.formData,
+          ...args.formData,
+          athlete: {
+            ...application.formData.athlete,
+            ...args.formData.athlete,
+            ...(photoStorageId ? { photo: photoStorageId } : {}),
+          },
+        };
 
     await ctx.db.patch(args.applicationId, {
+      applicant:
+        args.applicant ??
+        (application.programId
+          ? application.applicant
+          : getApplicantFromFormData(updatedFormData)),
+      programSnapshot: application.programId
+        ? application.programSnapshot
+        : getProgramSnapshotFromFormData(updatedFormData),
       formData: updatedFormData,
     });
 
@@ -1042,7 +631,7 @@ export const deleteApplication = mutation({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    const photoStorageId = getPhotoStorageId(application.formData);
+    const photoStorageId = getApplicationPhotoStorageId(application);
 
     const [
       documents,
@@ -1118,87 +707,5 @@ export const deleteApplication = mutation({
     await ctx.db.delete(args.applicationId);
 
     return null;
-  },
-});
-
-/**
- * Get application with template info (for detail view).
- */
-export const getWithTemplate = query({
-  args: { applicationId: v.id("applications") },
-  returns: v.union(
-    v.object({
-      application: applicationValidator,
-      template: v.object({
-        _id: v.id("formTemplates"),
-        name: v.string(),
-        sections: v.array(
-          v.object({
-            key: v.string(),
-            label: v.string(),
-            order: v.number(),
-            fields: v.array(
-              v.object({
-                key: v.string(),
-                label: v.string(),
-                type: v.string(),
-                required: v.boolean(),
-              }),
-            ),
-          }),
-        ),
-      }),
-      organization: v.object({
-        _id: v.id("organizations"),
-        name: v.string(),
-        slug: v.string(),
-      }),
-      isAdmin: v.boolean(),
-    }),
-    v.null(),
-  ),
-  handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    const application = await ctx.db.get(args.applicationId);
-
-    if (!application) {
-      return null;
-    }
-
-    const isOwner = application.userId === user._id;
-    const isAdmin = await hasOrgAdminAccess(
-      ctx,
-      user._id,
-      application.organizationId,
-    );
-
-    if (!isOwner && !isAdmin) {
-      throw new Error("Unauthorized");
-    }
-
-    const template = await ctx.db.get(application.formTemplateId);
-    if (!template) {
-      throw new Error("Template not found");
-    }
-
-    const organization = await ctx.db.get(application.organizationId);
-    if (!organization) {
-      throw new Error("Organization not found");
-    }
-
-    return {
-      application,
-      template: {
-        _id: template._id,
-        name: template.name,
-        sections: template.sections,
-      },
-      organization: {
-        _id: organization._id,
-        name: organization.name,
-        slug: organization.slug,
-      },
-      isAdmin,
-    };
   },
 });

@@ -13,22 +13,26 @@ export default async function PreadmissionPage({ params }: PageProps) {
   const { tenant } = await params;
   const token = await getAuthToken();
   const t = await getTranslations("preadmission");
-  
-  const preloadedOrganization = await preloadQuery(
-    api.organizations.getBySlug,
-    { slug: tenant },
-    { token },
-  );
+
+  const [preloadedOrganization, preloadedPrograms] = await Promise.all([
+    preloadQuery(api.organizations.getBySlug, { slug: tenant }, { token }),
+    preloadQuery(
+      api.programs.listForApplication,
+      { organizationSlug: tenant },
+      { token },
+    ),
+  ]);
   const organization = preloadedQueryResult(preloadedOrganization);
-  
+  const programs = preloadedQueryResult(preloadedPrograms);
+
   return (
     <>
-      <CpcaHeader 
-        title={t("title")} 
-        subtitle={t("description")} 
+      <CpcaHeader
+        title={t("title")}
+        subtitle={t("description")}
         logoUrl={organization?.imageUrl}
       />
-      <PreAdmissionForm />
+      <PreAdmissionForm organizationSlug={tenant} programs={programs} />
     </>
   );
 }

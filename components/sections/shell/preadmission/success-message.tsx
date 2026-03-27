@@ -32,6 +32,7 @@ export function SuccessMessage({
 
             <div className="space-y-4 max-w-lg">
               <p className="text-sm leading-relaxed">{t("message")}</p>
+              <p className="text-sm font-medium">{applicationCode}</p>
               <p className="text-sm leading-relaxed">{t("purpose")}</p>
               <p className="text-sm leading-relaxed">{t("response")}</p>
               <div className="pt-2">

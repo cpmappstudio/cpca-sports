@@ -1,7 +1,4 @@
 import { SignIn } from "@clerk/nextjs";
-import { preloadQuery, preloadedQueryResult } from "convex/nextjs";
-import { api } from "@/convex/_generated/api";
-import { getAuthToken } from "@/lib/auth/auth";
 
 interface PageProps {
   params: Promise<{ tenant: string }>;
@@ -9,15 +6,6 @@ interface PageProps {
 
 export default async function TenantSignInPage({ params }: PageProps) {
   const { tenant } = await params;
-  const token = await getAuthToken();
-
-  // Get organization data for logo
-  const preloadedOrganization = await preloadQuery(
-    api.organizations.getBySlug,
-    { slug: tenant },
-    { token },
-  );
-  const organization = preloadedQueryResult(preloadedOrganization);
 
   return (
     <SignIn

@@ -2,6 +2,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "applications": "My Applications",
+    "programs": "Programs",
     "organizations": "Organizations",
     "users": "Users",
     "settings": "Settings",
@@ -9,6 +10,7 @@
     "payments": "Payments",
     "teams": "Teams",
     "divisions": "Divisions",
-    "tournaments": "Tournaments"
+    "tournaments": "Tournaments",
+    "organizationLogoAlt": "CPCA logo"
   }
 }

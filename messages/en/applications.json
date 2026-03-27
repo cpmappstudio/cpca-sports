@@ -44,7 +44,14 @@
   "table": {
     "totalCountAdmin": "All applications: {count}",
     "totalCountClient": "My applications: {count}",
-    "filteredCount": "Showing {count} of {total}"
+    "filteredCount": "Showing {count} of {total}",
+    "exportHeaders": {
+      "code": "Code",
+      "email": "Email",
+      "phone": "Phone",
+      "accountEmail": "Account Email",
+      "createdAt": "Created At"
+    }
   },
   "tabs": {
     "application": "Application",
@@ -62,6 +69,8 @@
   "detail": {
     "code": "Code",
     "program": "Program",
+    "applicantInfo": "Applicant Information",
+    "noAdditionalFields": "This application doesn't require additional form fields.",
     "backToList": "Back to list",
     "call": "Call",
     "delete": "Delete",
@@ -152,6 +161,7 @@
     "actions": {
       "edit": "Edit",
       "save": "Save",
+      "saving": "Saving...",
       "pay": "Pay",
       "processing": "Processing...",
       "markAsPaid": "Mark as Paid",
@@ -191,6 +201,12 @@
         "cancel": "Cancel",
         "confirm": "Delete"
       },
+      "deleteFeeDialog": {
+        "title": "Delete fee?",
+        "description": "This will permanently delete this fee configuration. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
       "deleteRecurringScopeDialog": {
         "title": "Delete recurring installments?",
         "description": "Choose whether recurring charges should remove only the selected installment(s) or also each following installment in the same plan.",
@@ -220,11 +236,15 @@
     "form": {
       "feeName": "Fee Name",
       "feeNamePlaceholder": "Enter fee name",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional",
       "totalAmount": "Total Amount ($)",
       "amountPlaceholder": "0.00",
       "recurring": "Recurring monthly charge",
       "startDate": "Start month",
       "endDate": "End month",
+      "installmentCount": "Number of months",
+      "installmentCountPlaceholder": "Enter number of months",
       "dueDayOfMonth": "Due day of month",
       "timezone": "Timezone",
       "downPaymentAmount": "Down payment amount ($)",
@@ -283,6 +303,7 @@
       "fields": {
         "name": "Fee name",
         "totalAmount": "Total amount for projected installments ($)",
+        "installmentCount": "Number of months",
         "startDate": "Start month",
         "endDate": "End month",
         "rangePlaceholder": "Select start and end month",

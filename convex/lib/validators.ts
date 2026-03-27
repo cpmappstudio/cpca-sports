@@ -8,11 +8,24 @@ export const applicationStatus = v.union(
   v.literal("denied"),
 );
 
+export const applicantValidator = v.object({
+  photoStorageId: v.optional(v.id("_storage")),
+  firstName: v.string(),
+  lastName: v.string(),
+  email: v.string(),
+  telephone: v.string(),
+});
+
+export const programSnapshotValidator = v.object({
+  name: v.string(),
+  iconKey: v.optional(v.string()),
+});
+
 export const formDataValidator = v.record(
   v.string(),
   v.record(
     v.string(),
-    v.union(v.string(), v.number(), v.boolean(), v.null()),
+    v.union(v.string(), v.number(), v.boolean(), v.null(), v.id("_storage")),
   ),
 );
 

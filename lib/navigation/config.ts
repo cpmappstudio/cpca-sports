@@ -3,6 +3,7 @@ import {
   UsersIcon,
   Cog6ToothIcon,
   ShieldCheckIcon,
+  RectangleStackIcon,
 } from "@heroicons/react/20/solid";
 import { Palette } from "lucide-react";
 import { ROUTES } from "@/lib/navigation/routes";
@@ -113,6 +114,15 @@ const ORG_ITEMS: NavItem[] = [
   // },
 ];
 
+const ORG_ADMIN_ITEMS: NavItem[] = [
+  {
+    labelKey: "programs",
+    icon: RectangleStackIcon,
+    href: (orgSlug) => ROUTES.org.programs.list(orgSlug!),
+    isIndex: false,
+  },
+];
+
 const NAV_CONFIGS: Record<NavContext, NavConfig> = {
   admin: {
     items: ADMIN_ITEMS,
@@ -197,8 +207,22 @@ const SETTINGS_NAV_CONFIGS: Record<NavContext, SettingsNavConfig> = {
 // Exported Functions
 // =============================================================================
 
-export function getNavConfig(context: NavContext): NavConfig {
-  return NAV_CONFIGS[context];
+export function getNavConfig(
+  context: NavContext,
+  options?: { isTenantAdmin?: boolean },
+): NavConfig {
+  const config = NAV_CONFIGS[context];
+
+  if (context !== "org") {
+    return config;
+  }
+
+  return {
+    ...config,
+    items: options?.isTenantAdmin
+      ? [...config.items, ...ORG_ADMIN_ITEMS]
+      : config.items,
+  };
 }
 
 export function getSettingsNavConfig(context: NavContext): SettingsNavConfig {

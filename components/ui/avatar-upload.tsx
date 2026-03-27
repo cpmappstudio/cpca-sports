@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  formatBytes,
-  useFileUpload,
-  type FileWithPreview,
-} from "@/hooks/use-file-upload";
+import { useFileUpload, type FileWithPreview } from "@/hooks/use-file-upload";
 import {
   Alert,
   AlertContent,
@@ -80,6 +76,7 @@ export default function AvatarUpload({
           <input {...getInputProps()} className="sr-only" />
 
           {previewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={previewUrl}
               alt="Avatar"

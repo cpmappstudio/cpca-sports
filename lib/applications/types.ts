@@ -12,15 +12,32 @@ export type FormData = Record<
   Record<string, string | number | boolean | null | Id<"_storage">>
 >;
 
+export interface ApplicationApplicant {
+  photoStorageId?: Id<"_storage">;
+  firstName: string;
+  lastName: string;
+  email: string;
+  telephone: string;
+}
+
+export interface ApplicationProgramSnapshot {
+  name: string;
+  iconKey?: string;
+}
+
 export interface Application {
   _id: Id<"applications">;
   _creationTime: number;
   userId: Id<"users">;
   organizationId: Id<"organizations">;
-  formTemplateId: Id<"formTemplates">;
-  formTemplateVersion: number;
+  programId?: Id<"programs">;
+  formTemplateId?: Id<"formTemplates">;
+  formTemplateVersion?: number;
   applicationCode: string;
   status: ApplicationStatus;
+  applicant?: ApplicationApplicant;
+  programSnapshot?: ApplicationProgramSnapshot;
+  formDefinitionSnapshot?: string;
   formData: FormData;
   reviewedBy?: Id<"users">;
   reviewedAt?: number;

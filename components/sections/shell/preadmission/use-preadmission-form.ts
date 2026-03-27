@@ -1,381 +1,207 @@
-import { useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { STEPS, type StepId } from "./steps/steps-navigation";
-import type { FormData as ConvexFormData } from "@/lib/applications/types";
+"use client";
 
-export interface FormData {
-  format: string;
-  program: string;
-  enrollmentYear: string;
-  graduationYear: string;
-  firstName: string;
-  lastName: string;
-  sex: string;
-  height: string;
-  birthDate: string;
-  email: string;
-  telephone: string;
-  countryOfBirth: string;
-  countryOfCitizenship: string;
-  highlightsLink: string;
-  gradeEntering: string;
-  programOfInterest: string;
-  needsI20: string;
-  photo: Id<"_storage"> | null;
-  country: string;
-  state: string;
-  city: string;
-  streetAddress: string;
-  zipCode: string;
-  currentSchoolName: string;
-  currentSchoolType: string;
-  currentGPA: string;
-  schoolAddress: string;
-  schoolCity: string;
-  schoolCountry: string;
-  schoolState: string;
-  schoolZipCode: string;
-  referenceFullName: string;
-  referencePhone: string;
-  referenceRelationship: string;
-  parent1FirstName: string;
-  parent1LastName: string;
-  parent1Relationship: string;
-  parent1Email: string;
-  parent1Telephone: string;
-  parent2FirstName: string;
-  parent2LastName: string;
-  parent2Relationship: string;
-  parent2Email: string;
-  parent2Telephone: string;
-  personSubmitting: string;
-  howDidYouHear: string;
-  interestedInBoarding: string;
-  profilePicture: File | null;
-  message: string;
-}
+import { useEffect, useMemo, useState } from "react";
+import { useMutation } from "convex/react";
+import { useTranslations } from "next-intl";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { createProgramFormCopy } from "@/components/sections/shell/programs/create/form-builder/program-form-copy";
+import { parseProgramFormDefinition } from "@/components/sections/shell/programs/create/form-builder/utils";
+import {
+  buildProgramFormData,
+  isProgramFieldValueMissing,
+} from "@/components/sections/shell/programs/create/form-builder/program-form-runtime";
+import type {
+  ProgramFormErrors,
+  ProgramFormValues,
+} from "@/components/sections/shell/programs/create/form-builder/types";
+import type {
+  AvailableProgramForApplication,
+  PreadmissionApplicantCore,
+} from "./preadmission-types";
 
 interface UsePreadmissionFormOptions {
   organizationSlug: string;
+  programs: AvailableProgramForApplication[];
 }
 
-/**
- * Convert flat form data to sectioned format for Convex.
- */
-function convertToConvexFormData(data: FormData): ConvexFormData {
+function getInitialApplicant(): PreadmissionApplicantCore {
   return {
-    athlete: {
-      photo: data.photo,
-      format: data.format,
-      program: data.program,
-      enrollmentYear: data.enrollmentYear,
-      graduationYear: data.graduationYear,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      sex: data.sex,
-      height: data.height,
-      birthDate: data.birthDate,
-      email: data.email,
-      telephone: data.telephone,
-      countryOfBirth: data.countryOfBirth,
-      countryOfCitizenship: data.countryOfCitizenship,
-      highlightsLink: data.highlightsLink,
-      gradeEntering: data.gradeEntering,
-      programOfInterest: data.programOfInterest,
-      needsI20: data.needsI20,
-    },
-    address: {
-      country: data.country,
-      state: data.state,
-      city: data.city,
-      streetAddress: data.streetAddress,
-      zipCode: data.zipCode,
-    },
-    school: {
-      currentSchoolName: data.currentSchoolName,
-      currentSchoolType: data.currentSchoolType,
-      currentGPA: data.currentGPA,
-      schoolAddress: data.schoolAddress,
-      schoolCity: data.schoolCity,
-      schoolCountry: data.schoolCountry,
-      schoolState: data.schoolState,
-      schoolZipCode: data.schoolZipCode,
-      referenceFullName: data.referenceFullName,
-      referencePhone: data.referencePhone,
-      referenceRelationship: data.referenceRelationship,
-    },
-    parents: {
-      parent1FirstName: data.parent1FirstName,
-      parent1LastName: data.parent1LastName,
-      parent1Relationship: data.parent1Relationship,
-      parent1Email: data.parent1Email,
-      parent1Telephone: data.parent1Telephone,
-      parent2FirstName: data.parent2FirstName,
-      parent2LastName: data.parent2LastName,
-      parent2Relationship: data.parent2Relationship,
-      parent2Email: data.parent2Email,
-      parent2Telephone: data.parent2Telephone,
-    },
-    general: {
-      personSubmitting: data.personSubmitting,
-      howDidYouHear: data.howDidYouHear,
-      interestedInBoarding: data.interestedInBoarding,
-      message: data.message,
-    },
+    photoStorageId: null,
+    firstName: "",
+    lastName: "",
+    email: "",
+    telephone: "",
   };
 }
 
 export function usePreadmissionForm({
   organizationSlug,
+  programs,
 }: UsePreadmissionFormOptions) {
+  const tValidation = useTranslations("preadmission.validation");
+  const tCore = useTranslations("preadmission.core");
+  const tBuilder = useTranslations("Programs.create.builder");
   const submitApplication = useMutation(api.applications.submit);
 
-  const [currentStep, setCurrentStep] = useState<StepId>("athlete");
-  const [completedSteps, setCompletedSteps] = useState<Set<StepId>>(new Set());
+  const formCopy = useMemo(() => createProgramFormCopy(tBuilder), [tBuilder]);
+  const [selectedProgramId, setSelectedProgramId] =
+    useState<Id<"programs"> | null>(
+      programs.length === 1 ? programs[0]._id : null,
+    );
+  const [applicant, setApplicant] = useState<PreadmissionApplicantCore>(
+    getInitialApplicant(),
+  );
+  const [programValues, setProgramValues] = useState<ProgramFormValues>({});
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [applicationCode, setApplicationCode] = useState("");
-  const [formData, setFormData] = useState<FormData>({
-    format: "",
-    program: "",
-    enrollmentYear: "",
-    graduationYear: "",
-    firstName: "",
-    lastName: "",
-    sex: "",
-    height: "",
-    birthDate: "",
-    email: "",
-    telephone: "",
-    countryOfBirth: "",
-    countryOfCitizenship: "",
-    highlightsLink: "",
-    gradeEntering: "",
-    programOfInterest: "",
-    needsI20: "",
-    photo: null,
-    country: "",
-    state: "",
-    city: "",
-    streetAddress: "",
-    zipCode: "",
-    currentSchoolName: "",
-    currentSchoolType: "",
-    currentGPA: "",
-    schoolAddress: "",
-    schoolCity: "",
-    schoolCountry: "",
-    schoolState: "",
-    schoolZipCode: "",
-    referenceFullName: "",
-    referencePhone: "",
-    referenceRelationship: "",
-    parent1FirstName: "",
-    parent1LastName: "",
-    parent1Relationship: "",
-    parent1Email: "",
-    parent1Telephone: "",
-    parent2FirstName: "",
-    parent2LastName: "",
-    parent2Relationship: "",
-    parent2Email: "",
-    parent2Telephone: "",
-    personSubmitting: "",
-    howDidYouHear: "",
-    interestedInBoarding: "",
-    profilePicture: null,
-    message: "",
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<ProgramFormErrors>({});
 
-  const handleFieldChange = (field: string, value: string | File | Id<"_storage"> | null) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
+  const selectedProgram = useMemo(
+    () => programs.find((program) => program._id === selectedProgramId) ?? null,
+    [programs, selectedProgramId],
+  );
+  const definition = useMemo(
+    () =>
+      selectedProgram
+        ? parseProgramFormDefinition(selectedProgram.formDefinition, formCopy)
+        : null,
+    [formCopy, selectedProgram],
+  );
+  const dynamicSteps = definition?.steps ?? [];
+  const totalSteps = 1 + dynamicSteps.length;
+  const currentProgramStep =
+    currentStepIndex > 0 ? dynamicSteps[currentStepIndex - 1] : null;
+  const isCoreStep = currentStepIndex === 0;
+  const isLastStep = currentStepIndex === totalSteps - 1;
+
+  useEffect(() => {
+    if (!selectedProgramId && programs.length === 1) {
+      setSelectedProgramId(programs[0]._id);
+    }
+  }, [programs, selectedProgramId]);
+
+  const clearError = (field: string) => {
+    setErrors((current) => {
+      if (!current[field]) {
+        return current;
+      }
+
+      const nextErrors = { ...current };
+      delete nextErrors[field];
+      return nextErrors;
+    });
+  };
+
+  const handleSelectProgram = (programId: Id<"programs">) => {
+    setSelectedProgramId(programId);
+    setProgramValues({});
+    setErrors({});
+    setCompletedSteps(new Set());
+    setCurrentStepIndex(0);
+    setSubmitError(null);
+  };
+
+  const handleApplicantChange = (
+    field: keyof PreadmissionApplicantCore,
+    value: string | Id<"_storage"> | null,
+  ) => {
+    setApplicant((current) => ({
+      ...current,
+      [field]: value,
+    }));
+    clearError(field);
+    if (field === "photoStorageId") {
+      clearError("photoStorageId");
     }
   };
 
-  const validateCurrentStep = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (currentStep === "athlete") {
-      // Required fields from DEFAULT_FORM_SECTIONS: athlete section
-      if (!formData.photo) {
-        newErrors.photo = "Photo is required";
-      }
-      if (!formData.firstName.trim()) {
-        newErrors.firstName = "First name is required";
-      }
-      if (!formData.lastName.trim()) {
-        newErrors.lastName = "Last name is required";
-      }
-      if (!formData.email.trim()) {
-        newErrors.email = "Email is required";
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        newErrors.email = "Invalid email format";
-      }
-      if (!formData.telephone.trim()) {
-        newErrors.telephone = "Phone is required";
-      }
-      if (!formData.birthDate) {
-        newErrors.birthDate = "Birth date is required";
-      }
-      if (!formData.sex) {
-        newErrors.sex = "Sex is required";
-      }
-      if (!formData.countryOfBirth) {
-        newErrors.countryOfBirth = "Country of birth is required";
-      }
-      if (!formData.countryOfCitizenship) {
-        newErrors.countryOfCitizenship = "Country of citizenship is required";
-      }
-      // Required fields from DEFAULT_FORM_SECTIONS: program section
-      if (!formData.format) {
-        newErrors.format = "Format is required";
-      }
-      if (!formData.program) {
-        newErrors.program = "Program is required";
-      }
-      if (!formData.enrollmentYear) {
-        newErrors.enrollmentYear = "Enrollment year is required";
-      }
-      if (!formData.graduationYear) {
-        newErrors.graduationYear = "Graduation year is required";
-      }
-      if (!formData.gradeEntering) {
-        newErrors.gradeEntering = "Grade entering is required";
-      }
-      if (!formData.needsI20) {
-        newErrors.needsI20 = "Please select if you need an I-20";
-      }
-    }
-
-    if (currentStep === "address") {
-      if (!formData.country) {
-        newErrors.country = "Country is required";
-      }
-      if (!formData.state.trim()) {
-        newErrors.state = "State/Province is required";
-      }
-      if (!formData.city.trim()) {
-        newErrors.city = "City is required";
-      }
-      if (!formData.streetAddress.trim()) {
-        newErrors.streetAddress = "Street address is required";
-      }
-      if (!formData.zipCode.trim()) {
-        newErrors.zipCode = "ZIP/Postal code is required";
-      }
-    }
-
-    if (currentStep === "school") {
-      // Required fields from DEFAULT_FORM_SECTIONS: school section
-      if (!formData.currentSchoolName.trim()) {
-        newErrors.currentSchoolName = "School name is required";
-      }
-      if (!formData.currentSchoolType) {
-        newErrors.currentSchoolType = "School type is required";
-      }
-      if (!formData.schoolCountry) {
-        newErrors.schoolCountry = "Country is required";
-      }
-      if (!formData.schoolState.trim()) {
-        newErrors.schoolState = "State is required";
-      }
-      if (!formData.schoolCity.trim()) {
-        newErrors.schoolCity = "City is required";
-      }
-      if (!formData.currentGPA.trim()) {
-        newErrors.currentGPA = "Current GPA is required";
-      }
-      if (!formData.referenceFullName.trim()) {
-        newErrors.referenceFullName = "Reference name is required";
-      }
-      if (!formData.referencePhone.trim()) {
-        newErrors.referencePhone = "Reference phone is required";
-      }
-      if (!formData.referenceRelationship.trim()) {
-        newErrors.referenceRelationship = "Reference relationship is required";
-      }
-    }
-
-    if (currentStep === "parents") {
-      if (!formData.parent1FirstName.trim()) {
-        newErrors.parent1FirstName = "Parent 1 first name is required";
-      }
-      if (!formData.parent1LastName.trim()) {
-        newErrors.parent1LastName = "Parent 1 last name is required";
-      }
-      if (!formData.parent1Relationship) {
-        newErrors.parent1Relationship = "Parent 1 relationship is required";
-      }
-      if (!formData.parent1Email.trim()) {
-        newErrors.parent1Email = "Parent 1 email is required";
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.parent1Email)) {
-        newErrors.parent1Email = "Invalid email format";
-      }
-      if (!formData.parent1Telephone.trim()) {
-        newErrors.parent1Telephone = "Parent 1 telephone is required";
-      }
-    }
-
-    if (currentStep === "general") {
-      // Required fields from DEFAULT_FORM_SECTIONS: additional section
-      if (!formData.personSubmitting) {
-        newErrors.personSubmitting = "Person submitting is required";
-      }
-      if (!formData.howDidYouHear) {
-        newErrors.howDidYouHear = "This field is required";
-      }
-      if (!formData.interestedInBoarding) {
-        newErrors.interestedInBoarding = "This field is required";
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleProgramValueChange = (name: string, value: unknown) => {
+    setProgramValues((current) => ({ ...current, [name]: value }));
+    clearError(name);
   };
 
-  const handleNext = () => {
-    if (!validateCurrentStep()) {
+  const validateCoreStep = () => {
+    const nextErrors: ProgramFormErrors = {};
+
+    if (!selectedProgramId) {
+      nextErrors.programId = tValidation("required");
+    }
+    if (!applicant.photoStorageId) {
+      nextErrors.photoStorageId = tValidation("required");
+    }
+    if (!applicant.firstName.trim()) {
+      nextErrors.firstName = tValidation("required");
+    }
+    if (!applicant.lastName.trim()) {
+      nextErrors.lastName = tValidation("required");
+    }
+    if (!applicant.email.trim()) {
+      nextErrors.email = tValidation("required");
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(applicant.email)) {
+      nextErrors.email = tValidation("invalidEmail");
+    }
+    if (!applicant.telephone.trim()) {
+      nextErrors.telephone = tValidation("required");
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const validateProgramStep = () => {
+    if (!currentProgramStep) {
+      return true;
+    }
+
+    const nextErrors: ProgramFormErrors = {};
+
+    for (const element of currentProgramStep.elements) {
+      if (isProgramFieldValueMissing(element, programValues[element.name])) {
+        nextErrors[element.name] = tValidation("required");
+      }
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleStepClick = (stepIndex: number) => {
+    if (stepIndex > currentStepIndex && !completedSteps.has(stepIndex - 1)) {
       return;
     }
-
-    setCompletedSteps((prev) => new Set(prev).add(currentStep));
-    const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
-
-    if (currentIndex < STEPS.length - 1) {
-      setCurrentStep(STEPS[currentIndex + 1].id);
-    }
+    setCurrentStepIndex(stepIndex);
   };
 
   const handleBack = () => {
-    const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
-    if (currentIndex > 0) {
-      setCurrentStep(STEPS[currentIndex - 1].id);
-    }
+    setCurrentStepIndex((current) => Math.max(current - 1, 0));
   };
 
-  const handleStepClick = (stepId: StepId) => {
-    const stepIndex = STEPS.findIndex((s) => s.id === stepId);
-    const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
-
-    if (stepIndex <= currentIndex || completedSteps.has(stepId)) {
-      setCurrentStep(stepId);
+  const advanceStep = () => {
+    if (isCoreStep ? !validateCoreStep() : !validateProgramStep()) {
+      return;
     }
+
+    setCompletedSteps((current) => {
+      const next = new Set(current);
+      next.add(currentStepIndex);
+      return next;
+    });
+    setCurrentStepIndex((current) => Math.min(current + 1, totalSteps - 1));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!isLastStep) {
+      advanceStep();
+      return;
+    }
 
-    if (!validateCurrentStep()) {
+    const isValid = isCoreStep ? validateCoreStep() : validateProgramStep();
+    if (!isValid || !selectedProgramId) {
       return;
     }
 
@@ -383,102 +209,70 @@ export function usePreadmissionForm({
     setSubmitError(null);
 
     try {
-      const convexFormData = convertToConvexFormData(formData);
       const result = await submitApplication({
         organizationSlug,
-        formData: convexFormData,
+        programId: selectedProgramId,
+        applicant: {
+          photoStorageId: applicant.photoStorageId!,
+          firstName: applicant.firstName.trim(),
+          lastName: applicant.lastName.trim(),
+          email: applicant.email.trim(),
+          telephone: applicant.telephone.trim(),
+        },
+        formData: definition
+          ? buildProgramFormData(definition, programValues)
+          : {},
       });
 
       setApplicationCode(result.applicationCode);
       setIsSubmitted(true);
+      setCompletedSteps(new Set());
     } catch (error) {
-      const err = error as Error;
-      setSubmitError(err.message || "Failed to submit application");
-      console.error("[PreAdmissionForm] Submit error:", err);
+      console.error("[Preadmission] Failed to submit application:", error);
+      setSubmitError(tCore("submitError"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleNewApplication = () => {
-    setIsSubmitted(false);
-    setApplicationCode("");
-    setCurrentStep("athlete");
+    setSelectedProgramId(
+      programs.length === 1 ? (programs[0]?._id ?? null) : null,
+    );
+    setApplicant(getInitialApplicant());
+    setProgramValues({});
+    setCurrentStepIndex(0);
     setCompletedSteps(new Set());
-    setFormData({
-      format: "",
-      program: "",
-      enrollmentYear: "",
-      graduationYear: "",
-      firstName: "",
-      lastName: "",
-      sex: "",
-      height: "",
-      birthDate: "",
-      email: "",
-      telephone: "",
-      countryOfBirth: "",
-      countryOfCitizenship: "",
-      highlightsLink: "",
-      gradeEntering: "",
-      programOfInterest: "",
-      needsI20: "",
-      photo: null,
-      country: "",
-      state: "",
-      city: "",
-      streetAddress: "",
-      zipCode: "",
-      currentSchoolName: "",
-      currentSchoolType: "",
-      currentGPA: "",
-      schoolAddress: "",
-      schoolCity: "",
-      schoolCountry: "",
-      schoolState: "",
-      schoolZipCode: "",
-      referenceFullName: "",
-      referencePhone: "",
-      referenceRelationship: "",
-      parent1FirstName: "",
-      parent1LastName: "",
-      parent1Relationship: "",
-      parent1Email: "",
-      parent1Telephone: "",
-      parent2FirstName: "",
-      parent2LastName: "",
-      parent2Relationship: "",
-      parent2Email: "",
-      parent2Telephone: "",
-      personSubmitting: "",
-      howDidYouHear: "",
-      interestedInBoarding: "",
-      profilePicture: null,
-      message: "",
-    });
     setErrors({});
+    setSubmitError(null);
+    setApplicationCode("");
+    setIsSubmitted(false);
   };
 
-  const isLastStep = currentStep === STEPS[STEPS.length - 1].id;
-  const isFirstStep = currentStep === STEPS[0].id;
-
   return {
-    currentStep,
-    completedSteps,
-    formData,
-    errors,
-    isLastStep,
-    isFirstStep,
-    isSubmitted,
-    isSubmitting,
-    submitError,
+    applicant,
     applicationCode,
-    handleFieldChange,
-    validateCurrentStep,
-    handleNext,
+    completedSteps,
+    currentProgramStep,
+    currentStepIndex,
+    definition,
+    dynamicSteps,
+    errors,
+    handleApplicantChange,
     handleBack,
     handleNewApplication,
+    handleProgramValueChange,
+    handleSelectProgram,
     handleStepClick,
     handleSubmit,
+    isCoreStep,
+    isLastStep,
+    isSubmitted,
+    isSubmitting,
+    programValues,
+    selectedProgram,
+    selectedProgramId,
+    submitError,
+    totalSteps,
   };
 }

@@ -9,34 +9,25 @@ import {
   useMutation,
   useAction,
 } from "convex/react";
-import { Pencil, X, Check } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { ApplicationHeader } from "./application-header";
-import { ApplicationOverviewCard } from "./pre-admission/application-overview-card";
-import { ApplicationSchoolCard } from "./pre-admission/application-school-card";
-import { ApplicationParentsCard } from "./pre-admission/application-parents-card";
-import { ApplicationAddressCard } from "./pre-admission/application-address-card";
-import { ApplicationGeneralCard } from "./pre-admission/application-general-card";
+import { ApplicationDetailFormTab } from "./application-detail-form-tab";
 import { ApplicationDocuments } from "./documents/application-documents";
 import { ApplicationPayments } from "./payments/application-payments";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Suspense } from "react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { UserIcon } from "@heroicons/react/20/solid";
 import { CreditCard, File, History } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ApplicationTransactionHistory } from "./payments/application-transaction-history";
-import type { FormData as ApplicationFormData } from "@/lib/applications/types";
+import type {
+  ApplicationApplicant,
+  FormData as ApplicationFormData,
+} from "@/lib/applications/types";
 import type { TransferUser } from "./application-transfer-dialog";
 import { ROUTES } from "@/lib/navigation/routes";
 import { useRouter } from "@/i18n/navigation";
@@ -58,7 +49,6 @@ function ApplicationDetailContent({
 }: ApplicationDetailWrapperProps) {
   const application = usePreloadedQuery(preloadedApplication);
   const t = useTranslations("Applications");
-  const tCommon = useTranslations("Common.actions");
   const { isAdmin } = useIsAdmin();
   const router = useRouter();
 
@@ -66,6 +56,8 @@ function ApplicationDetailContent({
   const [isSaving, setIsSaving] = useState(false);
   const [editedFormData, setEditedFormData] =
     useState<ApplicationFormData | null>(null);
+  const [editedApplicant, setEditedApplicant] =
+    useState<ApplicationApplicant | null>(null);
   const [sectionValidity, setSectionValidity] = useState<
     Record<string, boolean>
   >({
@@ -75,8 +67,14 @@ function ApplicationDetailContent({
     parents: true,
     general: true,
   });
+  const [isDynamicFormValid, setIsDynamicFormValid] = useState(true);
+  const hasDynamicApplicationForm = Boolean(
+    application?.programId && application?.formDefinitionSnapshot,
+  );
 
-  const isFormValid = Object.values(sectionValidity).every(Boolean);
+  const isFormValid = hasDynamicApplicationForm
+    ? isDynamicFormValid
+    : Object.values(sectionValidity).every(Boolean);
 
   const convexApplicationId = applicationId as Id<"applications">;
   const shouldLoadApplicationRelations = application !== null;
@@ -175,19 +173,35 @@ function ApplicationDetailContent({
 
   // Handler to save edited form data
   const handleSave = async () => {
-    if (!editedFormData) {
+    if (!application || !editedFormData) {
       setIsEditing(false);
       return;
     }
 
     setIsSaving(true);
     try {
-      await updateFormData({
+      const payload: {
+        applicationId: Id<"applications">;
+        formData: ApplicationFormData;
+        applicant?: ApplicationApplicant;
+        replaceAll?: boolean;
+      } = {
         applicationId: convexApplicationId,
         formData: editedFormData,
-      });
+      };
+
+      if (hasDynamicApplicationForm) {
+        payload.replaceAll = true;
+        const applicant = editedApplicant ?? application.applicant;
+        if (applicant) {
+          payload.applicant = applicant;
+        }
+      }
+
+      await updateFormData(payload);
       setIsEditing(false);
       setEditedFormData(null);
+      setEditedApplicant(null);
     } catch (error) {
       console.error("[Applications] Failed to save form data:", error);
     } finally {
@@ -199,6 +213,8 @@ function ApplicationDetailContent({
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditedFormData(null);
+    setEditedApplicant(null);
+    setIsDynamicFormValid(true);
     setSectionValidity({
       athlete: true,
       address: true,
@@ -211,7 +227,9 @@ function ApplicationDetailContent({
   // Handler to start editing
   const handleStartEdit = () => {
     setEditedFormData(application?.formData ?? null);
+    setEditedApplicant(application?.applicant ?? null);
     setIsEditing(true);
+    setIsDynamicFormValid(true);
     setSectionValidity({
       athlete: true,
       address: true,
@@ -269,159 +287,57 @@ function ApplicationDetailContent({
       <div className="lg:col-span-3">
         <Tabs defaultValue="application" className="w-full">
           <ScrollArea className="w-full whitespace-nowrap">
-            <TabsList className="mb-4 h-9 inline-flex w-auto">
+            <TabsList>
               <TabsTrigger
                 value="application"
-                className="gap-1 text-xs md:text-sm px-2 md:px-3"
+                className="gap-1 px-2 text-xs md:px-3 md:text-sm"
               >
-                <UserIcon className="hidden md:block h-4 w-4" />
+                <UserIcon className="hidden h-4 w-4 md:block" />
                 <span>{t("tabs.application")}</span>
               </TabsTrigger>
               <TabsTrigger
                 value="docs"
-                className="gap-1 text-xs md:text-sm px-2 md:px-3"
+                className="gap-1 px-2 text-xs md:px-3 md:text-sm"
               >
-                <File className="hidden md:block h-4 w-4" />
+                <File className="hidden h-4 w-4 md:block" />
                 <span>{t("tabs.documents")}</span>
               </TabsTrigger>
               <TabsTrigger
                 value="payments"
-                className="gap-1 text-xs md:text-sm px-2 md:px-3"
+                className="gap-1 px-2 text-xs md:px-3 md:text-sm"
               >
-                <CreditCard className="hidden md:block h-4 w-4" />
+                <CreditCard className="hidden h-4 w-4 md:block" />
                 <span>{t("tabs.payments")}</span>
               </TabsTrigger>
               <TabsTrigger
                 value="transactions"
-                className="gap-1 text-xs md:text-sm px-2 md:px-3"
+                className="gap-1 px-2 text-xs md:px-3 md:text-sm"
               >
-                <History className="hidden md:block h-4 w-4" />
+                <History className="hidden h-4 w-4 md:block" />
                 <span>{t("tabs.transactions")}</span>
               </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
           <TabsContent value="application" className="mt-0">
-            {isAdmin && (
-              <div className="flex justify-end mb-4">
-                {isEditing ? (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleCancelEdit}
-                      disabled={isSaving}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      {tCommon("cancel")}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={handleSave}
-                      disabled={isSaving || !isFormValid}
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                      {isSaving ? tCommon("saving") : tCommon("save")}
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={handleStartEdit}
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    {tCommon("edit")}
-                  </Button>
-                )}
-              </div>
-            )}
-            <Accordion
-              type="multiple"
-              value={
-                isEditing
-                  ? ["athlete", "address", "school", "parents", "general"]
-                  : undefined
-              }
-              className="w-full"
-            >
-              <AccordionItem value="athlete">
-                <AccordionTrigger>{t("sections.athlete")}</AccordionTrigger>
-                <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationOverviewCard
-                    application={application}
-                    isEditing={isEditing}
-                    onDataChange={(data) =>
-                      handleSectionDataChange("athlete", data)
-                    }
-                    onValidationChange={(isValid) =>
-                      handleSectionValidityChange("athlete", isValid)
-                    }
-                  />
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="address">
-                <AccordionTrigger>{t("sections.address")}</AccordionTrigger>
-                <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationAddressCard
-                    application={application}
-                    isEditing={isEditing}
-                    onDataChange={(data) =>
-                      handleSectionDataChange("address", data)
-                    }
-                    onValidationChange={(isValid) =>
-                      handleSectionValidityChange("address", isValid)
-                    }
-                  />
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="school">
-                <AccordionTrigger>{t("sections.school")}</AccordionTrigger>
-                <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationSchoolCard
-                    application={application}
-                    isEditing={isEditing}
-                    onDataChange={(data) =>
-                      handleSectionDataChange("school", data)
-                    }
-                    onValidationChange={(isValid) =>
-                      handleSectionValidityChange("school", isValid)
-                    }
-                  />
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="parents">
-                <AccordionTrigger>{t("sections.parents")}</AccordionTrigger>
-                <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationParentsCard
-                    application={application}
-                    isEditing={isEditing}
-                    onDataChange={(data) =>
-                      handleSectionDataChange("parents", data)
-                    }
-                    onValidationChange={(isValid) =>
-                      handleSectionValidityChange("parents", isValid)
-                    }
-                  />
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="general">
-                <AccordionTrigger>{t("sections.general")}</AccordionTrigger>
-                <AccordionContent className="flex flex-col gap-4 text-balance">
-                  <ApplicationGeneralCard
-                    application={application}
-                    isEditing={isEditing}
-                    onDataChange={(data) =>
-                      handleSectionDataChange("general", data)
-                    }
-                    onValidationChange={(isValid) =>
-                      handleSectionValidityChange("general", isValid)
-                    }
-                  />
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+            <ApplicationDetailFormTab
+              application={application}
+              isAdmin={isAdmin}
+              isEditing={isEditing}
+              isSaving={isSaving}
+              isFormValid={isFormValid}
+              hasDynamicApplicationForm={hasDynamicApplicationForm}
+              formData={editedFormData ?? application.formData}
+              applicant={editedApplicant ?? application.applicant}
+              onStartEdit={handleStartEdit}
+              onCancelEdit={handleCancelEdit}
+              onSave={handleSave}
+              onApplicantChange={setEditedApplicant}
+              onFormDataChange={setEditedFormData}
+              onDynamicValidationChange={setIsDynamicFormValid}
+              onLegacySectionDataChange={handleSectionDataChange}
+              onLegacySectionValidityChange={handleSectionValidityChange}
+            />
           </TabsContent>
           <TabsContent value="docs" className="mt-0">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>

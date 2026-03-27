@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { DataTable } from "@/components/table/data-table";
 import {
   useAdminApplicationColumns,
   useClientApplicationColumns,
   useApplicationFilters,
 } from "@/components/sections/shell/applications/columns";
+import { formatApplicationDate } from "@/components/sections/shell/applications/date-format";
 import { ROUTES } from "@/lib/navigation/routes";
 import type { ApplicationListItem } from "@/lib/applications/list-types";
 
@@ -23,12 +24,13 @@ export function ApplicationsTable({
   isAdmin,
 }: ApplicationsTableProps) {
   const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations("Applications");
   const tTable = useTranslations("Common.table");
   const tActions = useTranslations("Common.actions");
   const adminColumns = useAdminApplicationColumns();
   const clientColumns = useClientApplicationColumns();
-  const filters = useApplicationFilters();
+  const filters = useApplicationFilters(applications);
 
   const handleRowClick = (application: ApplicationListItem) => {
     router.push(
@@ -42,7 +44,7 @@ export function ApplicationsTable({
 
   const handleExport = isAdmin
     ? (rows: ApplicationListItem[]) => {
-        const csv = convertToCSV(rows, t);
+        const csv = convertToCSV(rows, t, locale);
         downloadCSV(
           csv,
           `applications-${organizationSlug}-${new Date().toISOString().split("T")[0]}.csv`,
@@ -85,46 +87,39 @@ export function ApplicationsTable({
 function convertToCSV(
   data: ApplicationListItem[],
   t: ReturnType<typeof useTranslations<"Applications">>,
+  locale: string,
 ): string {
   if (data.length === 0) return "";
 
   const headers = [
-    "Código",
+    t("table.exportHeaders.code"),
     t("status"),
-    "Nombre",
-    "Apellido",
-    "Email",
-    "Teléfono",
+    t("fullName"),
+    t("table.exportHeaders.email"),
+    t("table.exportHeaders.phone"),
     t("program"),
-    t("grade"),
-    "Fecha Nacimiento",
-    "País",
-    "Escuela Actual",
-    "GPA",
-    t("parent"),
-    "Email Tutor",
-    "Teléfono Tutor",
-    "Fecha Creación",
+    t("contact"),
+    t("table.exportHeaders.accountEmail"),
+    t("table.exportHeaders.createdAt"),
   ];
 
   const rows = data.map((app) => {
+    const fullName =
+      `${app.applicant.firstName} ${app.applicant.lastName}`.trim();
+    const accountName =
+      `${app.account.firstName} ${app.account.lastName}`.trim() ||
+      app.account.email;
+
     return [
       app.applicationCode,
       app.status,
-      app.athlete.firstName,
-      app.athlete.lastName,
-      app.athlete.email,
-      app.athlete.telephone,
-      app.athlete.program,
-      app.athlete.gradeEntering,
-      app.athlete.birthDate,
-      app.athlete.countryOfBirth,
-      app.school.currentSchoolName,
-      app.school.currentGPA,
-      `${app.parent.firstName} ${app.parent.lastName}`,
-      app.parent.email,
-      app.parent.telephone,
-      new Date(app._creationTime).toLocaleDateString("es-ES"),
+      fullName,
+      app.applicant.email,
+      app.applicant.telephone,
+      app.program.name,
+      accountName,
+      app.account.email,
+      formatApplicationDate(app._creationTime, locale),
     ];
   });
 

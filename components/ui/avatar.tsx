@@ -52,7 +52,10 @@ export function Avatar({
           </text>
         </svg>
       )}
-      {src && <img className="size-full object-cover" src={src} alt={alt} />}
+      {src && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="size-full object-cover" src={src} alt={alt} />
+      )}
     </span>
   );
 }
@@ -75,7 +78,7 @@ export const AvatarButton = forwardRef(function AvatarButton(
     ),
   ref: React.ForwardedRef<HTMLButtonElement>,
 ) {
-  let classes = clsx(
+  const classes = clsx(
     className,
     square ? "rounded-[20%]" : "rounded-full",
     "relative inline-grid focus:not-data-focus:outline-hidden data-focus:outline-2 data-focus:outline-offset-2 data-focus:outline-blue-500",
