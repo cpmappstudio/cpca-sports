@@ -9,6 +9,7 @@ export interface ApplicationListItem {
   programIconKey?: string;
   applicationCode: string;
   status: ApplicationStatus;
+  enrollmentYear?: string;
   sex?: "male" | "female" | "other";
   applicant: {
     firstName: string;

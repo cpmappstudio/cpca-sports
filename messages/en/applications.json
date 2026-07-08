@@ -18,6 +18,7 @@
   "parent": "Parent",
   "guardian": "Guardian",
   "date": "Date",
+  "enrollmentYear": "Enrollment Year",
   "program": "Program",
   "grade": "Grade",
   "contact": "Contact",

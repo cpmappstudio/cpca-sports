@@ -18,6 +18,7 @@
   "parent": "Tutor",
   "guardian": "Tutor",
   "date": "Fecha",
+  "enrollmentYear": "Año de Inscripción",
   "program": "Programa",
   "grade": "Grado",
   "contact": "Contacto",

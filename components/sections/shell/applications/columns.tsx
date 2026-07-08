@@ -120,10 +120,16 @@ function ApplicantCell({
             </Button>
           </div>
         </div>
-        <div className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground lg:hidden">
-          <span className="font-mono uppercase">{t("program")}:</span>
-          <Icon className="h-3 w-3" />
-          <span>{program || "-"}</span>
+        <div className="mt-1 inline-flex flex-col gap-1 text-xs text-muted-foreground lg:hidden">
+          <div className="flex gap-1">
+            <span className="font-mono uppercase">{t("program")}:</span>
+            <Icon className="h-3 w-3" />
+            <span>{program || "-"}</span>
+          </div>
+          <div>
+            <span className="font-mono uppercase">{t("enrollmentYear")}:</span>
+            <span>{row.enrollmentYear || "-"}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -222,6 +228,14 @@ function useApplicationColumnsBase() {
         },
         filterFn: (row, id, value) => {
           return value.includes(row.getValue(id));
+        },
+      },
+      {
+        accessorKey: "enrollmentYear",
+        header: createSortableHeader(t("enrollmentYear")),
+        cell: ({ row }) => row.getValue("enrollmentYear") || "-",
+        meta: {
+          className: "hidden xl:table-cell",
         },
       },
       {

@@ -43,6 +43,7 @@ export const applicationListItemValidator = v.object({
   programIconKey: v.optional(v.string()),
   applicationCode: v.string(),
   status: applicationStatus,
+  enrollmentYear: v.optional(v.string()),
   sex: v.optional(
     v.union(v.literal("male"), v.literal("female"), v.literal("other")),
   ),
@@ -86,6 +87,18 @@ function getApplicationSex(
   return undefined;
 }
 
+function getApplicationEnrollmentYear(
+  formData: ApplicationFormData,
+): string | undefined {
+  const enrollmentYear = getFormDataString(
+    formData,
+    "athlete",
+    "enrollmentYear",
+  ).trim();
+
+  return enrollmentYear || undefined;
+}
+
 function mapToApplicationListItem(
   application: ApplicationSummarySource,
   account: ApplicationAccountSummary,
@@ -94,6 +107,7 @@ function mapToApplicationListItem(
   const programSnapshot = getApplicationProgramSnapshot(application);
   const photoStorageId = getApplicationPhotoStorageId(application);
   const sex = getApplicationSex(application.formData);
+  const enrollmentYear = getApplicationEnrollmentYear(application.formData);
 
   return {
     _id: application._id,
@@ -105,6 +119,7 @@ function mapToApplicationListItem(
       : {}),
     applicationCode: application.applicationCode,
     status: application.status,
+    ...(enrollmentYear ? { enrollmentYear } : {}),
     ...(sex ? { sex } : {}),
     applicant: {
       firstName:
