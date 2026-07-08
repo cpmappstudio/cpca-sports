@@ -163,9 +163,11 @@ function ContactCell({ row }: { row: ApplicationListItem }) {
           src={row.account.imageUrl}
           initials={accountInitials}
           alt={accountDisplayName}
-          className="size-6 bg-muted text-muted-foreground"
+          className="size-6 shrink-0 bg-muted text-muted-foreground"
         />
-        <span className="truncate">{accountDisplayName}</span>
+        <span className="min-w-0 wrap-break-word whitespace-normal">
+          {accountDisplayName}
+        </span>
       </div>
       <div className="flex items-center gap-1 text-sm text-muted-foreground">
         <Phone className="h-4 w-4" />

@@ -21,7 +21,11 @@ export function getFormDataString(
 export function getLegacyPhotoStorageId(
   formData: ApplicationFormData,
 ): Id<"_storage"> | undefined {
-  const raw = formData.athlete?.photo;
+  return getPhotoStorageId(formData.athlete?.photo);
+}
+
+function getPhotoStorageId(value: unknown): Id<"_storage"> | undefined {
+  const raw = value;
   if (typeof raw !== "string") {
     return undefined;
   }
@@ -88,8 +92,17 @@ export function getApplicationPhotoStorageId(application: {
   applicant?: ApplicationApplicant;
   formData: ApplicationFormData;
 }) {
-  return (
-    getApplicationApplicant(application)?.photoStorageId ??
-    getLegacyPhotoStorageId(application.formData)
-  );
+  return getApplicationPhotoStorageIds(application)[0];
+}
+
+export function getApplicationPhotoStorageIds(application: {
+  applicant?: ApplicationApplicant;
+  formData: ApplicationFormData;
+}) {
+  return [
+    getPhotoStorageId(application.applicant?.photoStorageId),
+    getLegacyPhotoStorageId(application.formData),
+  ].filter((storageId, index, storageIds): storageId is Id<"_storage"> => {
+    return !!storageId && storageIds.indexOf(storageId) === index;
+  });
 }

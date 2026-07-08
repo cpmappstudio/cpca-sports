@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getCurrentUserOrNull } from "./lib/auth";
+import { getApplicationPhotoStorageIds } from "./lib/applicationSnapshots";
 import { hasOrgAdminAccess } from "./lib/permissions";
 
 function assertMigrationSecret(secret: string) {
@@ -64,8 +65,8 @@ export const getUrl = query({
       return null;
     }
 
-    const photoStorageId = application.formData.athlete?.photo;
-    if (photoStorageId === args.storageId) {
+    const photoStorageIds = getApplicationPhotoStorageIds(application);
+    if (photoStorageIds.includes(args.storageId)) {
       return await ctx.storage.getUrl(args.storageId);
     }
 
