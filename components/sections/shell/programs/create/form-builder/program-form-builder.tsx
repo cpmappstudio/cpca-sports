@@ -228,7 +228,7 @@ export function ProgramFormBuilder({
     <>
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="space-y-4 lg:col-span-7">
-          <Reorder.Group<ProgramFormDefinition["steps"][number]>
+          <Reorder.Group<ProgramFormDefinition["steps"]>
             axis="y"
             values={value.steps}
             onReorder={(steps) => updateSteps(() => steps)}

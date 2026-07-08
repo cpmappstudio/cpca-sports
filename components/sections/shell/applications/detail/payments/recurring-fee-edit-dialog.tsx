@@ -603,10 +603,7 @@ export function RecurringFeeEditDialog({
 
   const initialDownPaymentAmount = orderedInstallments[0]?.totalAmount ?? 0;
 
-  const distributionTooltip = ({
-    active,
-    payload,
-  }: TooltipContentProps<number, string>) => {
+  const distributionTooltip = ({ active, payload }: TooltipContentProps) => {
     if (!active || !payload?.length) {
       return null;
     }
