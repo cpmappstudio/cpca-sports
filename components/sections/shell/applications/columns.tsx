@@ -50,6 +50,7 @@ function ApplicantPhotoThumb({
         width={40}
         height={40}
         sizes="40px"
+        unoptimized
         onError={() => setImageError(true)}
         className="h-10 w-10 rounded-md border object-cover"
       />

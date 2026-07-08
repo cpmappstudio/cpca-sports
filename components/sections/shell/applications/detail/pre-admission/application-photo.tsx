@@ -41,7 +41,14 @@ export function ApplicationPhoto({
   return (
     <div className={sizeClasses}>
       <AspectRatio ratio={1} className="rounded-md overflow-hidden border">
-        <Image src={photoUrl} alt={alt} fill className="object-contain" />
+        <Image
+          src={photoUrl}
+          alt={alt}
+          fill
+          sizes={size === "sm" ? "40px" : "80px"}
+          unoptimized
+          className="object-contain"
+        />
       </AspectRatio>
     </div>
   );
