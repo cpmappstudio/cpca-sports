@@ -67,6 +67,32 @@ function isProgramAvailable(program: {
   );
 }
 
+function normalizeProgramName(value: string) {
+  return value.trim().toLowerCase();
+}
+
+async function assertUniqueProgramName(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: Id<"organizations">,
+  name: string,
+  exceptProgramId?: Id<"programs">,
+) {
+  const normalizedName = normalizeProgramName(name);
+  const programs = await ctx.db
+    .query("programs")
+    .withIndex("byOrganization", (q) => q.eq("organizationId", organizationId))
+    .collect();
+  const duplicate = programs.find(
+    (program) =>
+      program._id !== exceptProgramId &&
+      normalizeProgramName(program.name) === normalizedName,
+  );
+
+  if (duplicate) {
+    throw new Error("A program with this name already exists");
+  }
+}
+
 async function verifyOrganizationAdminAccess(
   ctx: QueryCtx | MutationCtx,
   organizationId: Id<"organizations">,
@@ -180,6 +206,7 @@ export const createDraft = mutation({
     }
 
     await verifyOrganizationAdminAccess(ctx, args.organizationId, user._id);
+    await assertUniqueProgramName(ctx, args.organizationId, name);
 
     const now = Date.now();
 
@@ -236,6 +263,14 @@ export const save = mutation({
     const name = args.name.trim();
     if (shouldSaveProgram && !name) {
       throw new Error("Program name is required");
+    }
+    if (shouldSaveProgram) {
+      await assertUniqueProgramName(
+        ctx,
+        program.organizationId,
+        name,
+        program._id,
+      );
     }
     if (args.iconKey && !isProgramIconKey(args.iconKey)) {
       throw new Error("Invalid program icon");
