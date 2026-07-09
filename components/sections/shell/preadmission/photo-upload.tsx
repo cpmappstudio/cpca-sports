@@ -8,6 +8,11 @@ import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
+import {
+  APPLICATION_PHOTO_ACCEPT,
+  ApplicationPhotoError,
+  prepareApplicationPhoto,
+} from "@/lib/images/application-photo";
 
 interface PhotoUploadProps {
   value?: Id<"_storage"> | null;
@@ -22,6 +27,19 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
+  const getErrorMessage = (error: unknown) => {
+    if (error instanceof ApplicationPhotoError) {
+      if (error.code === "invalidType") {
+        return t("invalidType");
+      }
+      if (error.code === "maxSize") {
+        return t("maxSize");
+      }
+    }
+
+    return t("uploadFailed");
+  };
+
   useEffect(() => {
     return () => {
       if (previewUrl) {
@@ -34,27 +52,19 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setError(t("invalidType"));
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      setError(t("maxSize"));
-      return;
-    }
-
     setError(null);
     setIsUploading(true);
-    const localPreviewUrl = URL.createObjectURL(file);
+    let localPreviewUrl: string | null = null;
 
     try {
+      const optimizedPhoto = await prepareApplicationPhoto(file);
+      localPreviewUrl = URL.createObjectURL(optimizedPhoto);
       const uploadUrl = await generateUploadUrl();
 
       const result = await fetch(uploadUrl, {
         method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+        headers: { "Content-Type": optimizedPhoto.type },
+        body: optimizedPhoto,
       });
 
       if (!result.ok) {
@@ -68,8 +78,10 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
       setPreviewUrl(localPreviewUrl);
       onChange(storageId);
     } catch (err) {
-      URL.revokeObjectURL(localPreviewUrl);
-      setError(t("uploadFailed"));
+      if (localPreviewUrl) {
+        URL.revokeObjectURL(localPreviewUrl);
+      }
+      setError(getErrorMessage(err));
       console.error("[PhotoUpload] Upload error:", err);
     } finally {
       setIsUploading(false);
@@ -92,6 +104,7 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
               src={previewUrl}
               alt="Uploaded photo"
               fill
+              unoptimized
               className="object-cover"
             />
           </div>
@@ -101,7 +114,7 @@ export function PhotoUpload({ value, onChange, required }: PhotoUploadProps) {
           <Input
             id="photo"
             type="file"
-            accept="image/*"
+            accept={APPLICATION_PHOTO_ACCEPT}
             onChange={handleFileChange}
             disabled={isUploading}
             required={required && !value}

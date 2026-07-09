@@ -17,6 +17,11 @@ import { getCountryName } from "@/lib/countries/countries";
 import { ApplicationPhoto } from "./pre-admission/application-photo";
 import { Id } from "@/convex/_generated/dataModel";
 import {
+  APPLICATION_PHOTO_ACCEPT,
+  ApplicationPhotoError,
+  prepareApplicationPhoto,
+} from "@/lib/images/application-photo";
+import {
   BookOpen,
   GraduationCap,
   Calendar,
@@ -185,29 +190,33 @@ export function ApplicationHeader({
     }
   };
 
+  const getPhotoErrorMessage = (error: unknown) => {
+    if (error instanceof ApplicationPhotoError) {
+      if (error.code === "invalidType") {
+        return "Please upload a JPG, PNG, or WebP image.";
+      }
+      if (error.code === "maxSize") {
+        return "File size must be less than 5MB.";
+      }
+    }
+
+    return "Failed to update photo. Please try again.";
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File size must be less than 10MB");
-      return;
-    }
-
     setIsUpdating(true);
 
     try {
+      const optimizedPhoto = await prepareApplicationPhoto(file);
       const uploadUrl = await generateUploadUrl();
 
       const result = await fetch(uploadUrl, {
         method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+        headers: { "Content-Type": optimizedPhoto.type },
+        body: optimizedPhoto,
       });
 
       if (!result.ok) {
@@ -225,7 +234,7 @@ export function ApplicationHeader({
       toast.success("Photo updated successfully");
     } catch (error) {
       console.error("Failed to update photo:", error);
-      toast.error("Failed to update photo. Please try again.");
+      toast.error(getPhotoErrorMessage(error));
     } finally {
       setIsUpdating(false);
       if (fileInputRef.current) {
@@ -306,7 +315,7 @@ export function ApplicationHeader({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept={APPLICATION_PHOTO_ACCEPT}
                   onChange={handleFileChange}
                   className="hidden"
                   disabled={isUpdating}
