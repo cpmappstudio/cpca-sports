@@ -43,11 +43,11 @@
     "submitError": "We couldn't submit the application. Please try again.",
     "photo": {
       "label": "Photo",
-      "description": "Upload a recent photo. Max size: 10MB.",
+      "description": "Upload a recent JPG, PNG, or WebP photo. Max size: 5MB.",
       "uploading": "Uploading photo...",
       "uploaded": "Photo uploaded successfully",
-      "invalidType": "Please select an image file",
-      "maxSize": "File size must be less than 10MB",
+      "invalidType": "Please select a JPG, PNG, or WebP image",
+      "maxSize": "File size must be less than 5MB",
       "uploadFailed": "Failed to upload photo"
     }
   },

@@ -43,11 +43,11 @@
     "submitError": "No pudimos enviar la solicitud. Inténtalo de nuevo.",
     "photo": {
       "label": "Foto",
-      "description": "Sube una foto reciente. Tamaño máximo: 10MB.",
+      "description": "Sube una foto reciente en JPG, PNG o WebP. Tamaño máximo: 5MB.",
       "uploading": "Subiendo foto...",
       "uploaded": "Foto subida correctamente",
-      "invalidType": "Selecciona un archivo de imagen",
-      "maxSize": "El archivo debe pesar menos de 10MB",
+      "invalidType": "Selecciona una imagen JPG, PNG o WebP",
+      "maxSize": "El archivo debe pesar menos de 5MB",
       "uploadFailed": "No se pudo subir la foto"
     }
   },
