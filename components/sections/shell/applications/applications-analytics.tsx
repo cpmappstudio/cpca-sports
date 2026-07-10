@@ -186,6 +186,7 @@ export function ApplicationsAnalytics({
                 type="category"
                 tickLine={false}
                 axisLine={false}
+                interval={0}
                 width={72}
                 tick={{ fontSize: 9 }}
                 tickFormatter={(value: string) => truncate(value, 10)}
