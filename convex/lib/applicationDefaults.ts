@@ -1,5 +1,6 @@
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { syncApplicationFeeSummary } from "./feeSummary";
 import { formatDateString, getDaysInMonth } from "./paymentPlans";
 
 function getSubmissionDateParts(timestamp: number) {
@@ -39,7 +40,11 @@ function buildDueDatesFromInstallmentCount(
 }
 
 function sortRecurringFees<
-  T extends { installmentIndex?: number; _creationTime?: number; createdAt?: number },
+  T extends {
+    installmentIndex?: number;
+    _creationTime?: number;
+    createdAt?: number;
+  },
 >(fees: T[]) {
   return [...fees].sort((a, b) => {
     const aIndex = a.installmentIndex ?? Number.MAX_SAFE_INTEGER;
@@ -48,7 +53,10 @@ function sortRecurringFees<
       return aIndex - bIndex;
     }
 
-    return (a.createdAt ?? a._creationTime ?? 0) - (b.createdAt ?? b._creationTime ?? 0);
+    return (
+      (a.createdAt ?? a._creationTime ?? 0) -
+      (b.createdAt ?? b._creationTime ?? 0)
+    );
   });
 }
 
@@ -191,4 +199,6 @@ export async function cloneProgramPaymentConfigsToApplication(
       });
     }
   }
+
+  await syncApplicationFeeSummary(ctx, params.applicationId);
 }

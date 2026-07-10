@@ -23,6 +23,14 @@
   "grade": "Grade",
   "contact": "Contact",
   "status": "Status",
+  "payment": "Payment",
+  "paymentProgress": "{progress}% paid",
+  "paymentTooltip": {
+    "title": "Payment details",
+    "loading": "Loading payment details...",
+    "noFees": "No fees configured",
+    "dueDate": "Due {date}"
+  },
   "statusOptions": {
     "pending": "Pending",
     "reviewing": "Reviewing",

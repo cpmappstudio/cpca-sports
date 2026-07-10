@@ -11,6 +11,7 @@ import {
   buildApplicationListSummary,
   applicationListItemValidator,
 } from "./lib/applicationSummary";
+import { feeSummaryValidator } from "./lib/feeSummary";
 import {
   getApplicantFromFormData,
   getApplicationApplicant,
@@ -40,6 +41,7 @@ const applicationValidator = v.object({
   formData: formDataValidator,
   reviewedBy: v.optional(v.id("users")),
   reviewedAt: v.optional(v.number()),
+  paymentSummary: v.optional(feeSummaryValidator),
 });
 
 function canReceiveApplications(program: {

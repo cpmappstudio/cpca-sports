@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { type Infer, v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import type {
@@ -7,6 +7,7 @@ import type {
   ApplicationStatus,
 } from "../../lib/applications/types";
 import { applicationStatus } from "./validators";
+import { feeSummaryValidator, getFeeSummary } from "./feeSummary";
 import {
   getApplicationApplicant,
   getApplicationPhotoStorageId,
@@ -50,6 +51,7 @@ export const applicationListItemValidator = v.object({
   applicant: applicationListApplicantValidator,
   program: applicationListProgramValidator,
   account: applicationListAccountValidator,
+  paymentSummary: feeSummaryValidator,
 });
 
 type ApplicationSummarySource = {
@@ -63,6 +65,7 @@ type ApplicationSummarySource = {
   applicant?: ApplicationApplicant;
   programSnapshot?: ApplicationProgramSnapshot;
   formData: ApplicationFormData;
+  paymentSummary?: Infer<typeof feeSummaryValidator>;
 };
 
 type ApplicationAccountSummary = {
@@ -102,6 +105,7 @@ function getApplicationEnrollmentYear(
 function mapToApplicationListItem(
   application: ApplicationSummarySource,
   account: ApplicationAccountSummary,
+  paymentSummary: Awaited<ReturnType<typeof getFeeSummary>>,
 ) {
   const applicant = getApplicationApplicant(application);
   const programSnapshot = getApplicationProgramSnapshot(application);
@@ -147,6 +151,7 @@ function mapToApplicationListItem(
       email: account?.email ?? "",
       ...(account?.imageUrl ? { imageUrl: account.imageUrl } : {}),
     },
+    paymentSummary,
   };
 }
 
@@ -184,15 +189,24 @@ export async function buildApplicationListSummary(
   const userIds = [
     ...new Set(applications.map((application) => application.userId)),
   ];
-  const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
+  const [users, paymentSummaries] = await Promise.all([
+    Promise.all(userIds.map((id) => ctx.db.get("users", id))),
+    Promise.all(
+      applications.map(
+        (application) =>
+          application.paymentSummary ?? getFeeSummary(ctx, application._id),
+      ),
+    ),
+  ]);
   const userMap = new Map(
     users.filter(Boolean).map((item) => [item!._id, item!]),
   );
 
-  const summary = applications.map((application) =>
+  const summary = applications.map((application, index) =>
     mapToApplicationListItem(
       application,
       userMap.get(application.userId) ?? null,
+      paymentSummaries[index],
     ),
   );
 

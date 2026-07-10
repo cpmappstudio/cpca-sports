@@ -2,11 +2,18 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { useQuery } from "convex/react";
 import Image from "next/image";
 import { Mail, Phone } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Avatar } from "@/components/ui/avatar";
 import { ApplicationPhoto } from "./detail/pre-admission/application-photo";
 import { formatApplicationDate } from "./date-format";
@@ -15,6 +22,8 @@ import { getProgramIcon } from "@/lib/programs/icon-catalog";
 import type { ApplicationStatus } from "@/lib/applications/types";
 import type { ApplicationListItem } from "@/lib/applications/list-types";
 import type { FilterConfig } from "@/lib/table/types";
+import { formatCurrency } from "@/lib/utils/currency";
+import { api } from "@/convex/_generated/api";
 
 function useStatusMap() {
   const t = useTranslations("Applications.statusOptions");
@@ -178,6 +187,165 @@ function ContactCell({ row }: { row: ApplicationListItem }) {
   );
 }
 
+function getPaymentProgress(summary: ApplicationListItem["paymentSummary"]) {
+  if (summary.totalDue <= 0) return 0;
+
+  return Math.min(
+    100,
+    Math.max(0, (summary.totalPaid / summary.totalDue) * 100),
+  );
+}
+
+function formatPaymentDueDate(value: string, locale: string) {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function PaymentProgressCell({
+  applicationId,
+  paymentSummary,
+}: {
+  applicationId: ApplicationListItem["_id"];
+  paymentSummary: ApplicationListItem["paymentSummary"];
+}) {
+  const locale = useLocale();
+  const t = useTranslations("Applications");
+  const tPayments = useTranslations("Applications.payments");
+  const [open, setOpen] = useState(false);
+  const paymentFees = useQuery(
+    api.fees.getPaymentDetails,
+    open ? { applicationId } : "skip",
+  );
+  const progress = getPaymentProgress(paymentSummary);
+  const roundedProgress = Math.round(progress);
+  const label = t("paymentProgress", { progress: roundedProgress });
+  const feeStatusMap = {
+    pending: {
+      label: tPayments("feeStatuses.pending"),
+      className: "text-background/70",
+    },
+    partially_paid: {
+      label: tPayments("feeStatuses.partiallyPaid"),
+      className: "text-blue-300",
+    },
+    paid: {
+      label: tPayments("feeStatuses.paid"),
+      className: "text-green-300",
+    },
+  };
+
+  return (
+    <Tooltip open={open} onOpenChange={setOpen}>
+      <TooltipTrigger asChild>
+        <div
+          tabIndex={0}
+          aria-label={label}
+          className="relative w-18 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <Progress
+            value={progress}
+            aria-label={label}
+            className="h-5 w-full border border-green-500/20"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold tabular-nums text-green-600 dark:text-green-400"
+          >
+            {roundedProgress}%
+          </span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent
+        side="top"
+        sideOffset={8}
+        className="w-80 max-w-[calc(100vw-2rem)] overflow-hidden border border-background/15 p-0 text-left"
+      >
+        <div className="border-b border-background/15 p-3">
+          <p className="font-semibold">{t("paymentTooltip.title")}</p>
+          <div className="mt-2 grid grid-cols-2 gap-4 tabular-nums">
+            <div>
+              <p className="text-[11px] text-background/70">
+                {tPayments("summary.totalPaid")}
+              </p>
+              <p className="font-semibold text-green-300">
+                {formatCurrency(paymentSummary.totalPaid)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[11px] text-background/70">
+                {tPayments("summary.totalDue")}
+              </p>
+              <p className="font-semibold">
+                {formatCurrency(paymentSummary.totalDue)}
+              </p>
+            </div>
+          </div>
+          <div className="mt-2 flex justify-between gap-4 border-t border-background/10 pt-2 text-[11px]">
+            <span className="text-background/70">
+              {tPayments("summary.pending")}
+            </span>
+            <span className="font-medium tabular-nums text-amber-300">
+              {formatCurrency(paymentSummary.totalPending)}
+            </span>
+          </div>
+        </div>
+
+        {paymentFees === undefined ? (
+          <p className="p-3 text-background/70">
+            {t("paymentTooltip.loading")}
+          </p>
+        ) : paymentFees.length === 0 ? (
+          <p className="p-3 text-background/70">{t("paymentTooltip.noFees")}</p>
+        ) : (
+          <div className="max-h-72 overflow-y-auto">
+            {paymentFees.map((fee) => {
+              const status = feeStatusMap[fee.status];
+
+              return (
+                <div
+                  key={fee._id}
+                  className="border-b border-background/10 px-3 py-2 last:border-b-0"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 font-medium wrap-break-word">
+                      {fee.name}
+                    </p>
+                    <span
+                      className={`shrink-0 text-[11px] ${status.className}`}
+                    >
+                      {status.label}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-3 text-[11px] text-background/70">
+                    <span className="tabular-nums">
+                      {formatCurrency(fee.paidAmount)} /{" "}
+                      {formatCurrency(fee.totalAmount)}
+                    </span>
+                    {fee.dueDate && (
+                      <span className="shrink-0">
+                        {t("paymentTooltip.dueDate", {
+                          date: formatPaymentDueDate(fee.dueDate, locale),
+                        })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function useApplicationColumnsBase() {
   const locale = useLocale();
   const t = useTranslations("Applications");
@@ -248,6 +416,21 @@ function useApplicationColumnsBase() {
         cell: ({ row }) => <ContactCell row={row.original} />,
         meta: {
           className: "hidden md:table-cell",
+        },
+      },
+
+      {
+        id: "paymentProgress",
+        header: createSortableHeader(t("payment")),
+        accessorFn: (row) => getPaymentProgress(row.paymentSummary),
+        cell: ({ row }) => (
+          <PaymentProgressCell
+            applicationId={row.original._id}
+            paymentSummary={row.original.paymentSummary}
+          />
+        ),
+        meta: {
+          className: "w-24",
         },
       },
       {
