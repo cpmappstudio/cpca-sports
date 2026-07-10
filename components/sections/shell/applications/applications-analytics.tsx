@@ -2,19 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  Label,
-  PolarGrid,
-  PolarRadiusAxis,
-  RadialBar,
-  RadialBarChart,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Area, AreaChart, Bar, BarChart, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
   ChartTooltip,
@@ -56,54 +44,42 @@ export function ApplicationsAnalytics({
     () => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }),
     [locale],
   );
-  const currencyFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency: "USD",
-      }),
-    [locale],
-  );
-  const formatMoney = (cents: number) => currencyFormatter.format(cents / 100);
+
   const trendConfig = {
     applications: {
       label: t("applications"),
-      color: "var(--chart-1)",
+      color: "var(--primary)",
     },
   } satisfies ChartConfig;
   const programConfig = {
-    count: {
-      label: t("applications"),
-      color: "var(--chart-2)",
+    count: { label: t("applications") },
+    program1: {
+      color:
+        "color-mix(in oklch, var(--primary) 90%, var(--primary-foreground))",
+    },
+    program2: {
+      color:
+        "color-mix(in oklch, var(--primary) 72%, var(--primary-foreground))",
+    },
+    program3: {
+      color:
+        "color-mix(in oklch, var(--primary) 54%, var(--primary-foreground))",
+    },
+    program4: {
+      color:
+        "color-mix(in oklch, var(--primary) 36%, var(--primary-foreground))",
     },
   } satisfies ChartConfig;
-  const collectionConfig = {
-    value: {
-      label: t("collected"),
-      color: "var(--color-green-500)",
-    },
-  } satisfies ChartConfig;
+  const programData = analytics.programs.map((program, index) => ({
+    ...program,
+    fill: `var(--color-program${index + 1})`,
+  }));
 
-  const radialValue =
-    analytics.payments.collectionRate === null
-      ? 0
-      : analytics.payments.collectionRateVisual;
-  const collectionRateDisplay =
-    analytics.payments.collectionRate === null
-      ? "—"
-      : `${Math.round(analytics.payments.collectionRateVisual)}%`;
-  const radialData = [
-    {
-      value: radialValue === 0 ? 0 : 1,
-      fill: "var(--color-collected)",
-    },
-  ];
-
-  const programChartHeight = Math.max(28, analytics.programs.length * 22);
+  const programChartHeight = Math.max(24, analytics.programs.length * 19);
 
   return (
-    <div className="flex w-full max-w-full flex-wrap items-start justify-start gap-x-7 gap-y-3 sm:justify-end">
-      <div className="relative h-24 w-44 shrink-0">
+    <div className="flex w-full max-w-full flex-nowrap items-start justify-start gap-x-0 gap-y-3 sm:flex-wrap sm:justify-end">
+      <div className="relative h-20 w-2/5 shrink-0 sm:h-24 sm:w-44">
         <select
           aria-label={t("range")}
           value={rangeDays}
@@ -117,8 +93,8 @@ export function ApplicationsAnalytics({
         </select>
         <ChartContainer
           config={trendConfig}
-          className="h-24 w-full aspect-auto"
-          initialDimension={{ width: 176, height: 96 }}
+          className="h-20 w-full overflow-visible aspect-auto [&_.recharts-surface]:overflow-visible sm:h-24"
+          initialDimension={{ width: 128, height: 80 }}
           aria-label={t("trendAriaLabel", {
             count: analytics.trend.currentTotal,
           })}
@@ -129,7 +105,7 @@ export function ApplicationsAnalytics({
               count: analytics.trend.currentTotal,
             })}
             data={analytics.trend.data}
-            margin={{ top: 4, right: 2, bottom: 0, left: 2 }}
+            margin={{ top: 4, right: 2, bottom: 2, left: 2 }}
           >
             <defs>
               <linearGradient
@@ -185,9 +161,9 @@ export function ApplicationsAnalytics({
         </ChartContainer>
       </div>
 
-      <div className="h-24 w-56 shrink-0">
+      <div className="h-20 w-3/5 shrink-0 sm:h-24 sm:w-56">
         {analytics.programs.length === 0 ? (
-          <p className="flex h-24 items-start text-lg text-muted-foreground">
+          <p className="flex h-20 items-start text-lg text-muted-foreground sm:h-24">
             —
           </p>
         ) : (
@@ -195,13 +171,13 @@ export function ApplicationsAnalytics({
             config={programConfig}
             className="w-full aspect-auto"
             style={{ height: programChartHeight }}
-            initialDimension={{ width: 224, height: programChartHeight }}
+            initialDimension={{ width: 160, height: programChartHeight }}
             aria-label={t("programAriaLabel")}
           >
             <BarChart
               accessibilityLayer
               aria-label={t("programAriaLabel")}
-              data={analytics.programs}
+              data={programData}
               layout="vertical"
               margin={{ top: 0, right: 4, bottom: 0, left: 0 }}
             >
@@ -210,9 +186,9 @@ export function ApplicationsAnalytics({
                 type="category"
                 tickLine={false}
                 axisLine={false}
-                width={86}
-                tick={{ fontSize: 10 }}
-                tickFormatter={(value: string) => truncate(value, 13)}
+                width={72}
+                tick={{ fontSize: 9 }}
+                tickFormatter={(value: string) => truncate(value, 10)}
               />
               <XAxis dataKey="count" type="number" hide />
               <ChartTooltip
@@ -243,111 +219,11 @@ export function ApplicationsAnalytics({
                   />
                 }
               />
-              <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+              <Bar dataKey="count" radius={4} />
             </BarChart>
           </ChartContainer>
         )}
       </div>
-
-      <ChartContainer
-        config={collectionConfig}
-        className="size-24 aspect-square"
-        initialDimension={{ width: 96, height: 96 }}
-        aria-label={t("collectionAriaLabel", {
-          rate: collectionRateDisplay,
-        })}
-      >
-        <RadialBarChart
-          accessibilityLayer
-          aria-label={t("collectionAriaLabel", {
-            rate: collectionRateDisplay,
-          })}
-          data={radialData}
-          startAngle={90}
-          endAngle={90 - radialValue * 3.6}
-          innerRadius="72%"
-          outerRadius="100%"
-        >
-          <PolarGrid
-            gridType="circle"
-            radialLines={false}
-            stroke="none"
-            className="first:fill-muted last:fill-background"
-            polarRadius={[48, 36]}
-          />
-          <ChartTooltip
-            cursor={false}
-            position={{ x: -96, y: 104 }}
-            allowEscapeViewBox={{ x: true, y: true }}
-            wrapperStyle={{ zIndex: 50, pointerEvents: "none" }}
-            content={
-              <ChartTooltipContent
-                hideLabel
-                hideIndicator
-                className="w-48 min-w-0"
-                formatter={() =>
-                  analytics.payments.collectionRate === null ? (
-                    <p>{t("noAmountDue")}</p>
-                  ) : (
-                    <div className="grid w-full gap-1.5">
-                      <ChartTooltipRow
-                        label={t("statuses.paid")}
-                        value={formatMoney(analytics.payments.totalPaid)}
-                      />
-                      <ChartTooltipRow
-                        label={t("due")}
-                        value={formatMoney(analytics.payments.totalDue)}
-                      />
-                      <ChartTooltipRow
-                        label={t("remaining")}
-                        value={formatMoney(analytics.payments.totalRemaining)}
-                      />
-                    </div>
-                  )
-                }
-              />
-            }
-          />
-          <RadialBar
-            dataKey="value"
-            fill="var(--color-value)"
-            cornerRadius={10}
-          />
-          <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
-            <Label
-              content={({ viewBox }) => {
-                if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) {
-                  return null;
-                }
-
-                return (
-                  <text
-                    x={viewBox.cx}
-                    y={viewBox.cy}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                  >
-                    <tspan
-                      x={viewBox.cx}
-                      y={viewBox.cy - 5}
-                      className="fill-foreground text-base font-semibold"
-                    >
-                      {collectionRateDisplay}
-                    </tspan>
-                    <tspan
-                      x={viewBox.cx}
-                      y={viewBox.cy + 12}
-                      className="fill-muted-foreground text-[9px]"
-                    >
-                      {t("collected")}
-                    </tspan>
-                  </text>
-                );
-              }}
-            />
-          </PolarRadiusAxis>
-        </RadialBarChart>
-      </ChartContainer>
     </div>
   );
 }
@@ -367,6 +243,28 @@ export function ApplicationPaymentStatusChart({
     () => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }),
     [locale],
   );
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: "USD",
+      }),
+    [locale],
+  );
+  const totals = useMemo(
+    () =>
+      applications.reduce(
+        (sum, application) => ({
+          paid: sum.paid + application.paymentSummary.totalPaid,
+          outstanding:
+            sum.outstanding + application.paymentSummary.totalPending,
+          total: sum.total + application.paymentSummary.totalDue,
+        }),
+        { paid: 0, outstanding: 0, total: 0 },
+      ),
+    [applications],
+  );
+  const formatMoney = (cents: number) => currencyFormatter.format(cents / 100);
   const config = {
     paid: {
       label: t("statuses.paid"),
@@ -440,7 +338,7 @@ export function ApplicationPaymentStatusChart({
             </ChartContainer>
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top" sideOffset={6} className="z-100 w-48">
+        <TooltipContent side="top" sideOffset={6} className="z-100 w-56">
           <div className="grid w-full gap-1.5">
             {statuses.map((status) => (
               <div
@@ -464,6 +362,19 @@ export function ApplicationPaymentStatusChart({
                 </span>
               </div>
             ))}
+            <div className="my-1 border-t border-background/20" />
+            <PaymentTooltipRow
+              label={t("statuses.paid")}
+              value={formatMoney(totals.paid)}
+            />
+            <PaymentTooltipRow
+              label={t("remaining")}
+              value={formatMoney(totals.outstanding)}
+            />
+            <PaymentTooltipRow
+              label={t("total")}
+              value={formatMoney(totals.total)}
+            />
           </div>
         </TooltipContent>
       </Tooltip>
@@ -479,6 +390,17 @@ export function ApplicationPaymentStatusChart({
         ))}
       </ul>
     </>
+  );
+}
+
+function PaymentTooltipRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-background/70">{label}</span>
+      <span className="shrink-0 font-mono font-medium text-background tabular-nums">
+        {value}
+      </span>
+    </div>
   );
 }
 

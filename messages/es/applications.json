@@ -47,6 +47,7 @@
     "countAndPercentage": "{count} · {percentage}%",
     "due": "Adeudado",
     "remaining": "Pendiente",
+    "total": "Total",
     "noAmountDue": "No hay monto adeudado",
     "trendAriaLabel": "{count} solicitudes en el periodo seleccionado",
     "programAriaLabel": "Solicitudes agrupadas por programa",
