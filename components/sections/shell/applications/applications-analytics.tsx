@@ -75,11 +75,11 @@ export function ApplicationsAnalytics({
     fill: `var(--color-program${index + 1})`,
   }));
 
-  const programChartHeight = Math.max(24, analytics.programs.length * 19);
+  const programChartHeight = Math.max(18, analytics.programs.length * 14);
 
   return (
-    <div className="flex w-full max-w-full flex-nowrap items-start justify-start gap-x-0 gap-y-3 sm:flex-wrap sm:justify-end">
-      <div className="relative h-20 w-2/5 shrink-0 sm:h-24 sm:w-44">
+    <div className="flex h-15 w-full max-w-full flex-nowrap items-start justify-start gap-x-0 sm:justify-end">
+      <div className="relative h-15 w-2/5 shrink-0 lg:w-44">
         <select
           aria-label={t("range")}
           value={rangeDays}
@@ -93,8 +93,8 @@ export function ApplicationsAnalytics({
         </select>
         <ChartContainer
           config={trendConfig}
-          className="h-20 w-full overflow-visible aspect-auto [&_.recharts-surface]:overflow-visible sm:h-24"
-          initialDimension={{ width: 128, height: 80 }}
+          className="h-15 w-full overflow-visible aspect-auto [&_.recharts-surface]:overflow-visible"
+          initialDimension={{ width: 128, height: 60 }}
           aria-label={t("trendAriaLabel", {
             count: analytics.trend.currentTotal,
           })}
@@ -161,9 +161,9 @@ export function ApplicationsAnalytics({
         </ChartContainer>
       </div>
 
-      <div className="h-20 w-3/5 shrink-0 sm:h-24 sm:w-56">
+      <div className="h-15 w-3/5 shrink-0 lg:w-56">
         {analytics.programs.length === 0 ? (
-          <p className="flex h-20 items-start text-lg text-muted-foreground sm:h-24">
+          <p className="flex h-15 items-start text-lg text-muted-foreground">
             —
           </p>
         ) : (
