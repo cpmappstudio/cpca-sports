@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "convex/react";
 import Image from "next/image";
@@ -346,7 +346,7 @@ function PaymentProgressCell({
   );
 }
 
-function useApplicationColumnsBase() {
+function useApplicationColumnsBase(paymentStatusHeader?: ReactNode) {
   const locale = useLocale();
   const t = useTranslations("Applications");
   const statusMap = useStatusMap();
@@ -358,6 +358,9 @@ function useApplicationColumnsBase() {
         <span className="lg:hidden">{t("athlete")}</span>
       </>
     );
+    const PaymentSortableHeader = createSortableHeader(t("payment"), {
+      className: "h-10 w-full justify-start px-2 pt-1.5",
+    });
 
     return [
       {
@@ -421,7 +424,16 @@ function useApplicationColumnsBase() {
 
       {
         id: "paymentProgress",
-        header: createSortableHeader(t("payment")),
+        header: ({ column }) => (
+          <div className="relative h-10 w-full">
+            {paymentStatusHeader ? (
+              <div className="absolute inset-x-0 top-0 z-20">
+                {paymentStatusHeader}
+              </div>
+            ) : null}
+            <PaymentSortableHeader column={column} />
+          </div>
+        ),
         accessorFn: (row) => getPaymentProgress(row.paymentSummary),
         cell: ({ row }) => (
           <PaymentProgressCell
@@ -431,6 +443,7 @@ function useApplicationColumnsBase() {
         ),
         meta: {
           className: "w-24",
+          headerClassName: "relative p-0",
         },
       },
       {
@@ -457,11 +470,11 @@ function useApplicationColumnsBase() {
         },
       },
     ];
-  }, [locale, statusMap, t]);
+  }, [locale, paymentStatusHeader, statusMap, t]);
 }
 
-export function useAdminApplicationColumns() {
-  return useApplicationColumnsBase();
+export function useAdminApplicationColumns(paymentStatusHeader?: ReactNode) {
+  return useApplicationColumnsBase(paymentStatusHeader);
 }
 
 export function useClientApplicationColumns() {

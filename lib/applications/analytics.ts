@@ -35,12 +35,6 @@ export function calculateApplicationAnalytics(
     }),
   );
   const programCounts = new Map<string, { name: string; count: number }>();
-  const paymentStatusCounts: Record<PaymentStatusKey, number> = {
-    paid: 0,
-    partial: 0,
-    unpaid: 0,
-    noPaymentRequired: 0,
-  };
   let currentTotal = 0;
   let previousTotal = 0;
   let totalDue = 0;
@@ -68,16 +62,6 @@ export function calculateApplicationAnalytics(
     const summary = application.paymentSummary;
     totalDue += summary.totalDue;
     totalPaid += summary.totalPaid;
-
-    if (summary.totalDue <= 0) {
-      paymentStatusCounts.noPaymentRequired += 1;
-    } else if (summary.totalPending <= 0) {
-      paymentStatusCounts.paid += 1;
-    } else if (summary.totalPaid > 0) {
-      paymentStatusCounts.partial += 1;
-    } else {
-      paymentStatusCounts.unpaid += 1;
-    }
   }
 
   const sortedPrograms = [...programCounts.entries()]
@@ -104,14 +88,7 @@ export function calculateApplicationAnalytics(
         : "none"
       : ((currentTotal - previousTotal) / previousTotal) * 100;
   const collectionRate = totalDue > 0 ? (totalPaid / totalDue) * 100 : null;
-  const paymentStatusData = (
-    Object.entries(paymentStatusCounts) as Array<[PaymentStatusKey, number]>
-  ).map(([status, count]) => ({
-    status,
-    count,
-    percentage:
-      applications.length > 0 ? (count / applications.length) * 100 : 0,
-  }));
+  const paymentStatusData = calculatePaymentStatusDistribution(applications);
 
   return {
     trend: {
@@ -134,6 +111,38 @@ export function calculateApplicationAnalytics(
       statuses: paymentStatusData,
     },
   };
+}
+
+export function calculatePaymentStatusDistribution(
+  applications: Pick<AnalyticsApplication, "paymentSummary">[],
+) {
+  const counts: Record<PaymentStatusKey, number> = {
+    paid: 0,
+    partial: 0,
+    unpaid: 0,
+    noPaymentRequired: 0,
+  };
+
+  for (const { paymentSummary } of applications) {
+    const status =
+      paymentSummary.totalDue <= 0
+        ? "noPaymentRequired"
+        : paymentSummary.totalPending <= 0
+          ? "paid"
+          : paymentSummary.totalPaid > 0
+            ? "partial"
+            : "unpaid";
+    counts[status] += 1;
+  }
+
+  return (Object.entries(counts) as Array<[PaymentStatusKey, number]>).map(
+    ([status, count]) => ({
+      status,
+      count,
+      percentage:
+        applications.length > 0 ? (count / applications.length) * 100 : 0,
+    }),
+  );
 }
 
 function startOfUtcDay(timestamp: number) {

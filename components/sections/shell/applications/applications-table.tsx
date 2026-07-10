@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { DataTable } from "@/components/table/data-table";
@@ -11,6 +12,7 @@ import {
 import { formatApplicationDate } from "@/components/sections/shell/applications/date-format";
 import { ROUTES } from "@/lib/navigation/routes";
 import type { ApplicationListItem } from "@/lib/applications/list-types";
+import { ApplicationPaymentStatusChart } from "./applications-analytics";
 
 interface ApplicationsTableProps {
   applications: ApplicationListItem[];
@@ -28,7 +30,14 @@ export function ApplicationsTable({
   const t = useTranslations("Applications");
   const tTable = useTranslations("Common.table");
   const tActions = useTranslations("Common.actions");
-  const adminColumns = useAdminApplicationColumns();
+  const paymentStatusHeader = useMemo(
+    () =>
+      isAdmin ? (
+        <ApplicationPaymentStatusChart applications={applications} />
+      ) : undefined,
+    [applications, isAdmin],
+  );
+  const adminColumns = useAdminApplicationColumns(paymentStatusHeader);
   const clientColumns = useClientApplicationColumns();
   const filters = useApplicationFilters(applications);
 

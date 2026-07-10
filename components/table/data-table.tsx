@@ -251,11 +251,11 @@ export function DataTable<TData>({
               >
                 {headerGroup.headers.map((header) => {
                   const meta = header.column.columnDef.meta as
-                    | { className?: string }
+                    | { className?: string; headerClassName?: string }
                     | undefined;
                   return (
                     <TableHead
-                      className={`text-muted ${meta?.className || ""}`}
+                      className={`text-muted ${meta?.className || ""} ${meta?.headerClassName || ""}`}
                       key={header.id}
                     >
                       {header.isPlaceholder
@@ -294,8 +294,7 @@ export function DataTable<TData>({
                   >
                     {row.getVisibleCells().map((cell) => {
                       const meta = cell.column.columnDef.meta as
-                        | { className?: string }
-                        | undefined;
+                        { className?: string } | undefined;
                       return (
                         <TableCell
                           key={cell.id}
