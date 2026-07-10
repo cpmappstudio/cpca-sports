@@ -31,6 +31,34 @@
     "noFees": "No hay cobros configurados",
     "dueDate": "Vence {date}"
   },
+  "analytics": {
+    "applications": "Solicitudes",
+    "byProgram": "Solicitudes por programa",
+    "collected": "Recaudado",
+    "paymentStatus": "Estado de pagos",
+    "range": "Rango de tendencia",
+    "ranges": {
+      "30d": "30d",
+      "8w": "8sem"
+    },
+    "new": "Nuevo",
+    "other": "Otros",
+    "applicationCount": "{count, plural, one {# solicitud} other {# solicitudes}}",
+    "countAndPercentage": "{count} · {percentage}%",
+    "due": "Adeudado",
+    "remaining": "Pendiente",
+    "noAmountDue": "No hay monto adeudado",
+    "trendAriaLabel": "{count} solicitudes en el periodo seleccionado",
+    "programAriaLabel": "Solicitudes agrupadas por programa",
+    "collectionAriaLabel": "Tasa de recaudo: {rate}",
+    "paymentStatusAriaLabel": "Solicitudes por estado de pago",
+    "statuses": {
+      "paid": "Pagado",
+      "partial": "Parcial",
+      "unpaid": "Sin pagar",
+      "noPaymentRequired": "No requiere pago"
+    }
+  },
   "statusOptions": {
     "pending": "Pendiente",
     "reviewing": "En Revisión",

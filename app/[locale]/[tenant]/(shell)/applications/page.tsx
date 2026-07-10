@@ -5,7 +5,7 @@ import { getAuthToken } from "@/lib/auth/auth";
 import { getTranslations } from "next-intl/server";
 import { ApplicationsTableWrapper } from "@/components/sections/shell/applications/applications-table-wrapper";
 import { ApplicationsTableAdminWrapper } from "@/components/sections/shell/applications/applications-table-admin-wrapper";
-import CpcaHeader from "@/components/common/cpca-header";
+
 import { preloadedQueryResult } from "convex/nextjs";
 import { ROUTES } from "@/lib/navigation/routes";
 import { getTenantAccess } from "@/lib/auth/tenant-access";
@@ -25,6 +25,9 @@ export default async function ApplicationsPage({ params }: PageProps) {
   const organization = preloadedQueryResult(preloadedOrganization);
 
   if (isAdmin) {
+    // Request-scoped server value serialized to the client for hydration-stable buckets.
+    // eslint-disable-next-line react-hooks/purity
+    const analyticsNow = Date.now();
     const preloadedApplications = await preloadQuery(
       api.applications.listByOrganizationSummary,
       { organizationSlug: tenant },
@@ -32,17 +35,14 @@ export default async function ApplicationsPage({ params }: PageProps) {
     );
 
     return (
-      <>
-        <CpcaHeader
-          title={t("titleAdmin")}
-          subtitle={t("descriptionAdmin")}
-          logoUrl={organization?.imageUrl}
-        />
-        <ApplicationsTableAdminWrapper
-          preloadedApplications={preloadedApplications}
-          organizationSlug={tenant}
-        />
-      </>
+      <ApplicationsTableAdminWrapper
+        preloadedApplications={preloadedApplications}
+        organizationSlug={tenant}
+        title={t("titleAdmin")}
+        subtitle={t("descriptionAdmin")}
+        logoUrl={organization?.imageUrl}
+        analyticsNow={analyticsNow}
+      />
     );
   }
 
@@ -58,16 +58,12 @@ export default async function ApplicationsPage({ params }: PageProps) {
   }
 
   return (
-    <>
-      <CpcaHeader
-        title={t("titleClient")}
-        subtitle={t("descriptionClient")}
-        logoUrl={organization?.imageUrl}
-      />
-      <ApplicationsTableWrapper
-        preloadedApplications={preloadedApplications}
-        organizationSlug={tenant}
-      />
-    </>
+    <ApplicationsTableWrapper
+      preloadedApplications={preloadedApplications}
+      organizationSlug={tenant}
+      title={t("titleClient")}
+      subtitle={t("descriptionClient")}
+      logoUrl={organization?.imageUrl}
+    />
   );
 }
