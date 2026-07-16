@@ -9,6 +9,13 @@ import {
   isValidTimeZone,
   parseDateString,
 } from "./lib/paymentPlans";
+import {
+  feeSummaryValidator,
+  getFeeSummary,
+  getPaymentDetails as buildPaymentDetails,
+  paymentFeeListItemValidator,
+  syncApplicationFeeSummary,
+} from "./lib/feeSummary";
 
 const feeStatus = v.union(
   v.literal("pending"),
@@ -102,35 +109,30 @@ export const getByApplication = query({
  */
 export const getSummary = query({
   args: { applicationId: v.id("applications") },
-  returns: v.object({
-    totalDue: v.number(),
-    totalPaid: v.number(),
-    totalPending: v.number(),
-    feeCount: v.number(),
-    paidCount: v.number(),
-  }),
+  returns: feeSummaryValidator,
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const { application } = await verifyApplicationAccess(
+      ctx,
+      args.applicationId,
+      user._id,
+    );
+
+    return application.paymentSummary ?? getFeeSummary(ctx, args.applicationId);
+  },
+});
+
+/**
+ * Get lightweight fee details for payment previews.
+ */
+export const getPaymentDetails = query({
+  args: { applicationId: v.id("applications") },
+  returns: v.array(paymentFeeListItemValidator),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     await verifyApplicationAccess(ctx, args.applicationId, user._id);
 
-    const fees = await ctx.db
-      .query("fees")
-      .withIndex("byApplication", (q) =>
-        q.eq("applicationId", args.applicationId),
-      )
-      .collect();
-
-    const totalDue = fees.reduce((sum, fee) => sum + fee.totalAmount, 0);
-    const totalPaid = fees.reduce((sum, fee) => sum + fee.paidAmount, 0);
-    const paidCount = fees.filter((fee) => fee.status === "paid").length;
-
-    return {
-      totalDue,
-      totalPaid,
-      totalPending: totalDue - totalPaid,
-      feeCount: fees.length,
-      paidCount,
-    };
+    return await buildPaymentDetails(ctx, args.applicationId);
   },
 });
 
@@ -161,7 +163,7 @@ export const create = mutation({
       throw new Error("Down payment percent must be between 0 and 100");
     }
 
-    return await ctx.db.insert("fees", {
+    const feeId = await ctx.db.insert("fees", {
       applicationId: args.applicationId,
       name: args.name,
       description: args.description,
@@ -176,6 +178,9 @@ export const create = mutation({
       createdAt: Date.now(),
       createdBy: user._id,
     });
+
+    await syncApplicationFeeSummary(ctx, args.applicationId);
+    return feeId;
   },
 });
 
@@ -287,6 +292,7 @@ export const createRecurringPlan = mutation({
       feeIds.push(feeId);
     }
 
+    await syncApplicationFeeSummary(ctx, args.applicationId);
     return { planId, feeIds };
   },
 });
@@ -336,6 +342,7 @@ export const createDefaults = mutation({
       feeIds.push(feeId);
     }
 
+    await syncApplicationFeeSummary(ctx, args.applicationId);
     return feeIds;
   },
 });
@@ -427,6 +434,7 @@ export const remove = mutation({
 
       if (remainingInstallments.length === 0) {
         await ctx.db.delete(recurringPlan._id);
+        await syncApplicationFeeSummary(ctx, fee.applicationId);
         return null;
       }
 
@@ -471,10 +479,12 @@ export const remove = mutation({
         updatedAt: Date.now(),
       });
 
+      await syncApplicationFeeSummary(ctx, fee.applicationId);
       return null;
     }
 
     await ctx.db.delete(args.feeId);
+    await syncApplicationFeeSummary(ctx, fee.applicationId);
     return null;
   },
 });
@@ -539,6 +549,7 @@ export const recordManualPayment = mutation({
       ...(newStatus === "paid" ? { paidAt: Date.now() } : {}),
     });
 
+    await syncApplicationFeeSummary(ctx, fee.applicationId);
     return transactionId;
   },
 });
@@ -717,6 +728,7 @@ export const update = mutation({
       );
 
       await ctx.db.patch(recurringPlan._id, { updatedAt: Date.now() });
+      await syncApplicationFeeSummary(ctx, fee.applicationId);
       return null;
     }
 
@@ -754,12 +766,15 @@ export const update = mutation({
       }
     }
 
+    if (args.totalAmount !== undefined) {
+      await syncApplicationFeeSummary(ctx, fee.applicationId);
+    }
     return null;
   },
 });
 
 /**
- * Update recurring installments from a selected installment forward (admin only).
+ * Update recurring installments from a selected installment forward
  * Reconfigures the projected recurring schedule (from this installment forward),
  * keeping paid history intact.
  */
@@ -1078,6 +1093,7 @@ export const updateRecurringSeries = mutation({
       updatedAt: Date.now(),
     });
 
+    await syncApplicationFeeSummary(ctx, fee.applicationId);
     return null;
   },
 });

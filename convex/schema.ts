@@ -262,6 +262,15 @@ export default defineSchema({
     ),
     reviewedBy: v.optional(v.id("users")),
     reviewedAt: v.optional(v.number()),
+    paymentSummary: v.optional(
+      v.object({
+        totalDue: v.number(),
+        totalPaid: v.number(),
+        totalPending: v.number(),
+        feeCount: v.number(),
+        paidCount: v.number(),
+      }),
+    ),
   })
     .index("byUserId", ["userId"])
     .index("byUserIdAndOrganizationId", ["userId", "organizationId"])

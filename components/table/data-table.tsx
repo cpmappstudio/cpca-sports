@@ -293,10 +293,11 @@ export function DataTable<TData>({
                 )}
                 {headerGroup.headers.map((header) => {
                   const meta = header.column.columnDef.meta as
-                    { className?: string } | undefined;
+                    | { className?: string; headerClassName?: string }
+                    | undefined;
                   return (
                     <TableHead
-                      className={`text-muted ${meta?.className || ""}`}
+                      className={`text-muted ${meta?.className || ""} ${meta?.headerClassName || ""}`}
                       key={header.id}
                     >
                       {header.isPlaceholder

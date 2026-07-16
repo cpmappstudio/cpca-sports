@@ -5,7 +5,6 @@ import { getAuthToken } from "@/lib/auth/auth";
 import { getTranslations } from "next-intl/server";
 import { ApplicationsTableWrapper } from "@/components/sections/shell/applications/applications-table-wrapper";
 import { ApplicationsTableAdminWrapper } from "@/components/sections/shell/applications/applications-table-admin-wrapper";
-import CpcaHeader from "@/components/common/cpca-header";
 import { preloadedQueryResult } from "convex/nextjs";
 import { ROUTES } from "@/lib/navigation/routes";
 import { getTenantAccess } from "@/lib/auth/tenant-access";
@@ -31,6 +30,9 @@ export default async function ApplicationsPage({
   const organization = preloadedQueryResult(preloadedOrganization);
 
   if (isAdmin) {
+    // Request-scoped server value serialized to the client for hydration-stable buckets.
+    // eslint-disable-next-line react-hooks/purity
+    const analyticsNow = Date.now();
     const [preloadedApplications, preloadedArchivedApplications] =
       await Promise.all([
         preloadQuery(
@@ -46,19 +48,16 @@ export default async function ApplicationsPage({
       ]);
 
     return (
-      <>
-        <CpcaHeader
-          title={t("titleAdmin")}
-          subtitle={t("descriptionAdmin")}
-          logoUrl={organization?.imageUrl}
-        />
-        <ApplicationsTableAdminWrapper
-          preloadedApplications={preloadedApplications}
-          preloadedArchivedApplications={preloadedArchivedApplications}
-          organizationSlug={tenant}
-          initialTab={initialTab}
-        />
-      </>
+      <ApplicationsTableAdminWrapper
+        preloadedApplications={preloadedApplications}
+        preloadedArchivedApplications={preloadedArchivedApplications}
+        organizationSlug={tenant}
+        initialTab={initialTab}
+        title={t("titleAdmin")}
+        subtitle={t("descriptionAdmin")}
+        logoUrl={organization?.imageUrl}
+        analyticsNow={analyticsNow}
+      />
     );
   }
 
@@ -74,16 +73,12 @@ export default async function ApplicationsPage({
   }
 
   return (
-    <>
-      <CpcaHeader
-        title={t("titleClient")}
-        subtitle={t("descriptionClient")}
-        logoUrl={organization?.imageUrl}
-      />
-      <ApplicationsTableWrapper
-        preloadedApplications={preloadedApplications}
-        organizationSlug={tenant}
-      />
-    </>
+    <ApplicationsTableWrapper
+      preloadedApplications={preloadedApplications}
+      organizationSlug={tenant}
+      title={t("titleClient")}
+      subtitle={t("descriptionClient")}
+      logoUrl={organization?.imageUrl}
+    />
   );
 }

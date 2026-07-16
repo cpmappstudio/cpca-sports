@@ -2,6 +2,7 @@ import { action, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { syncApplicationFeeSummary } from "./lib/feeSummary";
 
 // Square API configuration
 const SQUARE_API_VERSION = "2024-01-18";
@@ -347,6 +348,8 @@ export const handlePaymentCompleted = internalMutation({
         ...(newStatus === "paid" ? { paidAt: Date.now() } : {}),
       });
     }
+
+    await syncApplicationFeeSummary(ctx, paymentLink.applicationId);
 
     return null;
   },

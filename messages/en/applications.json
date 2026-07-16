@@ -24,6 +24,43 @@
   "grade": "Grade",
   "contact": "Contact",
   "status": "Status",
+  "payment": "Payment",
+  "paymentProgress": "{progress}% paid",
+  "paymentTooltip": {
+    "title": "Payment details",
+    "loading": "Loading payment details...",
+    "noFees": "No fees configured",
+    "dueDate": "Due {date}"
+  },
+  "analytics": {
+    "applications": "Applications",
+    "byProgram": "Applications by program",
+    "collected": "Collected",
+    "paymentStatus": "Payment status",
+    "range": "Trend range",
+    "ranges": {
+      "30d": "30d",
+      "8w": "8w"
+    },
+    "new": "New",
+    "other": "Other",
+    "applicationCount": "{count, plural, one {# application} other {# applications}}",
+    "countAndPercentage": "{count} · {percentage}%",
+    "due": "Due",
+    "remaining": "Outstanding",
+    "total": "Total",
+    "noAmountDue": "No amount due",
+    "trendAriaLabel": "{count} applications in the selected period",
+    "programAriaLabel": "Applications grouped by program",
+    "collectionAriaLabel": "Collection rate: {rate}",
+    "paymentStatusAriaLabel": "Applications by payment status",
+    "statuses": {
+      "paid": "Paid",
+      "partial": "Partial",
+      "unpaid": "Unpaid",
+      "noPaymentRequired": "No payment required"
+    }
+  },
   "statusOptions": {
     "pending": "Pending",
     "reviewing": "Reviewing",

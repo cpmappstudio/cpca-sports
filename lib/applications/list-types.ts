@@ -29,4 +29,11 @@ export interface ApplicationListItem {
     email: string;
     imageUrl?: string;
   };
+  paymentSummary: {
+    totalDue: number;
+    totalPaid: number;
+    totalPending: number;
+    feeCount: number;
+    paidCount: number;
+  };
 }

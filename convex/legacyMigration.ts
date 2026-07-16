@@ -2,6 +2,7 @@ import { mutation, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { applicationStatus } from "./lib/validators";
+import { syncApplicationFeeSummary } from "./lib/feeSummary";
 import {
   LEGACY_IMPORTED_TEMPLATE_DESCRIPTION,
   LEGACY_IMPORTED_TEMPLATE_NAME,
@@ -853,6 +854,9 @@ export const upsertApplicationWithPayments = mutation({
       convexId: application._id,
     });
 
+    const affectedApplicationIds = new Set<Id<"applications">>([
+      application._id,
+    ]);
     let feesCreated = 0;
     let feesUpdated = 0;
     let transactionsCreated = 0;
@@ -881,6 +885,7 @@ export const upsertApplicationWithPayments = mutation({
         : null;
 
       if (fee) {
+        affectedApplicationIds.add(fee.applicationId);
         await ctx.db.patch(fee._id, {
           applicationId: application._id,
           name: payment.name,
@@ -992,6 +997,10 @@ export const upsertApplicationWithPayments = mutation({
         await ctx.db.delete(transactionMapping._id);
         transactionsDeleted += 1;
       }
+    }
+
+    for (const applicationId of affectedApplicationIds) {
+      await syncApplicationFeeSummary(ctx, applicationId);
     }
 
     return {

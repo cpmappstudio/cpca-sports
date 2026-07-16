@@ -18,7 +18,7 @@ const CpcaHeader = ({
 }: CpcaHeaderProps) => {
   return (
     <header className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-4">
         {media ? (
           media
         ) : (
@@ -36,7 +36,11 @@ const CpcaHeader = ({
           <div className="text-sm">{subtitle}</div>
         </div>
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? (
+        <div className="w-full min-w-0 sm:flex sm:flex-1 sm:justify-end">
+          {action}
+        </div>
+      ) : null}
     </header>
   );
 };

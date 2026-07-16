@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { ApplicationPaymentStatusChart } from "./applications-analytics";
 
 interface ApplicationsTableProps {
   applications: ApplicationListItem[];
@@ -62,6 +63,13 @@ export function ApplicationsTable({
   const t = useTranslations("Applications");
   const tTable = useTranslations("Common.table");
   const tActions = useTranslations("Common.actions");
+  const paymentStatusHeader = useMemo(
+    () =>
+      isAdmin ? (
+        <ApplicationPaymentStatusChart applications={applications} />
+      ) : undefined,
+    [applications, isAdmin],
+  );
   const filters = useApplicationFilters(applications);
   const setArchived = useMutation(api.applications.setArchived);
   const [archiveRequest, setArchiveRequest] = useState<ArchiveRequest | null>(
@@ -186,6 +194,7 @@ export function ApplicationsTable({
   };
 
   const adminColumns = useAdminApplicationColumns({
+    paymentStatusHeader,
     renderMobileArchiveAction,
   });
   const clientColumns = useClientApplicationColumns();
