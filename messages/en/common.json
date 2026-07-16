@@ -34,7 +34,9 @@
     "pageInfo": "Page {current} of {total}",
     "clearFilters": "Clear filters",
     "noResults": "No results",
-    "selectedRows": "{selected} of {total} row(s) selected"
+    "selectedRows": "{selected} of {total} row(s) selected",
+    "selectPage": "Select all rows on this page",
+    "selectRow": "Select row"
   },
   "gender": {
     "male": "Male",

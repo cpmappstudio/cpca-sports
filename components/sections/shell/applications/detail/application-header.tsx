@@ -25,6 +25,7 @@ import {
   BookOpen,
   GraduationCap,
   Calendar,
+  ArrowLeft,
   ArrowRightLeft,
   Mail,
   Phone,
@@ -36,11 +37,14 @@ import {
   Trash2,
   MoreVertical,
   MapPin,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useState, useRef } from "react";
@@ -60,7 +64,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { ROUTES } from "@/lib/navigation/routes";
 import {
   ApplicationTransferDialog,
@@ -102,17 +106,20 @@ export function ApplicationHeader({
       ((formData.athlete?.photo as Id<"_storage">) || null),
   );
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const updateStatus = useMutation(api.applications.updateStatus);
   const updatePhoto = useMutation(api.applications.updatePhoto);
+  const setArchived = useMutation(api.applications.setArchived);
   const deleteApplication = useMutation(api.applications.deleteApplication);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const liveAssociatedUser = useQuery(api.users.getById, {
     userId: application.userId,
   });
+  const isArchived = application.isArchived === true;
 
   const firstName =
     applicant?.firstName || getFormField(formData, "athlete", "firstName");
@@ -168,6 +175,9 @@ export function ApplicationHeader({
   };
 
   const statusInfo = statusMap[status];
+  const applicationsListHref = `${ROUTES.org.applications.list(
+    organizationSlug,
+  )}?tab=${isArchived ? "archived" : "active"}`;
 
   const handleStatusChange = async (newStatus: ApplicationStatus) => {
     if (!isAdmin) return;
@@ -262,12 +272,82 @@ export function ApplicationHeader({
     }
   };
 
+  const handleSetArchived = async () => {
+    if (!isAdmin) return;
+
+    setIsUpdating(true);
+    try {
+      await setArchived({
+        applicationId: application._id,
+        isArchived: !isArchived,
+      });
+
+      toast.success(
+        isArchived ? t("archive.restoreSuccess") : t("archive.archiveSuccess"),
+      );
+      setIsArchiveDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to update application archive state:", error);
+      toast.error(t("archive.error"));
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleOpenTransferDialog = () => {
     if (!isAdmin) {
       return;
     }
     setIsTransferDialogOpen(true);
   };
+
+  const renderActionsMenu = (trigger: React.ReactNode) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-56">
+        {currentAssociatedUser && (
+          <>
+            <DropdownMenuItem onSelect={handleOpenTransferDialog}>
+              <ArrowRightLeft className="h-4 w-4" />
+              <span>{t("transfer.action")}</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuItem asChild>
+          <a href={`tel:${telephone}`} className="flex items-center gap-2">
+            <Phone className="h-4 w-4" />
+            <span>{t("call")}</span>
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href={`mailto:${email}`} className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            <span>{t("email")}</span>
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => setIsArchiveDialogOpen(true)}>
+          {isArchived ? (
+            <ArchiveRestore className="h-4 w-4" />
+          ) : (
+            <Archive className="h-4 w-4" />
+          )}
+          <span>
+            {isArchived ? t("archive.restore") : t("archive.archive")}
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          variant="destructive"
+          onSelect={() => setIsDeleteDialogOpen(true)}
+        >
+          <Trash2 className="h-4 w-4" />
+          <span>{t("deleteApplication")}</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   const calculateAge = (birthDate: string) => {
     const today = new Date();
@@ -284,6 +364,17 @@ export function ApplicationHeader({
   };
   return (
     <section className="flex flex-col gap-4">
+      <Button
+        asChild
+        variant="outline"
+        size="sm"
+        className="w-fit bg-background"
+      >
+        <Link href={applicationsListHref}>
+          <ArrowLeft className="h-4 w-4" />
+          <span>{t("backToList")}</span>
+        </Link>
+      </Button>
       <Card className="relative overflow-hidden">
         {organizationLogoUrl && (
           <div
@@ -332,21 +423,15 @@ export function ApplicationHeader({
               </div>
               <div className="flex flex-col gap-2 flex-1 min-w-0">
                 <div className="flex flex-row justify-between items-start gap-2">
-                  <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-                    {firstName} {lastName}
-                  </h1>
-                  {isAdmin && (
-                    <CardAction className="hidden md:block">
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        className="h-9 w-9"
-                        disabled={isUpdating}
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </CardAction>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <h1 className="min-w-0 text-2xl md:text-3xl font-semibold tracking-tight">
+                      {firstName} {lastName}
+                    </h1>
+                  </div>
+                  {isArchived && (
+                    <Badge variant="outline" className="shrink-0">
+                      {t("archive.badge")}
+                    </Badge>
                   )}
                 </div>
                 <div className="flex items-start gap-2 mt-1">
@@ -378,18 +463,6 @@ export function ApplicationHeader({
                           </SelectItem>
                         </SelectContent>
                       </Select>
-                      {currentAssociatedUser && (
-                        <Button
-                          variant="outline"
-                          className="hidden md:flex h-9 max-w-56 justify-start gap-2 px-2"
-                          onClick={handleOpenTransferDialog}
-                        >
-                          <ArrowRightLeft className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          <span className="truncate text-xs font-medium">
-                            Transfer
-                          </span>
-                        </Button>
-                      )}
                     </>
                   ) : (
                     <Badge variant={statusInfo.variant} className="w-fit">
@@ -397,59 +470,32 @@ export function ApplicationHeader({
                     </Badge>
                   )}
                   {isAdmin && (
-                    <>
-                      {/* Vista móvil: Dropdown con todas las acciones */}
-                      <div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="h-9 w-9"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {currentAssociatedUser && (
-                              <DropdownMenuItem
-                                onSelect={handleOpenTransferDialog}
-                                className="md:hidden flex items-center gap-2 max-w-56"
-                              >
-                                <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
-                                <span className="truncate">Transfer</span>
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem asChild>
-                              <a
-                                href={`tel:${telephone}`}
-                                className="flex items-center gap-2"
-                              >
-                                <Phone className="h-4 w-4" />
-                                <span>{t("call")}</span>
-                              </a>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <a
-                                href={`mailto:${email}`}
-                                className="flex items-center gap-2"
-                              >
-                                <Mail className="h-4 w-4" />
-                                <span>{t("email")}</span>
-                              </a>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="flex md:hidden"
-                              variant="destructive"
-                              onClick={() => setIsDeleteDialogOpen(true)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span>{t("delete")}</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </>
+                    <CardAction className="hidden md:block">
+                      {renderActionsMenu(
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-9 w-9"
+                          disabled={isUpdating}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>,
+                      )}
+                    </CardAction>
+                  )}
+                  {isAdmin && (
+                    <div className="md:hidden">
+                      {renderActionsMenu(
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-9 w-9"
+                          disabled={isUpdating}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>,
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -589,6 +635,39 @@ export function ApplicationHeader({
           sourceUser={currentAssociatedUser}
         />
       )}
+
+      <AlertDialog
+        open={isArchiveDialogOpen}
+        onOpenChange={setIsArchiveDialogOpen}
+      >
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              {isArchived ? <ArchiveRestore /> : <Archive />}
+            </AlertDialogMedia>
+            <AlertDialogTitle>
+              {isArchived
+                ? t("archive.restoreTitle")
+                : t("archive.archiveTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isArchived
+                ? t("archive.restoreDescription")
+                : t("archive.archiveDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel variant="outline">
+              {t("archive.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleSetArchived}>
+              {isArchived
+                ? t("archive.restoreConfirm")
+                : t("archive.archiveConfirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Alert Dialog compartido para eliminar */}
       <AlertDialog

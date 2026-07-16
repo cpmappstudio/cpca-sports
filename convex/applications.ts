@@ -34,6 +34,7 @@ const applicationValidator = v.object({
   formTemplateVersion: v.optional(v.number()),
   applicationCode: v.string(),
   status: applicationStatus,
+  isArchived: v.optional(v.boolean()),
   applicant: v.optional(applicantValidator),
   programSnapshot: v.optional(programSnapshotValidator),
   formDefinitionSnapshot: v.optional(v.string()),
@@ -123,6 +124,7 @@ export const submit = mutation({
       programId: program._id,
       applicationCode,
       status: "pending",
+      isArchived: false,
       applicant: args.applicant,
       programSnapshot,
       formDefinitionSnapshot: program.formDefinition,
@@ -164,6 +166,7 @@ export const listMine = query({
     return await ctx.db
       .query("applications")
       .withIndex("byUserId", (q) => q.eq("userId", user._id))
+      .filter((q) => q.neq(q.field("isArchived"), true))
       .order("desc")
       .collect();
   },
@@ -177,6 +180,7 @@ export const listByOrganization = query({
   args: {
     organizationSlug: v.string(),
     status: v.optional(applicationStatus),
+    isArchived: v.optional(v.boolean()),
   },
   returns: v.array(applicationValidator),
   handler: async (ctx, args) => {
@@ -198,12 +202,38 @@ export const listByOrganization = query({
       return [];
     }
 
+    const isArchived = args.isArchived === true;
+
+    if (isArchived && args.status) {
+      return await ctx.db
+        .query("applications")
+        .withIndex("byOrganizationIdAndIsArchivedAndStatus", (q) =>
+          q
+            .eq("organizationId", organization._id)
+            .eq("isArchived", true)
+            .eq("status", args.status!),
+        )
+        .order("desc")
+        .collect();
+    }
+
+    if (isArchived) {
+      return await ctx.db
+        .query("applications")
+        .withIndex("byOrganizationIdAndIsArchived", (q) =>
+          q.eq("organizationId", organization._id).eq("isArchived", true),
+        )
+        .order("desc")
+        .collect();
+    }
+
     if (args.status) {
       return await ctx.db
         .query("applications")
         .withIndex("byOrganizationIdAndStatus", (q) =>
           q.eq("organizationId", organization._id).eq("status", args.status!),
         )
+        .filter((q) => q.neq(q.field("isArchived"), true))
         .order("desc")
         .collect();
     }
@@ -213,6 +243,7 @@ export const listByOrganization = query({
       .withIndex("byOrganizationId", (q) =>
         q.eq("organizationId", organization._id),
       )
+      .filter((q) => q.neq(q.field("isArchived"), true))
       .order("desc")
       .collect();
   },
@@ -247,6 +278,7 @@ export const listMineByOrganizationSummary = query({
       .withIndex("byUserIdAndOrganizationId", (q) =>
         q.eq("userId", user._id).eq("organizationId", organization._id),
       )
+      .filter((q) => q.neq(q.field("isArchived"), true))
       .order("desc")
       .collect();
 
@@ -262,6 +294,7 @@ export const listByOrganizationSummary = query({
   args: {
     organizationSlug: v.string(),
     status: v.optional(applicationStatus),
+    isArchived: v.optional(v.boolean()),
   },
   returns: v.array(applicationListItemValidator),
   handler: async (ctx, args) => {
@@ -280,21 +313,46 @@ export const listByOrganizationSummary = query({
       return [];
     }
 
-    const applications = args.status
-      ? await ctx.db
-          .query("applications")
-          .withIndex("byOrganizationIdAndStatus", (q) =>
-            q.eq("organizationId", organization._id).eq("status", args.status!),
-          )
-          .order("desc")
-          .collect()
-      : await ctx.db
-          .query("applications")
-          .withIndex("byOrganizationId", (q) =>
-            q.eq("organizationId", organization._id),
-          )
-          .order("desc")
-          .collect();
+    const isArchived = args.isArchived === true;
+
+    const applications = isArchived
+      ? args.status
+        ? await ctx.db
+            .query("applications")
+            .withIndex("byOrganizationIdAndIsArchivedAndStatus", (q) =>
+              q
+                .eq("organizationId", organization._id)
+                .eq("isArchived", true)
+                .eq("status", args.status!),
+            )
+            .order("desc")
+            .collect()
+        : await ctx.db
+            .query("applications")
+            .withIndex("byOrganizationIdAndIsArchived", (q) =>
+              q.eq("organizationId", organization._id).eq("isArchived", true),
+            )
+            .order("desc")
+            .collect()
+      : args.status
+        ? await ctx.db
+            .query("applications")
+            .withIndex("byOrganizationIdAndStatus", (q) =>
+              q
+                .eq("organizationId", organization._id)
+                .eq("status", args.status!),
+            )
+            .filter((q) => q.neq(q.field("isArchived"), true))
+            .order("desc")
+            .collect()
+        : await ctx.db
+            .query("applications")
+            .withIndex("byOrganizationId", (q) =>
+              q.eq("organizationId", organization._id),
+            )
+            .filter((q) => q.neq(q.field("isArchived"), true))
+            .order("desc")
+            .collect();
 
     return await buildApplicationListSummary(ctx, applications);
   },
@@ -408,6 +466,45 @@ export const updateStatus = mutation({
       status: args.status,
       reviewedBy: user._id,
       reviewedAt: Date.now(),
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Archive or restore an application (admin only).
+ */
+export const setArchived = mutation({
+  args: {
+    applicationId: v.id("applications"),
+    isArchived: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const application = await ctx.db.get(args.applicationId);
+
+    if (!application) {
+      throw new Error("Application not found");
+    }
+
+    const isAdmin = await hasOrgAdminAccess(
+      ctx,
+      user._id,
+      application.organizationId,
+    );
+
+    if (!isAdmin) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    if (application.isArchived === args.isArchived) {
+      return null;
+    }
+
+    await ctx.db.patch(args.applicationId, {
+      isArchived: args.isArchived,
     });
 
     return null;

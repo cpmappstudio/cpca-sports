@@ -12,11 +12,17 @@ import { getTenantAccess } from "@/lib/auth/tenant-access";
 
 interface PageProps {
   params: Promise<{ tenant: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }
 
-export default async function ApplicationsPage({ params }: PageProps) {
+export default async function ApplicationsPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { tenant } = await params;
+  const { tab } = await searchParams;
   const token = await getAuthToken();
+  const initialTab = tab === "archived" ? "archived" : "active";
   const [{ isAdmin }, t, preloadedOrganization] = await Promise.all([
     getTenantAccess(tenant, token),
     getTranslations("Applications.page"),
@@ -25,11 +31,19 @@ export default async function ApplicationsPage({ params }: PageProps) {
   const organization = preloadedQueryResult(preloadedOrganization);
 
   if (isAdmin) {
-    const preloadedApplications = await preloadQuery(
-      api.applications.listByOrganizationSummary,
-      { organizationSlug: tenant },
-      { token },
-    );
+    const [preloadedApplications, preloadedArchivedApplications] =
+      await Promise.all([
+        preloadQuery(
+          api.applications.listByOrganizationSummary,
+          { organizationSlug: tenant },
+          { token },
+        ),
+        preloadQuery(
+          api.applications.listByOrganizationSummary,
+          { organizationSlug: tenant, isArchived: true },
+          { token },
+        ),
+      ]);
 
     return (
       <>
@@ -40,7 +54,9 @@ export default async function ApplicationsPage({ params }: PageProps) {
         />
         <ApplicationsTableAdminWrapper
           preloadedApplications={preloadedApplications}
+          preloadedArchivedApplications={preloadedArchivedApplications}
           organizationSlug={tenant}
+          initialTab={initialTab}
         />
       </>
     );

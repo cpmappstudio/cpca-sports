@@ -34,7 +34,9 @@
     "pageInfo": "Página {current} de {total}",
     "clearFilters": "Limpiar filtros",
     "noResults": "Sin resultados",
-    "selectedRows": "{selected} de {total} fila(s) seleccionada(s)"
+    "selectedRows": "{selected} de {total} fila(s) seleccionada(s)",
+    "selectPage": "Seleccionar todas las filas de esta página",
+    "selectRow": "Seleccionar fila"
   },
   "gender": {
     "male": "Masculino",

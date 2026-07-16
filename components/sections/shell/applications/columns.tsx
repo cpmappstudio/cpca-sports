@@ -1,13 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import Image from "next/image";
-import { Mail, Phone } from "lucide-react";
+import { ChevronDown, Mail, Phone } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ApplicationPhoto } from "./detail/pre-admission/application-photo";
 import { formatApplicationDate } from "./date-format";
 import { createSortableHeader } from "@/components/table/column-helpers";
@@ -80,9 +87,13 @@ function ApplicantPhotoThumb({
 function ApplicantCell({
   row,
   t,
+  tDetail,
+  mobileArchiveAction,
 }: {
   row: ApplicationListItem;
   t: ReturnType<typeof useTranslations<"Applications">>;
+  tDetail: ReturnType<typeof useTranslations<"Applications.detail">>;
+  mobileArchiveAction?: ReactNode;
 }) {
   const firstName = row.applicant.firstName;
   const lastName = row.applicant.lastName;
@@ -108,18 +119,56 @@ function ApplicantCell({
           <div className="wrap-break-word font-medium whitespace-normal">
             {firstName} {lastName}
           </div>
-          <div className="flex items-center gap-1 md:hidden">
-            <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
-              <a href={`tel:${telephone}`}>
-                <Phone className="h-2 w-2" />
-              </a>
-            </Button>
-            <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
-              <a href={`mailto:${email}`}>
-                <Mail className="h-2 w-2" />
-              </a>
-            </Button>
-          </div>
+          {mobileArchiveAction ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  className="md:hidden"
+                  aria-label={t("archiveActions.moreActions")}
+                >
+                  <span>{t("archiveActions.actions")}</span>
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-44">
+                <DropdownMenuItem asChild>
+                  <a
+                    href={`tel:${telephone}`}
+                    className="flex items-center gap-2"
+                  >
+                    <Phone className="h-4 w-4" />
+                    <span>{tDetail("call")}</span>
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a
+                    href={`mailto:${email}`}
+                    className="flex items-center gap-2"
+                  >
+                    <Mail className="h-4 w-4" />
+                    <span>{tDetail("email")}</span>
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {mobileArchiveAction}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex items-center gap-1 md:hidden">
+              <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                <a href={`tel:${telephone}`}>
+                  <Phone className="h-2 w-2" />
+                </a>
+              </Button>
+              <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
+                <a href={`mailto:${email}`}>
+                  <Mail className="h-2 w-2" />
+                </a>
+              </Button>
+            </div>
+          )}
         </div>
         <div className="mt-1 inline-flex flex-col gap-1 text-xs text-muted-foreground lg:hidden">
           <div className="flex gap-1">
@@ -178,9 +227,14 @@ function ContactCell({ row }: { row: ApplicationListItem }) {
   );
 }
 
-function useApplicationColumnsBase() {
+function useApplicationColumnsBase({
+  renderMobileArchiveAction,
+}: {
+  renderMobileArchiveAction?: (row: ApplicationListItem) => ReactNode;
+} = {}) {
   const locale = useLocale();
   const t = useTranslations("Applications");
+  const tDetail = useTranslations("Applications.detail");
   const statusMap = useStatusMap();
 
   return useMemo<ColumnDef<ApplicationListItem>[]>(() => {
@@ -210,7 +264,14 @@ function useApplicationColumnsBase() {
         header: createSortableHeader(fullNameHeader),
         accessorFn: (row) =>
           `${row.applicant.firstName} ${row.applicant.lastName}`.trim(),
-        cell: ({ row }) => <ApplicantCell row={row.original} t={t} />,
+        cell: ({ row }) => (
+          <ApplicantCell
+            row={row.original}
+            t={t}
+            tDetail={tDetail}
+            mobileArchiveAction={renderMobileArchiveAction?.(row.original)}
+          />
+        ),
       },
       {
         id: "program",
@@ -274,11 +335,15 @@ function useApplicationColumnsBase() {
         },
       },
     ];
-  }, [locale, statusMap, t]);
+  }, [locale, renderMobileArchiveAction, statusMap, t, tDetail]);
 }
 
-export function useAdminApplicationColumns() {
-  return useApplicationColumnsBase();
+export function useAdminApplicationColumns({
+  renderMobileArchiveAction,
+}: {
+  renderMobileArchiveAction?: (row: ApplicationListItem) => ReactNode;
+} = {}) {
+  return useApplicationColumnsBase({ renderMobileArchiveAction });
 }
 
 export function useClientApplicationColumns() {

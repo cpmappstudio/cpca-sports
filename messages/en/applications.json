@@ -1,6 +1,6 @@
 {
   "page": {
-    "titleAdmin": "All Applications",
+    "titleAdmin": "Applications",
     "titleClient": "My Applications",
     "descriptionAdmin": "Manage enrollment applications for the organization",
     "descriptionClient": "Review the status of your enrollment applications"
@@ -8,6 +8,7 @@
   "searchPlaceholder": "Search by name...",
   "emptyMessageAdmin": "No applications registered",
   "emptyMessageClient": "You haven't submitted any applications yet",
+  "emptyMessageArchived": "No archived applications",
   "athlete": "Athlete",
   "fullName": "Full Name",
   "country": "Country",
@@ -43,7 +44,8 @@
     "pgBasketball": "PG Basketball"
   },
   "table": {
-    "totalCountAdmin": "All applications: {count}",
+    "totalCountAdmin": "Current applications: {count}",
+    "totalCountArchivedAdmin": "Archived applications: {count}",
     "totalCountClient": "My applications: {count}",
     "filteredCount": "Showing {count} of {total}",
     "exportHeaders": {
@@ -55,10 +57,34 @@
     }
   },
   "tabs": {
+    "active": "Current",
+    "archived": "Archived",
     "application": "Application",
     "payments": "Payments",
     "documents": "Documents",
     "transactions": "Transaction History"
+  },
+  "archiveActions": {
+    "actions": "Actions",
+    "moreActions": "More application actions",
+    "archiveOne": "Archive application",
+    "restoreOne": "Unarchive application",
+    "archiveSelected": "Archive selected",
+    "restoreSelected": "Unarchive selected",
+    "selectedRows": "{selected} of {total} selected",
+    "archiveOneTitle": "Archive application?",
+    "archiveManyTitle": "Archive {count} applications?",
+    "archiveOneDescription": "This application will move out of the current list and remain accessible from archived applications.",
+    "archiveManyDescription": "The selected applications will move out of the current list and remain accessible from archived applications.",
+    "archiveConfirm": "Archive",
+    "archiveSuccess": "{count, plural, one {Application archived successfully.} other {Applications archived successfully.}}",
+    "restoreOneTitle": "Unarchive application?",
+    "restoreManyTitle": "Unarchive {count} applications?",
+    "restoreOneDescription": "This application will return to the current applications list.",
+    "restoreManyDescription": "The selected applications will return to the current applications list.",
+    "restoreConfirm": "Unarchive",
+    "restoreSuccess": "{count, plural, one {Application unarchived successfully.} other {Applications unarchived successfully.}}",
+    "error": "Failed to update application archive state. Please try again."
   },
   "sections": {
     "athlete": "Athlete",
@@ -75,6 +101,22 @@
     "backToList": "Back to list",
     "call": "Call",
     "delete": "Delete",
+    "deleteApplication": "Delete application",
+    "archive": {
+      "archive": "Archive application",
+      "restore": "Unarchive application",
+      "badge": "Archived",
+      "archiveTitle": "Archive application?",
+      "archiveDescription": "This application will move out of the active list and remain accessible from archived applications.",
+      "archiveConfirm": "Archive",
+      "archiveSuccess": "Application archived successfully.",
+      "restoreTitle": "Unarchive application?",
+      "restoreDescription": "This application will return to the active applications list.",
+      "restoreConfirm": "Unarchive",
+      "restoreSuccess": "Application unarchived successfully.",
+      "cancel": "Cancel",
+      "error": "Failed to update application archive state. Please try again."
+    },
     "transfer": {
       "title": "Transfer Application",
       "description": "Move this application to another existing member account.",
