@@ -35,6 +35,7 @@ export interface Application {
   formTemplateVersion?: number;
   applicationCode: string;
   status: ApplicationStatus;
+  isArchived?: boolean;
   applicant?: ApplicationApplicant;
   programSnapshot?: ApplicationProgramSnapshot;
   formDefinitionSnapshot?: string;

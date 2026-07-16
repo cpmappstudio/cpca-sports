@@ -33,9 +33,14 @@ export interface DataTableProps<TData> {
   ) => string;
   initialSorting?: SortingState;
   pageSize?: number;
+  enableRowSelection?: boolean;
   onCreate?: () => void;
   onExport?: (rows: TData[]) => void;
   onRowClick?: (row: TData) => void;
+  renderBulkActions?: (
+    selectedRows: TData[],
+    clearSelection: () => void,
+  ) => ReactNode;
   renderRowContextMenu?: (row: TData) => ReactNode;
 }
 

@@ -230,6 +230,7 @@ export default defineSchema({
     formTemplateVersion: v.optional(v.number()),
     applicationCode: v.string(),
     status: status,
+    isArchived: v.optional(v.boolean()),
     applicant: v.optional(
       v.object({
         photoStorageId: v.optional(v.id("_storage")),
@@ -275,6 +276,12 @@ export default defineSchema({
     .index("byUserIdAndOrganizationId", ["userId", "organizationId"])
     .index("byOrganizationId", ["organizationId"])
     .index("byProgram", ["programId"])
+    .index("byOrganizationIdAndIsArchived", ["organizationId", "isArchived"])
+    .index("byOrganizationIdAndIsArchivedAndStatus", [
+      "organizationId",
+      "isArchived",
+      "status",
+    ])
     .index("byOrganizationIdAndStatus", ["organizationId", "status"])
     .index("byStatus", ["status"])
     .index("byApplicationCode", ["applicationCode"]),

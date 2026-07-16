@@ -9,6 +9,7 @@ import {
   legacyPreadmissionSerializedFormDefinition,
   legacyPreadmissionTemplateSections,
 } from "../lib/forms/legacy-preadmission-template";
+import { getLegacyPhotoStorageId } from "./lib/applicationSnapshots";
 
 const orgMemberRole = v.union(
   v.literal("superadmin"),
@@ -59,6 +60,16 @@ function assertMigrationSecret(secret: string) {
     throw new Error("Invalid migration secret");
   }
 }
+
+function normalizeProgramKey(value: string) {
+  return value.trim().toLowerCase();
+}
+
+const specialApplicationProgramMappings: Record<string, string> = {
+  "pg-basketball": "Basketball",
+  hr14_baseball: "Baseball",
+  "volleyball-club": "Volleyball",
+};
 
 function clampMoney(value: number): number {
   return Math.max(0, Math.round(value));
@@ -1588,6 +1599,424 @@ export const cleanupOrphanedStorage = mutation({
       deletedStorageFiles,
       hasMore: orphanedStorageIds.length > idsToDelete.length,
       sampleOrphanStorageIds: orphanedStorageIds.slice(0, 20),
+    };
+  },
+});
+
+export const auditApplicationPhotos = mutation({
+  args: {
+    secret: v.string(),
+  },
+  returns: v.object({
+    totalApplications: v.number(),
+    totalPhotos: v.number(),
+    rows: v.array(
+      v.object({
+        applicationId: v.id("applications"),
+        applicationCode: v.string(),
+        name: v.string(),
+        source: v.union(
+          v.literal("applicant.photoStorageId"),
+          v.literal("formData.athlete.photo"),
+        ),
+        storageId: v.id("_storage"),
+        metadataContentType: v.union(v.string(), v.null()),
+        metadataSize: v.union(v.number(), v.null()),
+        url: v.union(v.string(), v.null()),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    assertMigrationSecret(args.secret);
+
+    const [applications, storageFiles] = await Promise.all([
+      ctx.db.query("applications").collect(),
+      ctx.db.system.query("_storage").collect(),
+    ]);
+    const storageFileMap = new Map(
+      storageFiles.map((storageFile) => [storageFile._id, storageFile]),
+    );
+    const rows = [];
+
+    for (const application of applications) {
+      const applicantPhotoStorageId = application.applicant?.photoStorageId;
+      const legacyPhotoStorageId = getLegacyPhotoStorageId(
+        application.formData,
+      );
+      const storageId = applicantPhotoStorageId ?? legacyPhotoStorageId;
+
+      if (!storageId) {
+        continue;
+      }
+
+      const storageFile = storageFileMap.get(storageId);
+      const athlete = application.formData.athlete ?? {};
+      const firstName =
+        application.applicant?.firstName ??
+        (typeof athlete.firstName === "string" ? athlete.firstName : "");
+      const lastName =
+        application.applicant?.lastName ??
+        (typeof athlete.lastName === "string" ? athlete.lastName : "");
+
+      rows.push({
+        applicationId: application._id,
+        applicationCode: application.applicationCode,
+        name: `${firstName} ${lastName}`.trim(),
+        source: applicantPhotoStorageId
+          ? ("applicant.photoStorageId" as const)
+          : ("formData.athlete.photo" as const),
+        storageId,
+        metadataContentType: storageFile?.contentType ?? null,
+        metadataSize: storageFile?.size ?? null,
+        url: await ctx.storage.getUrl(storageId),
+      });
+    }
+
+    return {
+      totalApplications: applications.length,
+      totalPhotos: rows.length,
+      rows,
+    };
+  },
+});
+
+export const replaceApplicationPhotoStorage = mutation({
+  args: {
+    secret: v.string(),
+    applicationId: v.id("applications"),
+    oldStorageId: v.id("_storage"),
+    newStorageId: v.id("_storage"),
+  },
+  returns: v.object({
+    applicationId: v.id("applications"),
+    applicantUpdated: v.boolean(),
+    formDataUpdated: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    assertMigrationSecret(args.secret);
+
+    const application = await ctx.db.get(args.applicationId);
+    if (!application) {
+      throw new Error("Application not found");
+    }
+
+    const applicantHasOldPhoto =
+      application.applicant?.photoStorageId === args.oldStorageId;
+    const legacyHasOldPhoto =
+      getLegacyPhotoStorageId(application.formData) === args.oldStorageId;
+
+    if (!applicantHasOldPhoto && !legacyHasOldPhoto) {
+      throw new Error("Current application photo does not match oldStorageId");
+    }
+
+    await ctx.db.patch(application._id, {
+      ...(applicantHasOldPhoto && application.applicant
+        ? {
+            applicant: {
+              ...application.applicant,
+              photoStorageId: args.newStorageId,
+            },
+          }
+        : {}),
+      ...(legacyHasOldPhoto
+        ? {
+            formData: {
+              ...application.formData,
+              athlete: {
+                ...(application.formData.athlete ?? {}),
+                photo: args.newStorageId,
+              },
+            },
+          }
+        : {}),
+    });
+
+    return {
+      applicationId: application._id,
+      applicantUpdated: applicantHasOldPhoto,
+      formDataUpdated: legacyHasOldPhoto,
+    };
+  },
+});
+
+export const backfillApplicationPrograms = mutation({
+  args: {
+    secret: v.string(),
+    dryRun: v.optional(v.boolean()),
+    limit: v.optional(v.number()),
+  },
+  returns: v.object({
+    dryRun: v.boolean(),
+    totalApplications: v.number(),
+    attemptedUpdates: v.number(),
+    updatedApplications: v.number(),
+    byStatus: v.record(v.string(), v.number()),
+    rows: v.array(
+      v.object({
+        applicationId: v.id("applications"),
+        applicationCode: v.string(),
+        currentName: v.string(),
+        targetName: v.optional(v.string()),
+        targetProgramId: v.optional(v.id("programs")),
+        status: v.string(),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    assertMigrationSecret(args.secret);
+
+    const dryRun = args.dryRun ?? true;
+    const limit = Math.min(500, Math.max(1, Math.trunc(args.limit ?? 50)));
+    const [applications, programs] = await Promise.all([
+      ctx.db.query("applications").collect(),
+      ctx.db.query("programs").collect(),
+    ]);
+    const programById = new Map(
+      programs.map((program) => [program._id, program]),
+    );
+    const programsByOrgAndKey = new Map<
+      string,
+      Array<(typeof programs)[number]>
+    >();
+
+    for (const program of programs) {
+      if (program.isDraft || program.isActive === false) {
+        continue;
+      }
+      const key = `${program.organizationId}:${normalizeProgramKey(program.name)}`;
+      programsByOrgAndKey.set(key, [
+        ...(programsByOrgAndKey.get(key) ?? []),
+        program,
+      ]);
+    }
+
+    const rows = [];
+    const byStatus: Record<string, number> = {};
+    let attemptedUpdates = 0;
+    let updatedApplications = 0;
+
+    for (const application of applications) {
+      const currentName = (
+        application.programSnapshot?.name ??
+        (typeof application.formData.athlete?.program === "string"
+          ? application.formData.athlete.program
+          : "")
+      ).trim();
+      let status = "skipped-already-canonical";
+      let targetProgram = application.programId
+        ? programById.get(application.programId)
+        : undefined;
+
+      if (!currentName) {
+        status = "skipped-missing-program";
+      }
+
+      if (status === "skipped-already-canonical" && !targetProgram) {
+        const key = `${application.organizationId}:${normalizeProgramKey(currentName)}`;
+        const matches = programsByOrgAndKey.get(key) ?? [];
+        if (matches.length === 1) {
+          targetProgram = matches[0];
+        } else {
+          status =
+            matches.length > 1
+              ? "skipped-ambiguous-program"
+              : "skipped-no-canonical-program";
+        }
+      }
+
+      const nextSnapshot = targetProgram
+        ? {
+            name: targetProgram.name,
+            ...(targetProgram.iconKey
+              ? { iconKey: targetProgram.iconKey }
+              : {}),
+          }
+        : undefined;
+      const needsUpdate = Boolean(
+        targetProgram &&
+        nextSnapshot &&
+        (application.programId !== targetProgram._id ||
+          application.programSnapshot?.name !== nextSnapshot.name ||
+          application.programSnapshot?.iconKey !== nextSnapshot.iconKey),
+      );
+
+      if (needsUpdate && targetProgram && nextSnapshot) {
+        status = dryRun ? "would-update" : "updated";
+        attemptedUpdates += 1;
+
+        if (!dryRun) {
+          await ctx.db.patch(application._id, {
+            programId: targetProgram._id,
+            programSnapshot: nextSnapshot,
+          });
+          updatedApplications += 1;
+        }
+      }
+
+      byStatus[status] = (byStatus[status] ?? 0) + 1;
+      rows.push({
+        applicationId: application._id,
+        applicationCode: application.applicationCode,
+        currentName,
+        ...(targetProgram
+          ? {
+              targetName: targetProgram.name,
+              targetProgramId: targetProgram._id,
+            }
+          : {}),
+        status,
+      });
+
+      if (attemptedUpdates >= limit) {
+        break;
+      }
+    }
+
+    return {
+      dryRun,
+      totalApplications: applications.length,
+      attemptedUpdates,
+      updatedApplications,
+      byStatus,
+      rows,
+    };
+  },
+});
+
+export const backfillSpecialApplicationPrograms = mutation({
+  args: {
+    secret: v.string(),
+    dryRun: v.optional(v.boolean()),
+    limit: v.optional(v.number()),
+  },
+  returns: v.object({
+    dryRun: v.boolean(),
+    totalApplications: v.number(),
+    attemptedUpdates: v.number(),
+    updatedApplications: v.number(),
+    byStatus: v.record(v.string(), v.number()),
+    rows: v.array(
+      v.object({
+        applicationId: v.id("applications"),
+        applicationCode: v.string(),
+        currentName: v.string(),
+        targetName: v.optional(v.string()),
+        targetProgramId: v.optional(v.id("programs")),
+        status: v.string(),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    assertMigrationSecret(args.secret);
+
+    const dryRun = args.dryRun ?? true;
+    const limit = Math.min(500, Math.max(1, Math.trunc(args.limit ?? 50)));
+    const [applications, programs] = await Promise.all([
+      ctx.db.query("applications").collect(),
+      ctx.db.query("programs").collect(),
+    ]);
+    const programsByOrgAndKey = new Map<
+      string,
+      Array<(typeof programs)[number]>
+    >();
+
+    for (const program of programs) {
+      if (program.isDraft || program.isActive === false) {
+        continue;
+      }
+      const key = `${program.organizationId}:${normalizeProgramKey(program.name)}`;
+      programsByOrgAndKey.set(key, [
+        ...(programsByOrgAndKey.get(key) ?? []),
+        program,
+      ]);
+    }
+
+    const rows = [];
+    const byStatus: Record<string, number> = {};
+    let attemptedUpdates = 0;
+    let updatedApplications = 0;
+
+    for (const application of applications) {
+      const currentName = (
+        application.programSnapshot?.name ??
+        (typeof application.formData.athlete?.program === "string"
+          ? application.formData.athlete.program
+          : "")
+      ).trim();
+      const targetProgramName =
+        specialApplicationProgramMappings[normalizeProgramKey(currentName)];
+      let status = targetProgramName
+        ? "skipped-already-canonical"
+        : "skipped-not-special-program";
+      let targetProgram: (typeof programs)[number] | undefined;
+
+      if (targetProgramName) {
+        const key = `${application.organizationId}:${normalizeProgramKey(targetProgramName)}`;
+        const matches = programsByOrgAndKey.get(key) ?? [];
+
+        if (matches.length === 1) {
+          targetProgram = matches[0];
+        } else {
+          status =
+            matches.length > 1
+              ? "skipped-ambiguous-target-program"
+              : "skipped-missing-target-program";
+        }
+      }
+
+      const nextSnapshot = targetProgram
+        ? {
+            name: targetProgram.name,
+            ...(targetProgram.iconKey
+              ? { iconKey: targetProgram.iconKey }
+              : {}),
+          }
+        : undefined;
+      const needsUpdate = Boolean(
+        targetProgram &&
+        nextSnapshot &&
+        (application.programId !== targetProgram._id ||
+          application.programSnapshot?.name !== nextSnapshot.name ||
+          application.programSnapshot?.iconKey !== nextSnapshot.iconKey),
+      );
+
+      if (needsUpdate && targetProgram && nextSnapshot) {
+        status = dryRun ? "would-update" : "updated";
+        attemptedUpdates += 1;
+
+        if (!dryRun) {
+          await ctx.db.patch(application._id, {
+            programId: targetProgram._id,
+            programSnapshot: nextSnapshot,
+          });
+          updatedApplications += 1;
+        }
+      }
+
+      if (targetProgramName || status !== "skipped-not-special-program") {
+        byStatus[status] = (byStatus[status] ?? 0) + 1;
+        rows.push({
+          applicationId: application._id,
+          applicationCode: application.applicationCode,
+          currentName,
+          ...(targetProgramName ? { targetName: targetProgramName } : {}),
+          ...(targetProgram ? { targetProgramId: targetProgram._id } : {}),
+          status,
+        });
+      }
+
+      if (attemptedUpdates >= limit) {
+        break;
+      }
+    }
+
+    return {
+      dryRun,
+      totalApplications: applications.length,
+      attemptedUpdates,
+      updatedApplications,
+      byStatus,
+      rows,
     };
   },
 });

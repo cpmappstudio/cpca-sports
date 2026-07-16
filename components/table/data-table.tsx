@@ -22,6 +22,7 @@ import {
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableFilters } from "@/components/table/data-table-filters";
 import {
   DropdownMenu,
@@ -62,12 +63,15 @@ export function DataTable<TData>({
   exportButtonLabel,
   filterConfigs,
   filtersMenuLabel,
+  selectedRowsLabel,
   resultsCountLabel,
   initialSorting,
   pageSize,
+  enableRowSelection,
   onCreate,
   onExport,
   onRowClick,
+  renderBulkActions,
   renderRowContextMenu,
 }: DataTableProps<TData>) {
   const resolvedPageSize = pageSize ?? DEFAULT_PAGE_SIZE;
@@ -94,6 +98,7 @@ export function DataTable<TData>({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    enableRowSelection: enableRowSelection ?? false,
     initialState: {
       pagination: {
         pageSize: resolvedPageSize,
@@ -115,6 +120,10 @@ export function DataTable<TData>({
     : undefined;
   const filteredRowsCount = table.getFilteredRowModel().rows.length;
   const totalRowsCount = table.getCoreRowModel().rows.length;
+  const selectedRows = table
+    .getFilteredSelectedRowModel()
+    .rows.map((row) => row.original as TData);
+  const selectedRowsCount = selectedRows.length;
   const hasFilteredRows = filteredRowsCount !== totalRowsCount;
   const resolvedResultsCountLabel = resultsCountLabel?.(
     filteredRowsCount,
@@ -163,6 +172,10 @@ export function DataTable<TData>({
       .rows.map((row) => row.original as TData);
     onExport(rows);
   }, [onExport, table]);
+
+  const clearRowSelection = React.useCallback(() => {
+    setRowSelection({});
+  }, []);
 
   return (
     <div className="w-full">
@@ -233,13 +246,28 @@ export function DataTable<TData>({
         </div>
       </div>
 
-      {resolvedResultsCountLabel && (
+      {selectedRowsCount > 0 && renderBulkActions ? (
+        <div className="pb-2 text-sm font-medium">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2">
+            <span className="text-muted-foreground">
+              {selectedRowsLabel?.(selectedRowsCount, filteredRowsCount) ??
+                t("table.selectedRows", {
+                  selected: selectedRowsCount,
+                  total: filteredRowsCount,
+                })}
+            </span>
+            <div className="flex items-center gap-2">
+              {renderBulkActions(selectedRows, clearRowSelection)}
+            </div>
+          </div>
+        </div>
+      ) : resolvedResultsCountLabel ? (
         <div className="pb-2 text-muted-foreground text-sm font-medium">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {renderResultsCount(false)}
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className="overflow-hidden rounded-md border">
         <Table className="bg-card">
@@ -249,6 +277,20 @@ export function DataTable<TData>({
                 key={headerGroup.id}
                 className="hover:bg-transparent data-[state=selected]:bg-transparent"
               >
+                {enableRowSelection && (
+                  <TableHead className="w-10 text-muted">
+                    <Checkbox
+                      checked={
+                        table.getIsAllPageRowsSelected() ||
+                        (table.getIsSomePageRowsSelected() && "indeterminate")
+                      }
+                      onCheckedChange={(value) =>
+                        table.toggleAllPageRowsSelected(!!value)
+                      }
+                      aria-label={t("table.selectPage")}
+                    />
+                  </TableHead>
+                )}
                 {headerGroup.headers.map((header) => {
                   const meta = header.column.columnDef.meta as
                     | { className?: string; headerClassName?: string }
@@ -292,6 +334,17 @@ export function DataTable<TData>({
                         : undefined
                     }
                   >
+                    {enableRowSelection && (
+                      <TableCell className="w-10">
+                        <Checkbox
+                          checked={row.getIsSelected()}
+                          onCheckedChange={(value) =>
+                            row.toggleSelected(!!value)
+                          }
+                          aria-label={t("table.selectRow")}
+                        />
+                      </TableCell>
+                    )}
                     {row.getVisibleCells().map((cell) => {
                       const meta = cell.column.columnDef.meta as
                         { className?: string } | undefined;
@@ -331,7 +384,7 @@ export function DataTable<TData>({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={columns.length + (enableRowSelection ? 1 : 0)}
                   className="h-24 text-center"
                 >
                   {emptyMessage}

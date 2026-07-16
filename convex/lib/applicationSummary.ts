@@ -44,6 +44,7 @@ export const applicationListItemValidator = v.object({
   programIconKey: v.optional(v.string()),
   applicationCode: v.string(),
   status: applicationStatus,
+  isArchived: v.boolean(),
   enrollmentYear: v.optional(v.string()),
   sex: v.optional(
     v.union(v.literal("male"), v.literal("female"), v.literal("other")),
@@ -62,6 +63,7 @@ type ApplicationSummarySource = {
   programId?: Id<"programs">;
   applicationCode: string;
   status: ApplicationStatus;
+  isArchived?: boolean;
   applicant?: ApplicationApplicant;
   programSnapshot?: ApplicationProgramSnapshot;
   formData: ApplicationFormData;
@@ -123,6 +125,7 @@ function mapToApplicationListItem(
       : {}),
     applicationCode: application.applicationCode,
     status: application.status,
+    isArchived: application.isArchived === true,
     ...(enrollmentYear ? { enrollmentYear } : {}),
     ...(sex ? { sex } : {}),
     applicant: {

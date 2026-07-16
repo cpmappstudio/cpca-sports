@@ -1,6 +1,6 @@
 {
   "page": {
-    "titleAdmin": "Todas las Solicitudes",
+    "titleAdmin": "Solicitudes",
     "titleClient": "Mis Solicitudes",
     "descriptionAdmin": "Gestiona las solicitudes de inscripción de la organización",
     "descriptionClient": "Revisa el estado de tus solicitudes de inscripción"
@@ -8,6 +8,7 @@
   "searchPlaceholder": "Buscar por nombre...",
   "emptyMessageAdmin": "No hay solicitudes registradas",
   "emptyMessageClient": "No has realizado solicitudes aún",
+  "emptyMessageArchived": "No hay solicitudes archivadas",
   "athlete": "Atleta",
   "fullName": "Nombre Completo",
   "country": "País",
@@ -80,7 +81,8 @@
     "pgBasketball": "PG Basketball"
   },
   "table": {
-    "totalCountAdmin": "Todas las solicitudes: {count}",
+    "totalCountAdmin": "Solicitudes actuales: {count}",
+    "totalCountArchivedAdmin": "Solicitudes archivadas: {count}",
     "totalCountClient": "Mis solicitudes: {count}",
     "filteredCount": "Mostrando {count} de {total}",
     "exportHeaders": {
@@ -92,10 +94,34 @@
     }
   },
   "tabs": {
+    "active": "Actuales",
+    "archived": "Archivadas",
     "application": "Aplicación",
     "payments": "Pagos",
     "documents": "Documentos",
     "transactions": "Historial de Transacciones"
+  },
+  "archiveActions": {
+    "actions": "Acciones",
+    "moreActions": "Más acciones de la solicitud",
+    "archiveOne": "Archivar solicitud",
+    "restoreOne": "Desarchivar solicitud",
+    "archiveSelected": "Archivar seleccionadas",
+    "restoreSelected": "Desarchivar seleccionadas",
+    "selectedRows": "{selected} de {total} seleccionadas",
+    "archiveOneTitle": "¿Archivar solicitud?",
+    "archiveManyTitle": "¿Archivar {count} solicitudes?",
+    "archiveOneDescription": "Esta solicitud saldrá de la lista actual y seguirá accesible desde las solicitudes archivadas.",
+    "archiveManyDescription": "Las solicitudes seleccionadas saldrán de la lista actual y seguirán accesibles desde las solicitudes archivadas.",
+    "archiveConfirm": "Archivar",
+    "archiveSuccess": "{count, plural, one {Solicitud archivada correctamente.} other {Solicitudes archivadas correctamente.}}",
+    "restoreOneTitle": "¿Desarchivar solicitud?",
+    "restoreManyTitle": "¿Desarchivar {count} solicitudes?",
+    "restoreOneDescription": "Esta solicitud volverá a la lista de solicitudes actuales.",
+    "restoreManyDescription": "Las solicitudes seleccionadas volverán a la lista de solicitudes actuales.",
+    "restoreConfirm": "Desarchivar",
+    "restoreSuccess": "{count, plural, one {Solicitud desarchivada correctamente.} other {Solicitudes desarchivadas correctamente.}}",
+    "error": "No se pudo actualizar el estado de archivo de la solicitud. Intenta de nuevo."
   },
   "sections": {
     "athlete": "Atleta",
@@ -112,6 +138,22 @@
     "backToList": "Volver a la lista",
     "call": "Llamar",
     "delete": "Eliminar",
+    "deleteApplication": "Eliminar solicitud",
+    "archive": {
+      "archive": "Archivar solicitud",
+      "restore": "Desarchivar solicitud",
+      "badge": "Archivada",
+      "archiveTitle": "¿Archivar solicitud?",
+      "archiveDescription": "Esta solicitud saldrá de la lista activa y seguirá accesible desde las solicitudes archivadas.",
+      "archiveConfirm": "Archivar",
+      "archiveSuccess": "Solicitud archivada correctamente.",
+      "restoreTitle": "¿Desarchivar solicitud?",
+      "restoreDescription": "Esta solicitud volverá a la lista de solicitudes activas.",
+      "restoreConfirm": "Desarchivar",
+      "restoreSuccess": "Solicitud desarchivada correctamente.",
+      "cancel": "Cancelar",
+      "error": "No se pudo actualizar el estado de archivo de la solicitud. Intenta de nuevo."
+    },
     "transfer": {
       "title": "Transferir solicitud",
       "description": "Mueve esta solicitud a otro perfil existente de miembro.",
