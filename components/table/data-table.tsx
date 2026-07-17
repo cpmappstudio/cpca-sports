@@ -70,6 +70,7 @@ export function DataTable<TData>({
   enableRowSelection,
   onCreate,
   onExport,
+  onFilteredDataChange,
   onRowClick,
   renderBulkActions,
   renderRowContextMenu,
@@ -118,12 +119,17 @@ export function DataTable<TData>({
   const filterColumnInstance = filterColumn
     ? table.getColumn(filterColumn)
     : undefined;
-  const filteredRowsCount = table.getFilteredRowModel().rows.length;
+  const filteredRows = table.getFilteredRowModel().rows;
+  const filteredRowsCount = filteredRows.length;
   const totalRowsCount = table.getCoreRowModel().rows.length;
   const selectedRows = table
     .getFilteredSelectedRowModel()
     .rows.map((row) => row.original as TData);
   const selectedRowsCount = selectedRows.length;
+
+  React.useEffect(() => {
+    onFilteredDataChange?.(filteredRows.map((row) => row.original));
+  }, [filteredRows, onFilteredDataChange]);
   const hasFilteredRows = filteredRowsCount !== totalRowsCount;
   const resolvedResultsCountLabel = resultsCountLabel?.(
     filteredRowsCount,

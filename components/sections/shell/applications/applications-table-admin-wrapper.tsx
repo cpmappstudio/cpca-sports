@@ -1,14 +1,15 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { Authenticated, Preloaded, usePreloadedQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import CpcaHeader from "@/components/common/cpca-header";
-import { ApplicationsTable } from "./applications-table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Archive, Inbox } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { api } from "@/convex/_generated/api";
+import CpcaHeader from "@/components/common/cpca-header";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApplicationsAnalytics } from "./applications-analytics";
+import { ApplicationsTable } from "./applications-table";
 
 interface ApplicationsTableAdminWrapperProps {
   preloadedApplications: Preloaded<
@@ -25,6 +26,8 @@ interface ApplicationsTableAdminWrapperProps {
   analyticsNow: number;
 }
 
+type ApplicationsTab = "active" | "archived";
+
 function ApplicationsTableContent({
   preloadedApplications,
   preloadedArchivedApplications,
@@ -38,6 +41,30 @@ function ApplicationsTableContent({
   const applications = usePreloadedQuery(preloadedApplications);
   const archivedApplications = usePreloadedQuery(preloadedArchivedApplications);
   const t = useTranslations("Applications");
+  const [activeTab, setActiveTab] = useState<ApplicationsTab>(initialTab);
+  const [analyticsApplications, setAnalyticsApplications] = useState(
+    initialTab === "active" ? applications : archivedApplications,
+  );
+  const handleFilteredApplicationsChange = useCallback(
+    (nextApplications: typeof applications) => {
+      setAnalyticsApplications((currentApplications) =>
+        currentApplications.length === nextApplications.length &&
+        currentApplications.every(
+          (application, index) => application === nextApplications[index],
+        )
+          ? currentApplications
+          : nextApplications,
+      );
+    },
+    [],
+  );
+  const handleTabChange = (value: string) => {
+    const tab = value as ApplicationsTab;
+    setActiveTab(tab);
+    setAnalyticsApplications(
+      tab === "active" ? applications : archivedApplications,
+    );
+  };
 
   return (
     <>
@@ -47,12 +74,16 @@ function ApplicationsTableContent({
         logoUrl={logoUrl}
         action={
           <ApplicationsAnalytics
-            applications={applications}
+            applications={analyticsApplications}
             now={analyticsNow}
           />
         }
       />
-      <Tabs defaultValue={initialTab} className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="w-full"
+      >
         <ScrollArea className="w-full whitespace-nowrap">
           <TabsList>
             <TabsTrigger
@@ -81,16 +112,20 @@ function ApplicationsTableContent({
         <TabsContent value="active" className="mt-0">
           <ApplicationsTable
             applications={applications}
+            analyticsApplications={analyticsApplications}
             organizationSlug={organizationSlug}
             isAdmin={true}
+            onFilteredApplicationsChange={handleFilteredApplicationsChange}
           />
         </TabsContent>
         <TabsContent value="archived" className="mt-0">
           <ApplicationsTable
             applications={archivedApplications}
+            analyticsApplications={analyticsApplications}
             organizationSlug={organizationSlug}
             isAdmin={true}
             emptyMessage={t("emptyMessageArchived")}
+            onFilteredApplicationsChange={handleFilteredApplicationsChange}
           />
         </TabsContent>
       </Tabs>

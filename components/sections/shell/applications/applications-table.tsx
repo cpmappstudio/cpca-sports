@@ -35,6 +35,8 @@ interface ApplicationsTableProps {
   organizationSlug: string;
   isAdmin: boolean;
   emptyMessage?: string;
+  analyticsApplications?: ApplicationListItem[];
+  onFilteredApplicationsChange?: (applications: ApplicationListItem[]) => void;
 }
 
 type ArchiveRequest = {
@@ -48,6 +50,8 @@ export function ApplicationsTable({
   organizationSlug,
   isAdmin,
   emptyMessage,
+  analyticsApplications = applications,
+  onFilteredApplicationsChange,
 }: ApplicationsTableProps) {
   const router = useRouter();
   const locale = useLocale();
@@ -57,9 +61,9 @@ export function ApplicationsTable({
   const paymentStatusHeader = useMemo(
     () =>
       isAdmin ? (
-        <ApplicationPaymentStatusChart applications={applications} />
+        <ApplicationPaymentStatusChart applications={analyticsApplications} />
       ) : undefined,
-    [applications, isAdmin],
+    [analyticsApplications, isAdmin],
   );
   const filters = useApplicationFilters(applications);
   const setArchived = useMutation(api.applications.setArchived);
@@ -218,6 +222,9 @@ export function ApplicationsTable({
         }
         onCreate={!isAdmin ? handleCreate : undefined}
         onExport={handleExport}
+        onFilteredDataChange={
+          isAdmin ? onFilteredApplicationsChange : undefined
+        }
         onRowClick={handleRowClick}
       />
 

@@ -36,6 +36,7 @@ export interface DataTableProps<TData> {
   enableRowSelection?: boolean;
   onCreate?: () => void;
   onExport?: (rows: TData[]) => void;
+  onFilteredDataChange?: (rows: TData[]) => void;
   onRowClick?: (row: TData) => void;
   renderBulkActions?: (
     selectedRows: TData[],
