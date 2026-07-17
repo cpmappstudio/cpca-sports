@@ -83,7 +83,6 @@ function ApplicationsTableContent({
             applications={applications}
             organizationSlug={organizationSlug}
             isAdmin={true}
-            totalCountLabel={(count) => t("table.totalCountAdmin", { count })}
           />
         </TabsContent>
         <TabsContent value="archived" className="mt-0">
@@ -92,9 +91,6 @@ function ApplicationsTableContent({
             organizationSlug={organizationSlug}
             isAdmin={true}
             emptyMessage={t("emptyMessageArchived")}
-            totalCountLabel={(count) =>
-              t("table.totalCountArchivedAdmin", { count })
-            }
           />
         </TabsContent>
       </Tabs>
