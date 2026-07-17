@@ -4,10 +4,9 @@ import { type ReactNode, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "convex/react";
 import Image from "next/image";
-import { ChevronDown, Mail, Phone } from "lucide-react";
+import { Phone } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
@@ -15,13 +14,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Avatar } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ApplicationPhoto } from "./detail/pre-admission/application-photo";
 import { formatApplicationDate } from "./date-format";
 import { createSortableHeader } from "@/components/table/column-helpers";
@@ -96,19 +88,13 @@ function ApplicantPhotoThumb({
 function ApplicantCell({
   row,
   t,
-  tDetail,
-  mobileArchiveAction,
 }: {
   row: ApplicationListItem;
   t: ReturnType<typeof useTranslations<"Applications">>;
-  tDetail: ReturnType<typeof useTranslations<"Applications.detail">>;
-  mobileArchiveAction?: ReactNode;
 }) {
   const firstName = row.applicant.firstName;
   const lastName = row.applicant.lastName;
   const program = row.program.name;
-  const email = row.applicant.email;
-  const telephone = row.applicant.telephone;
   const Icon = getProgramIcon(row.programIconKey ?? program);
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
@@ -128,56 +114,6 @@ function ApplicantCell({
           <div className="wrap-break-word font-medium whitespace-normal">
             {firstName} {lastName}
           </div>
-          {mobileArchiveAction ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="xs"
-                  variant="outline"
-                  className="md:hidden"
-                  aria-label={t("archiveActions.moreActions")}
-                >
-                  <span>{t("archiveActions.actions")}</span>
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-44">
-                <DropdownMenuItem asChild>
-                  <a
-                    href={`tel:${telephone}`}
-                    className="flex items-center gap-2"
-                  >
-                    <Phone className="h-4 w-4" />
-                    <span>{tDetail("call")}</span>
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <a
-                    href={`mailto:${email}`}
-                    className="flex items-center gap-2"
-                  >
-                    <Mail className="h-4 w-4" />
-                    <span>{tDetail("email")}</span>
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {mobileArchiveAction}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <div className="flex items-center gap-1 md:hidden">
-              <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
-                <a href={`tel:${telephone}`}>
-                  <Phone className="h-2 w-2" />
-                </a>
-              </Button>
-              <Button size="icon" variant="ghost" className="h-4 w-4" asChild>
-                <a href={`mailto:${email}`}>
-                  <Mail className="h-2 w-2" />
-                </a>
-              </Button>
-            </div>
-          )}
         </div>
         <div className="mt-1 inline-flex flex-col gap-1 text-xs text-muted-foreground lg:hidden">
           <div className="flex gap-1">
@@ -268,13 +204,17 @@ function PaymentProgressCell({
   const t = useTranslations("Applications");
   const tPayments = useTranslations("Applications.payments");
   const [open, setOpen] = useState(false);
+  const hasFees = paymentSummary.feeCount > 0;
   const paymentFees = useQuery(
     api.fees.getPaymentDetails,
-    open ? { applicationId } : "skip",
+    open && hasFees ? { applicationId } : "skip",
   );
   const progress = getPaymentProgress(paymentSummary);
   const roundedProgress = Math.round(progress);
-  const label = t("paymentProgress", { progress: roundedProgress });
+  const noFeesLabel = t("paymentNoFees");
+  const label = hasFees
+    ? t("paymentProgress", { progress: roundedProgress })
+    : noFeesLabel;
   const feeStatusMap = {
     pending: {
       label: tPayments("feeStatuses.pending"),
@@ -296,19 +236,30 @@ function PaymentProgressCell({
         <div
           tabIndex={0}
           aria-label={label}
-          className="relative w-18 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="relative w-24 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <Progress
-            value={progress}
-            aria-label={label}
-            className="h-5 w-full border border-green-500/20"
-          />
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold tabular-nums text-green-600 dark:text-green-400"
-          >
-            {roundedProgress}%
-          </span>
+          {hasFees ? (
+            <>
+              <Progress
+                value={progress}
+                aria-label={label}
+                className="h-5 w-18 border border-green-500/20"
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 left-0 flex w-18 items-center justify-center text-xs font-semibold tabular-nums text-green-600 dark:text-green-400"
+              >
+                {roundedProgress}%
+              </span>
+            </>
+          ) : (
+            <Badge
+              variant="default"
+              className="bg-muted/40 text-muted-foreground"
+            >
+              {noFeesLabel}
+            </Badge>
+          )}
         </div>
       </TooltipTrigger>
       <TooltipContent
@@ -346,7 +297,9 @@ function PaymentProgressCell({
           </div>
         </div>
 
-        {paymentFees === undefined ? (
+        {!hasFees ? (
+          <p className="p-3 text-background/70">{t("paymentTooltip.noFees")}</p>
+        ) : paymentFees === undefined ? (
           <p className="p-3 text-background/70">
             {t("paymentTooltip.loading")}
           </p>
@@ -397,14 +350,11 @@ function PaymentProgressCell({
 
 function useApplicationColumnsBase({
   paymentStatusHeader,
-  renderMobileArchiveAction,
 }: {
   paymentStatusHeader?: ReactNode;
-  renderMobileArchiveAction?: (row: ApplicationListItem) => ReactNode;
 } = {}) {
   const locale = useLocale();
   const t = useTranslations("Applications");
-  const tDetail = useTranslations("Applications.detail");
   const statusMap = useStatusMap();
 
   return useMemo<ColumnDef<ApplicationListItem>[]>(() => {
@@ -437,14 +387,7 @@ function useApplicationColumnsBase({
         header: createSortableHeader(fullNameHeader),
         accessorFn: (row) =>
           `${row.applicant.firstName} ${row.applicant.lastName}`.trim(),
-        cell: ({ row }) => (
-          <ApplicantCell
-            row={row.original}
-            t={t}
-            tDetail={tDetail}
-            mobileArchiveAction={renderMobileArchiveAction?.(row.original)}
-          />
-        ),
+        cell: ({ row }) => <ApplicantCell row={row.original} t={t} />,
       },
       {
         id: "program",
@@ -473,6 +416,9 @@ function useApplicationColumnsBase({
         cell: ({ row }) => row.getValue("enrollmentYear") || "-",
         meta: {
           className: "hidden xl:table-cell",
+        },
+        filterFn: (row, id, value) => {
+          return value.includes(row.getValue(id));
         },
       },
       {
@@ -533,26 +479,16 @@ function useApplicationColumnsBase({
         },
       },
     ];
-  }, [
-    locale,
-    paymentStatusHeader,
-    renderMobileArchiveAction,
-    statusMap,
-    t,
-    tDetail,
-  ]);
+  }, [locale, paymentStatusHeader, statusMap, t]);
 }
 
 export function useAdminApplicationColumns({
   paymentStatusHeader,
-  renderMobileArchiveAction,
 }: {
   paymentStatusHeader?: ReactNode;
-  renderMobileArchiveAction?: (row: ApplicationListItem) => ReactNode;
 } = {}) {
   return useApplicationColumnsBase({
     paymentStatusHeader,
-    renderMobileArchiveAction,
   });
 }
 
@@ -580,6 +516,16 @@ export function useApplicationFilters(
       .sort((a, b) => a.localeCompare(b));
     const programCounts = countValues(
       applications.map((row) => row.program.name).filter(Boolean),
+    );
+    const enrollmentYears = [
+      ...new Set(applications.map((row) => row.enrollmentYear)),
+    ]
+      .filter((year): year is string => Boolean(year))
+      .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+    const enrollmentYearCounts = countValues(
+      applications
+        .map((row) => row.enrollmentYear)
+        .filter((year): year is string => Boolean(year)),
     );
     const sexCounts = countValues(
       applications
@@ -628,6 +574,15 @@ export function useApplicationFilters(
           value: program,
           label: program,
           count: programCounts[program] ?? 0,
+        })),
+      },
+      {
+        id: "enrollmentYear",
+        label: t("enrollmentYear"),
+        options: enrollmentYears.map((year) => ({
+          value: year,
+          label: year,
+          count: enrollmentYearCounts[year] ?? 0,
         })),
       },
     ];

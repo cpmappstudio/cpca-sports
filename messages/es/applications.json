@@ -26,6 +26,7 @@
   "status": "Estado",
   "payment": "Pago",
   "paymentProgress": "{progress}% pagado",
+  "paymentNoFees": "Sin cargos",
   "paymentTooltip": {
     "title": "Detalle de pagos",
     "loading": "Cargando detalle de pagos...",

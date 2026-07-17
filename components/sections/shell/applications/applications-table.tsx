@@ -3,7 +3,6 @@
 import { useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
-import type { ColumnDef } from "@tanstack/react-table";
 import { useMutation } from "convex/react";
 import { Archive, ArchiveRestore } from "lucide-react";
 import { toast } from "sonner";
@@ -19,11 +18,6 @@ import { ROUTES } from "@/lib/navigation/routes";
 import type { ApplicationListItem } from "@/lib/applications/list-types";
 import { Button } from "@/components/ui/button";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -34,7 +28,6 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { ApplicationPaymentStatusChart } from "./applications-analytics";
 
 interface ApplicationsTableProps {
@@ -42,7 +35,6 @@ interface ApplicationsTableProps {
   organizationSlug: string;
   isAdmin: boolean;
   emptyMessage?: string;
-  totalCountLabel?: (count: number) => string;
 }
 
 type ArchiveRequest = {
@@ -56,7 +48,6 @@ export function ApplicationsTable({
   organizationSlug,
   isAdmin,
   emptyMessage,
-  totalCountLabel,
 }: ApplicationsTableProps) {
   const router = useRouter();
   const locale = useLocale();
@@ -112,53 +103,6 @@ export function ApplicationsTable({
     [],
   );
 
-  const renderArchiveIconButton = useCallback(
-    (application: ApplicationListItem) => {
-      const isRestore = application.isArchived === true;
-      const Icon = isRestore ? ArchiveRestore : Archive;
-      const label = isRestore
-        ? t("archiveActions.restoreOne")
-        : t("archiveActions.archiveOne");
-
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="icon"
-              variant="outline"
-              className="h-8 w-8 bg-background shadow-xs hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
-              onClick={() => openArchiveDialog([application], !isRestore)}
-            >
-              <Icon className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{label}</TooltipContent>
-        </Tooltip>
-      );
-    },
-    [openArchiveDialog, t],
-  );
-
-  const renderMobileArchiveAction = useCallback(
-    (application: ApplicationListItem) => {
-      const isRestore = application.isArchived === true;
-      const Icon = isRestore ? ArchiveRestore : Archive;
-      const label = isRestore
-        ? t("archiveActions.restoreOne")
-        : t("archiveActions.archiveOne");
-
-      return (
-        <DropdownMenuItem
-          onSelect={() => openArchiveDialog([application], !isRestore)}
-        >
-          <Icon className="h-4 w-4" />
-          <span>{label}</span>
-        </DropdownMenuItem>
-      );
-    },
-    [openArchiveDialog, t],
-  );
-
   const handleConfirmArchive = async () => {
     if (!archiveRequest) {
       return;
@@ -195,34 +139,12 @@ export function ApplicationsTable({
 
   const adminColumns = useAdminApplicationColumns({
     paymentStatusHeader,
-    renderMobileArchiveAction,
   });
   const clientColumns = useClientApplicationColumns();
-  const archiveActionColumn = useMemo<ColumnDef<ApplicationListItem>>(
-    () => ({
-      id: "archiveAction",
-      header: "",
-      enableHiding: false,
-      enableSorting: false,
-      cell: ({ row }) => {
-        const application = row.original;
-
-        return (
-          <div className="flex justify-end">
-            {renderArchiveIconButton(application)}
-          </div>
-        );
-      },
-      meta: {
-        className: "hidden w-12 md:table-cell",
-      },
-    }),
-    [renderArchiveIconButton],
-  );
 
   const columns = useMemo(
-    () => (isAdmin ? [...adminColumns, archiveActionColumn] : clientColumns),
-    [adminColumns, archiveActionColumn, clientColumns, isAdmin],
+    () => (isAdmin ? adminColumns : clientColumns),
+    [adminColumns, clientColumns, isAdmin],
   );
 
   const resultsCountLabel = (
@@ -233,12 +155,7 @@ export function ApplicationsTable({
     if (isFiltered) {
       return t("table.filteredCount", { count: filtered, total });
     }
-    if (totalCountLabel) {
-      return totalCountLabel(total);
-    }
-    return isAdmin
-      ? t("table.totalCountAdmin", { count: total })
-      : t("table.totalCountClient", { count: total });
+    return "";
   };
 
   const archiveDialogCount = archiveRequest?.applications.length ?? 0;
