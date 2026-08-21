@@ -399,6 +399,22 @@ export const remove = mutation({
     const user = await getCurrentUser(ctx);
 
     await verifyProgramAdminAccess(ctx, args.programId, user._id);
+    const assignedCoach = await ctx.db
+      .query("coaches")
+      .withIndex("byProgram", (q) => q.eq("programId", args.programId))
+      .first();
+    if (assignedCoach) {
+      throw new Error(
+        "Move or delete assigned coaches before deleting this program",
+      );
+    }
+    const coachOptions = await ctx.db
+      .query("programCoachOptions")
+      .withIndex("byProgram", (q) => q.eq("programId", args.programId))
+      .collect();
+    for (const option of coachOptions) {
+      await ctx.db.delete(option._id);
+    }
     await clearProgramDocumentConfigs(ctx, args.programId);
     await clearProgramPaymentConfigs(ctx, args.programId);
 

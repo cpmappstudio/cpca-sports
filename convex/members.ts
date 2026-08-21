@@ -190,6 +190,12 @@ export const upsertFromClerk = internalMutation({
       return null;
     }
 
+    const tombstone = await ctx.db
+      .query("clerkUserTombstones")
+      .withIndex("byClerkId", (q) => q.eq("clerkId", clerkUserId))
+      .unique();
+    if (tombstone) return null;
+
     // Find or create user
     let user = await ctx.db
       .query("users")

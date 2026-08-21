@@ -138,7 +138,8 @@
     "tabs": {
       "application": "Application",
       "documents": "Documents",
-      "payments": "Payments"
+      "payments": "Payments",
+      "coaches": "Coaches"
     },
     "builder": {
       "defaults": {

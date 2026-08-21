@@ -3,7 +3,11 @@ import { useTranslations } from "next-intl";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardContent } from "@/components/ui/card";
+import { CardAction } from "@/components/ui/card";
+import {
+  EntityDetailBackButton,
+  EntityDetailProfile,
+} from "@/components/common/entity-detail-profile";
 import {
   Select,
   SelectContent,
@@ -25,7 +29,6 @@ import {
   BookOpen,
   GraduationCap,
   Calendar,
-  ArrowLeft,
   ArrowRightLeft,
   Mail,
   Phone,
@@ -64,7 +67,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { ROUTES } from "@/lib/navigation/routes";
 import {
   ApplicationTransferDialog,
@@ -364,261 +367,236 @@ export function ApplicationHeader({
   };
   return (
     <section className="flex flex-col gap-4">
-      <Button
-        asChild
-        variant="outline"
-        size="sm"
-        className="w-fit bg-background"
-      >
-        <Link href={applicationsListHref}>
-          <ArrowLeft className="h-4 w-4" />
-          <span>{t("backToList")}</span>
-        </Link>
-      </Button>
-      <Card className="relative overflow-hidden">
-        {organizationLogoUrl && (
-          <div
-            className="absolute inset-0 bg-center bg-no-repeat bg-contain opacity-[0.05] pointer-events-none"
-            style={{
-              backgroundImage: `url(${organizationLogoUrl})`,
-              backgroundSize: "60%",
-            }}
-          />
-        )}
-        <CardContent className="relative">
-          <div className="space-y-4">
-            <div className="flex items-start gap-4">
-              <div className="w-20 h-20 shrink-0 relative">
-                {currentPhoto ? (
-                  <ApplicationPhoto
-                    storageId={currentPhoto}
-                    applicationId={application._id}
-                    alt={`${firstName} ${lastName}`}
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-md bg-primary flex items-center justify-center">
-                    <span className="text-primary-foreground text-2xl font-semibold">
-                      {firstName.charAt(0).toUpperCase()}
-                      {lastName.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={APPLICATION_PHOTO_ACCEPT}
-                  onChange={handleFileChange}
-                  className="hidden"
-                  disabled={isUpdating}
+      <EntityDetailBackButton
+        href={applicationsListHref}
+        label={t("backToList")}
+      />
+      <EntityDetailProfile
+        logoUrl={organizationLogoUrl}
+        header={
+          <div className="flex items-start gap-4">
+            <div className="w-20 h-20 shrink-0 relative">
+              {currentPhoto ? (
+                <ApplicationPhoto
+                  storageId={currentPhoto}
+                  applicationId={application._id}
+                  alt={`${firstName} ${lastName}`}
                 />
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="absolute bottom-0 right-0 h-6 w-6 opacity-70 hover:opacity-100 hover:scale-100 transition-all duration-200"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUpdating}
-                >
-                  <Pencil className="h-2 w-2" />
-                </Button>
-              </div>
-              <div className="flex flex-col gap-2 flex-1 min-w-0">
-                <div className="flex flex-row justify-between items-start gap-2">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <h1 className="min-w-0 text-2xl md:text-3xl font-semibold tracking-tight">
-                      {firstName} {lastName}
-                    </h1>
-                  </div>
-                  {isArchived && (
-                    <Badge variant="outline" className="shrink-0">
-                      {t("archive.badge")}
-                    </Badge>
-                  )}
+              ) : (
+                <div className="w-20 h-20 rounded-md bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground text-2xl font-semibold">
+                    {firstName.charAt(0).toUpperCase()}
+                    {lastName.charAt(0).toUpperCase()}
+                  </span>
                 </div>
-                <div className="flex items-start gap-2 mt-1">
-                  {isAdmin ? (
-                    <>
-                      <Select
-                        value={status}
-                        onValueChange={handleStatusChange}
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={APPLICATION_PHOTO_ACCEPT}
+                onChange={handleFileChange}
+                className="hidden"
+                disabled={isUpdating}
+              />
+              <Button
+                size="icon"
+                variant="secondary"
+                className="absolute bottom-0 right-0 h-6 w-6 opacity-70 hover:opacity-100 hover:scale-100 transition-all duration-200"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUpdating}
+              >
+                <Pencil className="h-2 w-2" />
+              </Button>
+            </div>
+            <div className="flex flex-col gap-2 flex-1 min-w-0">
+              <div className="flex flex-row justify-between items-start gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <h1 className="min-w-0 text-2xl md:text-3xl font-semibold tracking-tight">
+                    {firstName} {lastName}
+                  </h1>
+                </div>
+                {isArchived && (
+                  <Badge variant="outline" className="shrink-0">
+                    {t("archive.badge")}
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-start gap-2 mt-1">
+                {isAdmin ? (
+                  <>
+                    <Select
+                      value={status}
+                      onValueChange={handleStatusChange}
+                      disabled={isUpdating}
+                    >
+                      <SelectTrigger className="w-fit h-7 text-xs font-medium">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">
+                          {tStatus("pending")}
+                        </SelectItem>
+                        <SelectItem value="reviewing">
+                          {tStatus("reviewing")}
+                        </SelectItem>
+                        <SelectItem value="pre-admitted">
+                          {tStatus("pre-admitted")}
+                        </SelectItem>
+                        <SelectItem value="admitted">
+                          {tStatus("admitted")}
+                        </SelectItem>
+                        <SelectItem value="denied">
+                          {tStatus("denied")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </>
+                ) : (
+                  <Badge variant={statusInfo.variant} className="w-fit">
+                    {statusInfo.label}
+                  </Badge>
+                )}
+                {isAdmin && (
+                  <CardAction className="hidden md:block">
+                    {renderActionsMenu(
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-9 w-9"
                         disabled={isUpdating}
                       >
-                        <SelectTrigger className="w-fit h-7 text-xs font-medium">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">
-                            {tStatus("pending")}
-                          </SelectItem>
-                          <SelectItem value="reviewing">
-                            {tStatus("reviewing")}
-                          </SelectItem>
-                          <SelectItem value="pre-admitted">
-                            {tStatus("pre-admitted")}
-                          </SelectItem>
-                          <SelectItem value="admitted">
-                            {tStatus("admitted")}
-                          </SelectItem>
-                          <SelectItem value="denied">
-                            {tStatus("denied")}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </>
-                  ) : (
-                    <Badge variant={statusInfo.variant} className="w-fit">
-                      {statusInfo.label}
-                    </Badge>
-                  )}
-                  {isAdmin && (
-                    <CardAction className="hidden md:block">
-                      {renderActionsMenu(
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-9 w-9"
-                          disabled={isUpdating}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>,
-                      )}
-                    </CardAction>
-                  )}
-                  {isAdmin && (
-                    <div className="md:hidden">
-                      {renderActionsMenu(
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-9 w-9"
-                          disabled={isUpdating}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>,
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <hr />
-
-            {/* Segunda fila: Grid con campos clave */}
-            <div className="grid grid-cols-1 gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">
-                  {t("age")}:
-                </span>
-                <span className="text-muted-foreground">
-                  {birthDate ? `${calculateAge(birthDate)} years` : "-"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">
-                  {t("birthCountry")}:
-                </span>
-                <span className="text-muted-foreground">
-                  {getCountryName(countryOfBirth) || "-"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">
-                  {t("citizenship")}:
-                </span>
-                <span className="text-muted-foreground">
-                  {getCountryName(countryOfCitizenship) || "-"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">
-                  {t("address")}:
-                </span>
-                <span className="text-muted-foreground">
-                  {streetAddress && city && country
-                    ? `${streetAddress}, ${city}, ${getCountryName(country)}`
-                    : "-"}
-                </span>
-              </div>
-              <hr />
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">
-                  {t("format")}:
-                </span>
-                <span className="text-muted-foreground capitalize">
-                  {format || "-"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">
-                  {t("program")}:
-                </span>
-                <span className="text-muted-foreground capitalize">
-                  {program || "-"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <GraduationCap className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">
-                  {t("gradeEntering")}:
-                </span>
-                <span className="text-muted-foreground">
-                  {gradeEntering
-                    ? gradeEntering === "postgraduate"
-                      ? tAthlete("gradePostgraduate")
-                      : tAthlete(
-                          `grade${gradeEntering}` as keyof typeof tAthlete,
-                        )
-                    : "-"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">
-                  {t("enrollmentYear")}:
-                </span>
-                <span className="text-muted-foreground">
-                  {enrollmentYear || "-"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">
-                  {t("graduationYear")}:
-                </span>
-                <span className="text-muted-foreground">
-                  {graduationYear || "-"}
-                </span>
-              </div>
-              <hr />
-              <div className="flex items-center gap-2">
-                <IdCard className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">
-                  {t("needsI20")}:
-                </span>
-                <span className="text-muted-foreground">
-                  {needsI20 === "yes" ? t("yes") : t("no")}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Home className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground">
-                  {t("boarding")}:
-                </span>
-                <span className="text-muted-foreground">
-                  {interestedInBoarding === "yes" ? t("yes") : t("no")}
-                </span>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>,
+                    )}
+                  </CardAction>
+                )}
+                {isAdmin && (
+                  <div className="md:hidden">
+                    {renderActionsMenu(
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-9 w-9"
+                        disabled={isUpdating}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>,
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        }
+      >
+        <div className="grid grid-cols-1 gap-3 text-sm">
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">{t("age")}:</span>
+            <span className="text-muted-foreground">
+              {birthDate ? `${calculateAge(birthDate)} years` : "-"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">
+              {t("birthCountry")}:
+            </span>
+            <span className="text-muted-foreground">
+              {getCountryName(countryOfBirth) || "-"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">
+              {t("citizenship")}:
+            </span>
+            <span className="text-muted-foreground">
+              {getCountryName(countryOfCitizenship) || "-"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">
+              {t("address")}:
+            </span>
+            <span className="text-muted-foreground">
+              {streetAddress && city && country
+                ? `${streetAddress}, ${city}, ${getCountryName(country)}`
+                : "-"}
+            </span>
+          </div>
+          <hr />
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">
+              {t("format")}:
+            </span>
+            <span className="text-muted-foreground capitalize">
+              {format || "-"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">
+              {t("program")}:
+            </span>
+            <span className="text-muted-foreground capitalize">
+              {program || "-"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">
+              {t("gradeEntering")}:
+            </span>
+            <span className="text-muted-foreground">
+              {gradeEntering
+                ? gradeEntering === "postgraduate"
+                  ? tAthlete("gradePostgraduate")
+                  : tAthlete(`grade${gradeEntering}` as keyof typeof tAthlete)
+                : "-"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">
+              {t("enrollmentYear")}:
+            </span>
+            <span className="text-muted-foreground">
+              {enrollmentYear || "-"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">
+              {t("graduationYear")}:
+            </span>
+            <span className="text-muted-foreground">
+              {graduationYear || "-"}
+            </span>
+          </div>
+          <hr />
+          <div className="flex items-center gap-2">
+            <IdCard className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">
+              {t("needsI20")}:
+            </span>
+            <span className="text-muted-foreground">
+              {needsI20 === "yes" ? t("yes") : t("no")}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Home className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">
+              {t("boarding")}:
+            </span>
+            <span className="text-muted-foreground">
+              {interestedInBoarding === "yes" ? t("yes") : t("no")}
+            </span>
+          </div>
+        </div>
+      </EntityDetailProfile>
       <ApplicationBalanceCard
         totalDue={totalDue}
         totalPaid={totalPaid}

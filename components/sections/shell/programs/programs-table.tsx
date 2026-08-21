@@ -6,7 +6,8 @@ import { LayoutTemplate, Shapes } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { TabsNavigation } from "@/components/common/tabs-navigation";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { ROUTES } from "@/lib/navigation/routes";
@@ -175,16 +176,20 @@ export function ProgramsTable({
   return (
     <>
       <Tabs defaultValue="programs" className="gap-0">
-        <TabsList>
-          <TabsTrigger value="programs">
-            <Shapes className="size-4" />
-            {t("tabs.programs")}
-          </TabsTrigger>
-          <TabsTrigger value="templates">
-            <LayoutTemplate className="size-4" />
-            {t("tabs.templates")}
-          </TabsTrigger>
-        </TabsList>
+        <TabsNavigation
+          items={[
+            {
+              value: "programs",
+              label: t("tabs.programs"),
+              icon: Shapes,
+            },
+            {
+              value: "templates",
+              label: t("tabs.templates"),
+              icon: LayoutTemplate,
+            },
+          ]}
+        />
 
         <TabsContent value="programs" className="outline-none">
           <ProgramsGrid

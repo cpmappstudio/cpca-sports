@@ -1,7 +1,9 @@
 {
   "nav": {
     "dashboard": "Panel",
+    "home": "Inicio",
     "applications": "Mis Solicitudes",
+    "coaches": "Coaches",
     "programs": "Programas",
     "organizations": "Organizaciones",
     "users": "Usuarios",

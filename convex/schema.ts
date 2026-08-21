@@ -58,6 +58,8 @@ const documentVisibility = v.union(
   v.literal("hidden"),
 );
 
+const coachOptionKind = v.union(v.literal("position"), v.literal("place"));
+
 const legacyEntityType = v.union(
   v.literal("account"),
   v.literal("membership"),
@@ -81,6 +83,11 @@ export default defineSchema({
     .index("byClerkId", ["clerkId"])
     .index("byEmail", ["email"])
     .index("activeUsers", ["isActive"]),
+
+  clerkUserTombstones: defineTable({
+    clerkId: v.string(),
+    deletedAt: v.number(),
+  }).index("byClerkId", ["clerkId"]),
 
   organizations: defineTable({
     clerkOrgId: v.string(),
@@ -143,6 +150,58 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("byOrganization", ["organizationId"]),
+
+  programCoachOptions: defineTable({
+    programId: v.id("programs"),
+    kind: coachOptionKind,
+    name: v.string(),
+    normalizedName: v.string(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("byProgram", ["programId"])
+    .index("byProgramAndKind", ["programId", "kind"])
+    .index("byProgramKindAndName", ["programId", "kind", "normalizedName"]),
+
+  coaches: defineTable({
+    organizationId: v.id("organizations"),
+    userId: v.id("users"),
+    programId: v.id("programs"),
+    positionId: v.id("programCoachOptions"),
+    isArchived: v.boolean(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("byOrganization", ["organizationId"])
+    .index("byOrganizationAndArchived", ["organizationId", "isArchived"])
+    .index("byUser", ["userId"])
+    .index("byUserAndOrganization", ["userId", "organizationId"])
+    .index("byProgram", ["programId"])
+    .index("byPosition", ["positionId"]),
+
+  coachActivities: defineTable({
+    coachId: v.id("coaches"),
+    programId: v.id("programs"),
+    placeId: v.id("programCoachOptions"),
+    placeName: v.string(),
+    activityDate: v.string(),
+    startTime: v.string(),
+    endTime: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    imageStorageId: v.id("_storage"),
+    completed: v.boolean(),
+    createdBy: v.id("users"),
+    updatedBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("byCoach", ["coachId"])
+    .index("byCoachAndDate", ["coachId", "activityDate"])
+    .index("byProgram", ["programId"])
+    .index("byPlace", ["placeId"])
+    .index("byImageStorageId", ["imageStorageId"]),
 
   programRecurringFeeConfig: defineTable({
     programId: v.id("programs"),

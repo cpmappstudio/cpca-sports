@@ -1,14 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { File, CreditCard } from "lucide-react";
+import { File, CreditCard, Dumbbell } from "lucide-react";
 import { UserIcon } from "@heroicons/react/20/solid";
 import CpcaHeader from "@/components/common/cpca-header";
+import { TabsNavigation } from "@/components/common/tabs-navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 
-export type FormDefaultsEditorTab = "application" | "documents" | "payments";
+export type FormDefaultsEditorTab =
+  "application" | "documents" | "payments" | "coaches";
 
 interface FormDefaultsEditorShellProps {
   media?: ReactNode;
@@ -21,11 +22,13 @@ interface FormDefaultsEditorShellProps {
     application: string;
     documents: string;
     payments: string;
+    coaches?: string;
   };
   onTabChange: (tab: FormDefaultsEditorTab) => void;
   applicationContent: ReactNode;
   documentsContent: ReactNode;
   paymentsContent: ReactNode;
+  coachesContent?: ReactNode;
 }
 
 export function FormDefaultsEditorShell({
@@ -40,6 +43,7 @@ export function FormDefaultsEditorShell({
   applicationContent,
   documentsContent,
   paymentsContent,
+  coachesContent,
 }: FormDefaultsEditorShellProps) {
   return (
     <>
@@ -56,31 +60,34 @@ export function FormDefaultsEditorShell({
         onValueChange={(value) => onTabChange(value as FormDefaultsEditorTab)}
         className="w-full gap-0"
       >
-        <ScrollArea className="w-full whitespace-nowrap">
-          <TabsList>
-            <TabsTrigger
-              value="application"
-              className="gap-1 px-2 text-xs md:px-3 md:text-sm"
-            >
-              <UserIcon className="hidden h-4 w-4 md:block" />
-              <span>{tabLabels.application}</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="documents"
-              className="gap-1 px-2 text-xs md:px-3 md:text-sm"
-            >
-              <File className="hidden h-4 w-4 md:block" />
-              <span>{tabLabels.documents}</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="payments"
-              className="gap-1 px-2 text-xs md:px-3 md:text-sm"
-            >
-              <CreditCard className="hidden h-4 w-4 md:block" />
-              <span>{tabLabels.payments}</span>
-            </TabsTrigger>
-          </TabsList>
-        </ScrollArea>
+        <TabsNavigation
+          items={[
+            {
+              value: "application",
+              label: tabLabels.application,
+              icon: UserIcon,
+            },
+            ...(tabLabels.coaches && coachesContent
+              ? [
+                  {
+                    value: "coaches",
+                    label: tabLabels.coaches,
+                    icon: Dumbbell,
+                  },
+                ]
+              : []),
+            {
+              value: "documents",
+              label: tabLabels.documents,
+              icon: File,
+            },
+            {
+              value: "payments",
+              label: tabLabels.payments,
+              icon: CreditCard,
+            },
+          ]}
+        />
 
         <TabsContent value="application" className="relative z-0 mt-0">
           <Card className="relative z-0">
@@ -101,6 +108,13 @@ export function FormDefaultsEditorShell({
             <CardContent className="pt-0">{paymentsContent}</CardContent>
           </Card>
         </TabsContent>
+        {tabLabels.coaches && coachesContent ? (
+          <TabsContent value="coaches" className="relative z-0 mt-0">
+            <Card className="relative z-0">
+              <CardContent className="pt-0">{coachesContent}</CardContent>
+            </Card>
+          </TabsContent>
+        ) : null}
       </Tabs>
     </>
   );

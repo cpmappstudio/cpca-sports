@@ -10,6 +10,9 @@
 
 import type * as applications from "../applications.js";
 import type * as clerk from "../clerk.js";
+import type * as coachActivities from "../coachActivities.js";
+import type * as coachOptions from "../coachOptions.js";
+import type * as coaches from "../coaches.js";
 import type * as documents from "../documents.js";
 import type * as fees from "../fees.js";
 import type * as files from "../files.js";
@@ -21,6 +24,7 @@ import type * as lib_applicationSnapshots from "../lib/applicationSnapshots.js";
 import type * as lib_applicationSummary from "../lib/applicationSummary.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_auth_types from "../lib/auth_types.js";
+import type * as lib_coachAccess from "../lib/coachAccess.js";
 import type * as lib_defaultDocuments from "../lib/defaultDocuments.js";
 import type * as lib_defaultPayments from "../lib/defaultPayments.js";
 import type * as lib_feeSummary from "../lib/feeSummary.js";
@@ -53,6 +57,9 @@ import type {
 declare const fullApi: ApiFromModules<{
   applications: typeof applications;
   clerk: typeof clerk;
+  coachActivities: typeof coachActivities;
+  coachOptions: typeof coachOptions;
+  coaches: typeof coaches;
   documents: typeof documents;
   fees: typeof fees;
   files: typeof files;
@@ -64,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   "lib/applicationSummary": typeof lib_applicationSummary;
   "lib/auth": typeof lib_auth;
   "lib/auth_types": typeof lib_auth_types;
+  "lib/coachAccess": typeof lib_coachAccess;
   "lib/defaultDocuments": typeof lib_defaultDocuments;
   "lib/defaultPayments": typeof lib_defaultPayments;
   "lib/feeSummary": typeof lib_feeSummary;

@@ -4,6 +4,8 @@ import {
   Cog6ToothIcon,
   ShieldCheckIcon,
   RectangleStackIcon,
+  AcademicCapIcon,
+  HomeIcon,
 } from "@heroicons/react/20/solid";
 import { Palette } from "lucide-react";
 import { ROUTES } from "@/lib/navigation/routes";
@@ -21,10 +23,7 @@ import type {
  * Used by the settings search to look up icons.
  */
 export type SettingsLabelKey =
-  | "general"
-  | "appearance"
-  | "profileSecurity"
-  | "billing";
+  "general" | "appearance" | "profileSecurity" | "billing";
 
 // =============================================================================
 // Main Navigation Configuration
@@ -115,6 +114,12 @@ const ORG_ITEMS: NavItem[] = [
 ];
 
 const ORG_ADMIN_ITEMS: NavItem[] = [
+  {
+    labelKey: "coaches",
+    icon: AcademicCapIcon,
+    href: (orgSlug) => ROUTES.org.coaches.list(orgSlug!),
+    isIndex: false,
+  },
   {
     labelKey: "programs",
     icon: RectangleStackIcon,
@@ -209,12 +214,28 @@ const SETTINGS_NAV_CONFIGS: Record<NavContext, SettingsNavConfig> = {
 
 export function getNavConfig(
   context: NavContext,
-  options?: { isTenantAdmin?: boolean },
+  options?: { isTenantAdmin?: boolean; coachId?: string },
 ): NavConfig {
   const config = NAV_CONFIGS[context];
 
   if (context !== "org") {
     return config;
+  }
+
+  if (!options?.isTenantAdmin && options?.coachId) {
+    return {
+      ...config,
+      settingsHref: (orgSlug) => ROUTES.org.settings.profileSecurity(orgSlug!),
+      items: [
+        {
+          labelKey: "home",
+          icon: HomeIcon,
+          href: (orgSlug) =>
+            ROUTES.org.coaches.detail(orgSlug!, options.coachId!),
+          isIndex: false,
+        },
+      ],
+    };
   }
 
   return {

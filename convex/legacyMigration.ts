@@ -1497,6 +1497,7 @@ export const cleanupOrphanedStorage = mutation({
     referencedStorageFiles: v.number(),
     referencedFromApplications: v.number(),
     referencedFromDocuments: v.number(),
+    referencedFromCoachActivities: v.number(),
     referencedFromPhotoMappings: v.number(),
     orphanedStorageFiles: v.number(),
     attemptedDeletions: v.number(),
@@ -1511,13 +1512,19 @@ export const cleanupOrphanedStorage = mutation({
     const rawLimit = Math.trunc(args.limit ?? 200);
     const limit = Math.min(2000, Math.max(1, rawLimit));
 
-    const [storageFiles, applications, applicationDocuments, legacyMappings] =
-      await Promise.all([
-        ctx.db.system.query("_storage").collect(),
-        ctx.db.query("applications").collect(),
-        ctx.db.query("applicationDocuments").collect(),
-        ctx.db.query("legacyMigrationMappings").collect(),
-      ]);
+    const [
+      storageFiles,
+      applications,
+      applicationDocuments,
+      coachActivities,
+      legacyMappings,
+    ] = await Promise.all([
+      ctx.db.system.query("_storage").collect(),
+      ctx.db.query("applications").collect(),
+      ctx.db.query("applicationDocuments").collect(),
+      ctx.db.query("coachActivities").collect(),
+      ctx.db.query("legacyMigrationMappings").collect(),
+    ]);
 
     const knownStorageIds = new Set<Id<"_storage">>(
       storageFiles.map((file) => file._id),
@@ -1526,6 +1533,7 @@ export const cleanupOrphanedStorage = mutation({
     const referencedStorageIds = new Set<Id<"_storage">>();
     let referencedFromApplications = 0;
     let referencedFromDocuments = 0;
+    let referencedFromCoachActivities = 0;
     let referencedFromPhotoMappings = 0;
 
     for (const application of applications) {
@@ -1556,6 +1564,15 @@ export const cleanupOrphanedStorage = mutation({
       }
       if (!referencedStorageIds.has(candidate)) {
         referencedFromDocuments += 1;
+      }
+      referencedStorageIds.add(candidate);
+    }
+
+    for (const activity of coachActivities) {
+      const candidate = activity.imageStorageId;
+      if (!knownStorageIds.has(candidate)) continue;
+      if (!referencedStorageIds.has(candidate)) {
+        referencedFromCoachActivities += 1;
       }
       referencedStorageIds.add(candidate);
     }
@@ -1593,6 +1610,7 @@ export const cleanupOrphanedStorage = mutation({
       referencedStorageFiles: referencedStorageIds.size,
       referencedFromApplications,
       referencedFromDocuments,
+      referencedFromCoachActivities,
       referencedFromPhotoMappings,
       orphanedStorageFiles: orphanedStorageIds.length,
       attemptedDeletions: idsToDelete.length,

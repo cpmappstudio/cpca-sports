@@ -138,7 +138,8 @@
     "tabs": {
       "application": "Formulario",
       "documents": "Documentos",
-      "payments": "Pagos"
+      "payments": "Pagos",
+      "coaches": "Coaches"
     },
     "builder": {
       "defaults": {

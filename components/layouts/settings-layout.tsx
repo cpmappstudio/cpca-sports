@@ -15,6 +15,7 @@ import {
   getSettingsNavConfig,
   isItemActive,
   type NavContext,
+  type SettingsLabelKey,
   type SettingsNavItem,
 } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
@@ -23,6 +24,7 @@ interface SettingsLayoutProps {
   children: React.ReactNode;
   context: NavContext;
   orgSlug?: string;
+  allowedItemKeys?: SettingsLabelKey[];
 }
 
 function SettingsSidebar({
@@ -115,8 +117,15 @@ export function SettingsLayout({
   children,
   context,
   orgSlug,
+  allowedItemKeys,
 }: SettingsLayoutProps) {
-  const { items, basePath } = getSettingsNavConfig(context);
+  const config = getSettingsNavConfig(context);
+  const items = allowedItemKeys
+    ? config.items.filter((item) =>
+        allowedItemKeys.includes(item.labelKey as SettingsLabelKey),
+      )
+    : config.items;
+  const { basePath } = config;
   const resolvedBasePath = basePath(orgSlug);
 
   return (

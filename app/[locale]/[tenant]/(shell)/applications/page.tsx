@@ -29,6 +29,18 @@ export default async function ApplicationsPage({
   ]);
   const organization = preloadedQueryResult(preloadedOrganization);
 
+  if (!isAdmin) {
+    const preloadedCoach = await preloadQuery(
+      api.coaches.getMine,
+      { organizationSlug: tenant },
+      { token },
+    );
+    const coachId = preloadedQueryResult(preloadedCoach);
+    if (coachId) {
+      redirect(ROUTES.org.coaches.detail(tenant, coachId));
+    }
+  }
+
   if (isAdmin) {
     // Request-scoped server value serialized to the client for hydration-stable buckets.
     // eslint-disable-next-line react-hooks/purity

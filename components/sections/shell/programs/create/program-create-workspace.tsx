@@ -28,6 +28,7 @@ import { mapEditablePaymentDefaults } from "@/components/sections/shell/payments
 import { ProgramSaveDialog } from "./program-save-dialog";
 import { ProgramUseTemplateDialog } from "./program-use-template-dialog";
 import { ProgramIconPicker } from "./program-icon-picker";
+import { ProgramCoachOptions } from "./program-coach-options";
 
 interface ProgramCreateWorkspaceProps {
   initialProgram: Doc<"programs">;
@@ -263,6 +264,7 @@ export function ProgramCreateWorkspace({
           application: t("tabs.application"),
           documents: t("tabs.documents"),
           payments: t("tabs.payments"),
+          coaches: t("tabs.coaches"),
         }}
         onTabChange={setActiveTab}
         applicationContent={
@@ -280,6 +282,7 @@ export function ProgramCreateWorkspace({
         paymentsContent={
           <ProgramPayments fees={paymentConfigs} onChange={setPaymentConfigs} />
         }
+        coachesContent={<ProgramCoachOptions programId={initialProgram._id} />}
       />
 
       <ProgramSaveDialog

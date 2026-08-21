@@ -6,8 +6,8 @@ import { Archive, Inbox } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api } from "@/convex/_generated/api";
 import CpcaHeader from "@/components/common/cpca-header";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsNavigation } from "@/components/common/tabs-navigation";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ApplicationsAnalytics } from "./applications-analytics";
 import { ApplicationsTable } from "./applications-table";
 
@@ -84,31 +84,22 @@ function ApplicationsTableContent({
         onValueChange={handleTabChange}
         className="w-full"
       >
-        <ScrollArea className="w-full whitespace-nowrap">
-          <TabsList>
-            <TabsTrigger
-              value="active"
-              className="gap-1 px-2 text-xs md:px-3 md:text-sm"
-            >
-              <Inbox className="hidden h-4 w-4 md:block" />
-              <span>{t("tabs.active")}</span>
-              <span className="text-muted-foreground">
-                ({applications.length})
-              </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="archived"
-              className="gap-1 px-2 text-xs md:px-3 md:text-sm"
-            >
-              <Archive className="hidden h-4 w-4 md:block" />
-              <span>{t("tabs.archived")}</span>
-              <span className="text-muted-foreground">
-                ({archivedApplications.length})
-              </span>
-            </TabsTrigger>
-          </TabsList>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        <TabsNavigation
+          items={[
+            {
+              value: "active",
+              label: t("tabs.active"),
+              icon: Inbox,
+              count: applications.length,
+            },
+            {
+              value: "archived",
+              label: t("tabs.archived"),
+              icon: Archive,
+              count: archivedApplications.length,
+            },
+          ]}
+        />
         <TabsContent value="active" className="mt-0">
           <ApplicationsTable
             applications={applications}

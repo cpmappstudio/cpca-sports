@@ -160,11 +160,20 @@ export const getById = query({
  */
 export const upsertFromClerk = internalMutation({
   args: { data: v.any() },
-  returns: v.id("users"),
+  returns: v.union(v.id("users"), v.null()),
   handler: async (ctx, { data }) => {
     const clerkId = data.id;
+    const tombstone = await ctx.db
+      .query("clerkUserTombstones")
+      .withIndex("byClerkId", (q) => q.eq("clerkId", clerkId))
+      .unique();
+    if (tombstone) return null;
 
+    const primaryEmail = data.email_addresses?.find(
+      (item: { id?: string }) => item.id === data.primary_email_address_id,
+    );
     const email =
+      primaryEmail?.email_address ||
       data.email_addresses?.[0]?.email_address ||
       data.primary_email_address ||
       `user_${clerkId}@temp.clerk`;
@@ -173,6 +182,7 @@ export const upsertFromClerk = internalMutation({
     const lastName = data.last_name || "";
     const imageUrl = data.image_url || data.profile_image_url || undefined;
     const isSuperAdmin = data.public_metadata?.isSuperAdmin === true;
+    const isActive = data.banned !== true && data.locked !== true;
 
     const existingUser = await ctx.db
       .query("users")
@@ -185,7 +195,7 @@ export const upsertFromClerk = internalMutation({
         firstName,
         lastName,
         imageUrl,
-        isActive: true,
+        isActive,
         isSuperAdmin,
       });
       return existingUser._id;
@@ -197,7 +207,7 @@ export const upsertFromClerk = internalMutation({
       firstName,
       lastName,
       imageUrl,
-      isActive: true,
+      isActive,
       isSuperAdmin,
     });
     return userId;
@@ -211,13 +221,27 @@ export const deactivateUser = internalMutation({
   args: { clerkId: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("byClerkId", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
+    const [user, tombstone] = await Promise.all([
+      ctx.db
+        .query("users")
+        .withIndex("byClerkId", (q) => q.eq("clerkId", args.clerkId))
+        .unique(),
+      ctx.db
+        .query("clerkUserTombstones")
+        .withIndex("byClerkId", (q) => q.eq("clerkId", args.clerkId))
+        .unique(),
+    ]);
 
     if (user) {
       await ctx.db.patch(user._id, { isActive: false });
+    }
+    if (tombstone) {
+      await ctx.db.patch(tombstone._id, { deletedAt: Date.now() });
+    } else {
+      await ctx.db.insert("clerkUserTombstones", {
+        clerkId: args.clerkId,
+        deletedAt: Date.now(),
+      });
     }
 
     return null;

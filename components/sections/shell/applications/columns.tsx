@@ -14,6 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Avatar } from "@/components/ui/avatar";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { ApplicationPhoto } from "./detail/pre-admission/application-photo";
 import { formatApplicationDate } from "./date-format";
 import { createSortableHeader } from "@/components/table/column-helpers";
@@ -154,12 +155,16 @@ function ContactCell({ row }: { row: ApplicationListItem }) {
   return (
     <div className="flex flex-col gap-1 font-medium">
       <div className="flex min-w-0 items-center gap-2">
-        <Avatar
-          src={row.account.imageUrl}
-          initials={accountInitials}
-          alt={accountDisplayName}
-          className="size-6 shrink-0 bg-muted text-muted-foreground"
-        />
+        <div className="size-6 shrink-0 overflow-hidden rounded-full">
+          <AspectRatio ratio={1} className="size-full">
+            <Avatar
+              src={row.account.imageUrl}
+              initials={accountInitials}
+              alt={accountDisplayName}
+              className="size-full bg-muted text-muted-foreground object-cover object-center"
+            />
+          </AspectRatio>
+        </div>
         <span className="min-w-0 wrap-break-word whitespace-normal">
           {accountDisplayName}
         </span>

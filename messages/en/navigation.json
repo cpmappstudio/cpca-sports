@@ -1,7 +1,9 @@
 {
   "nav": {
     "dashboard": "Dashboard",
+    "home": "Home",
     "applications": "My Applications",
+    "coaches": "Coaches",
     "programs": "Programs",
     "organizations": "Organizations",
     "users": "Users",

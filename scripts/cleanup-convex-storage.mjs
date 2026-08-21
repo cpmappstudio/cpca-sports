@@ -76,7 +76,7 @@ function printBatch(index, result, mode) {
     `[batch ${index}] total=${result.totalStorageFiles} referenced=${result.referencedStorageFiles} orphaned=${result.orphanedStorageFiles}`,
   );
   console.log(
-    `[batch ${index}] refs applications=${result.referencedFromApplications} documents=${result.referencedFromDocuments} photoMappings=${result.referencedFromPhotoMappings}`,
+    `[batch ${index}] refs applications=${result.referencedFromApplications} documents=${result.referencedFromDocuments} coachActivities=${result.referencedFromCoachActivities} photoMappings=${result.referencedFromPhotoMappings}`,
   );
   console.log(
     `[batch ${index}] attempted=${result.attemptedDeletions} deleted=${result.deletedStorageFiles} hasMore=${result.hasMore}`,
@@ -124,11 +124,14 @@ async function main() {
 
   while (batchesRun < maxBatches) {
     batchesRun += 1;
-    const result = await convex.mutation(api.legacyMigration.cleanupOrphanedStorage, {
-      secret: migrationSecret,
-      dryRun: !execute,
-      limit: batchSize,
-    });
+    const result = await convex.mutation(
+      api.legacyMigration.cleanupOrphanedStorage,
+      {
+        secret: migrationSecret,
+        dryRun: !execute,
+        limit: batchSize,
+      },
+    );
 
     lastResult = result;
     totalDeleted += result.deletedStorageFiles;
@@ -153,11 +156,15 @@ async function main() {
   console.log(`Mode: ${mode}`);
   console.log(`Batches run: ${batchesRun}`);
   console.log(`Total deleted: ${totalDeleted}`);
-  console.log(`Total storage files (last batch): ${lastResult.totalStorageFiles}`);
+  console.log(
+    `Total storage files (last batch): ${lastResult.totalStorageFiles}`,
+  );
   console.log(
     `Referenced files (last batch): ${lastResult.referencedStorageFiles}`,
   );
-  console.log(`Orphaned files (last batch): ${lastResult.orphanedStorageFiles}`);
+  console.log(
+    `Orphaned files (last batch): ${lastResult.orphanedStorageFiles}`,
+  );
   console.log(`Has more: ${lastResult.hasMore}`);
 }
 

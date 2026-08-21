@@ -18,6 +18,7 @@ async function loadMessages(locale: string) {
     import(`../messages/${locale}/preadmission.json`),
     import(`../messages/${locale}/applications.json`),
     import(`../messages/${locale}/programs.json`),
+    import(`../messages/${locale}/coaches.json`),
   ]);
 
   return deepmerge.all([
@@ -29,6 +30,7 @@ async function loadMessages(locale: string) {
     { preadmission: modules[5].default },
     { Applications: modules[6].default },
     { Programs: modules[7].default },
+    { Coaches: modules[8].default },
   ]) as Record<string, unknown>;
 }
 

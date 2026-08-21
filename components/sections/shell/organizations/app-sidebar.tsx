@@ -64,10 +64,12 @@ export function NavbarAppSidebar() {
 
 interface SidebarAppSidebarProps {
   isTenantAdmin?: boolean;
+  coachId?: string;
 }
 
 export function SidebarAppSidebar({
   isTenantAdmin = false,
+  coachId,
 }: SidebarAppSidebarProps) {
   const params = useParams();
   const pathname = usePathname();
@@ -92,6 +94,7 @@ export function SidebarAppSidebar({
   const context = getNavContext(pathname, orgSlug);
   const { items, settingsHref } = getNavConfig(context, {
     isTenantAdmin,
+    coachId,
   });
 
   return (

@@ -16,8 +16,8 @@ import { ApplicationHeader } from "./application-header";
 import { ApplicationDetailFormTab } from "./application-detail-form-tab";
 import { ApplicationDocuments } from "./documents/application-documents";
 import { ApplicationPayments } from "./payments/application-payments";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { TabsNavigation } from "@/components/common/tabs-navigation";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Suspense } from "react";
 import { UserIcon } from "@heroicons/react/20/solid";
@@ -286,39 +286,26 @@ function ApplicationDetailContent({
 
       <div className="lg:col-span-3">
         <Tabs defaultValue="application" className="w-full">
-          <ScrollArea className="w-full whitespace-nowrap">
-            <TabsList>
-              <TabsTrigger
-                value="application"
-                className="gap-1 px-2 text-xs md:px-3 md:text-sm"
-              >
-                <UserIcon className="hidden h-4 w-4 md:block" />
-                <span>{t("tabs.application")}</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="docs"
-                className="gap-1 px-2 text-xs md:px-3 md:text-sm"
-              >
-                <File className="hidden h-4 w-4 md:block" />
-                <span>{t("tabs.documents")}</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="payments"
-                className="gap-1 px-2 text-xs md:px-3 md:text-sm"
-              >
-                <CreditCard className="hidden h-4 w-4 md:block" />
-                <span>{t("tabs.payments")}</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="transactions"
-                className="gap-1 px-2 text-xs md:px-3 md:text-sm"
-              >
-                <History className="hidden h-4 w-4 md:block" />
-                <span>{t("tabs.transactions")}</span>
-              </TabsTrigger>
-            </TabsList>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          <TabsNavigation
+            items={[
+              {
+                value: "application",
+                label: t("tabs.application"),
+                icon: UserIcon,
+              },
+              { value: "docs", label: t("tabs.documents"), icon: File },
+              {
+                value: "payments",
+                label: t("tabs.payments"),
+                icon: CreditCard,
+              },
+              {
+                value: "transactions",
+                label: t("tabs.transactions"),
+                icon: History,
+              },
+            ]}
+          />
           <TabsContent value="application" className="mt-0">
             <ApplicationDetailFormTab
               application={application}
