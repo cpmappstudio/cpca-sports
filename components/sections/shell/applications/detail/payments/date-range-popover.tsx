@@ -66,6 +66,7 @@ export function DateRangePopover({
           onSelect={onSelect}
           numberOfMonths={2}
           captionLayout="dropdown"
+          endMonth={new Date(2100, 11)}
           disabled={disabled}
         />
       </PopoverContent>
