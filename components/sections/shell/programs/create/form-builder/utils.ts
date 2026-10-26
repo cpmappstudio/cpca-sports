@@ -1,3 +1,4 @@
+import { CORE_PROGRAM_FIELD_NAMES } from "@/lib/forms/program-form-core";
 import type {
   ProgramFormDefinition,
   ProgramFormElement,
@@ -171,7 +172,7 @@ export function createEmptyFormDefinition(
   copy: ProgramFormCopy = DEFAULT_PROGRAM_FORM_COPY,
 ): ProgramFormDefinition {
   return {
-    version: 1,
+    version: 2,
     isMultiStep: false,
     steps: [createEmptyStep(0, copy)],
   };
@@ -509,7 +510,7 @@ export function parseProgramFormDefinition(
 
     if (
       isRecord(parsed) &&
-      parsed.version === 1 &&
+      (parsed.version === 1 || parsed.version === 2) &&
       Array.isArray(parsed.steps)
     ) {
       const steps = parsed.steps
@@ -518,7 +519,7 @@ export function parseProgramFormDefinition(
 
       if (steps.length > 0) {
         return {
-          version: 1,
+          version: parsed.version,
           isMultiStep: steps.length > 1,
           steps,
         };
@@ -536,6 +537,23 @@ export function serializeProgramFormDefinition(
     ...definition,
     isMultiStep: definition.steps.length > 1,
   });
+}
+
+export function upgradeProgramFormDefinition(
+  definition: ProgramFormDefinition,
+): ProgramFormDefinition {
+  return {
+    ...definition,
+    version: 2,
+    steps: definition.steps.map((step) => ({
+      ...step,
+      elements: step.elements.filter(
+        (element) =>
+          isStaticElement(element) ||
+          !CORE_PROGRAM_FIELD_NAMES.has(element.name.trim()),
+      ),
+    })),
+  };
 }
 
 export function isStaticElement(
@@ -565,6 +583,14 @@ export function getProgramFormFieldNameErrors(
       const normalizedName = element.name.trim();
       if (!normalizedName) {
         errors[element.id] = "required";
+        continue;
+      }
+
+      if (
+        definition.version === 2 &&
+        CORE_PROGRAM_FIELD_NAMES.has(normalizedName)
+      ) {
+        errors[element.id] = "duplicate";
         continue;
       }
 

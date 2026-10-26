@@ -12,6 +12,7 @@ import {
   applicationListItemValidator,
 } from "./lib/applicationSummary";
 import { feeSummaryValidator } from "./lib/feeSummary";
+import { APPLICANT_CORE_FIELD_NAMES } from "../lib/forms/program-form-core";
 import {
   getApplicantFromFormData,
   getApplicationApplicant,
@@ -603,7 +604,7 @@ export const updatePhoto = mutation({
 
     // Delete old photo from storage if it exists
     const oldPhotoId = getApplicationPhotoStorageId(application);
-    if (oldPhotoId) {
+    if (oldPhotoId && oldPhotoId !== args.photoStorageId) {
       await ctx.storage.delete(oldPhotoId);
     }
 
@@ -647,7 +648,7 @@ export const updateFormData = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
-    const application = await ctx.db.get(args.applicationId);
+    const application = await ctx.db.get("applications", args.applicationId);
 
     if (!application) {
       throw new Error("Application not found");
@@ -665,7 +666,7 @@ export const updateFormData = mutation({
     }
 
     const photoStorageId = application.formData.athlete?.photo;
-    const updatedFormData = args.replaceAll
+    const updatedFormData: typeof application.formData = args.replaceAll
       ? {
           ...args.formData,
           ...(photoStorageId
@@ -687,12 +688,30 @@ export const updateFormData = mutation({
           },
         };
 
-    await ctx.db.patch(args.applicationId, {
-      applicant:
-        args.applicant ??
-        (application.programId
-          ? application.applicant
-          : getApplicantFromFormData(updatedFormData)),
+    const hasDynamicForm = Boolean(
+      application.programId && application.formDefinitionSnapshot,
+    );
+    const applicant = args.applicant
+      ? {
+          ...args.applicant,
+          // Photo updates are independent of the form's editing session.
+          photoStorageId: getApplicationPhotoStorageId(application),
+        }
+      : hasDynamicForm
+        ? getApplicationApplicant(application)
+        : getApplicantFromFormData(updatedFormData);
+
+    if (hasDynamicForm && applicant) {
+      for (const field of APPLICANT_CORE_FIELD_NAMES) {
+        if (application.formData.athlete?.[field] !== undefined) {
+          updatedFormData.athlete ??= {};
+          updatedFormData.athlete[field] = applicant[field];
+        }
+      }
+    }
+
+    await ctx.db.patch("applications", args.applicationId, {
+      applicant,
       programSnapshot: application.programId
         ? application.programSnapshot
         : getProgramSnapshotFromFormData(updatedFormData),

@@ -21,9 +21,11 @@ import type {
   FormData as ApplicationFormData,
 } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
+import { APPLICANT_CORE_FIELD_NAMES } from "@/lib/forms/program-form-core";
 import { createProgramFormCopy } from "@/components/sections/shell/programs/create/form-builder/program-form-copy";
 import {
   parseProgramFormDefinition,
+  isFieldElement,
   type ProgramFormCopy,
 } from "@/components/sections/shell/programs/create/form-builder/utils";
 import {
@@ -143,16 +145,25 @@ export function ApplicationDynamicForm({
     () => createProgramFormCopy(tBuilder),
     [tBuilder],
   );
-  const definition = useMemo(
-    () =>
-      application.formDefinitionSnapshot
-        ? parseProgramFormDefinition(
-            application.formDefinitionSnapshot,
-            formCopy,
-          )
-        : null,
-    [application.formDefinitionSnapshot, formCopy],
-  );
+  const definition = useMemo(() => {
+    if (!application.formDefinitionSnapshot) return null;
+    const parsed = parseProgramFormDefinition(
+      application.formDefinitionSnapshot,
+      formCopy,
+    );
+    return {
+      ...parsed,
+      steps: parsed.steps.map((step) => ({
+        ...step,
+        elements: step.elements.filter(
+          (element) =>
+            !isFieldElement(element) ||
+            (parsed.version === 1 && step.id !== "athlete") ||
+            !APPLICANT_CORE_FIELD_NAMES.some((name) => name === element.name),
+        ),
+      })),
+    };
+  }, [application.formDefinitionSnapshot, formCopy]);
   const [values, setValues] = useState<ProgramFormValues>(() =>
     getDisplayElementState(definition, formData),
   );
@@ -234,6 +245,18 @@ export function ApplicationDynamicForm({
         <AccordionTrigger>{tDetail("applicantInfo")}</AccordionTrigger>
         <AccordionContent className="flex flex-col gap-4 text-balance">
           <FieldGroup>
+            {definition?.version === 2 ? (
+              <Field>
+                <FieldLabel htmlFor="application-program">
+                  {t("program")}
+                </FieldLabel>
+                <Input
+                  id="application-program"
+                  value={application.programSnapshot?.name ?? ""}
+                  readOnly
+                />
+              </Field>
+            ) : null}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field>
                 <FieldLabel>{tDetail("firstName")}</FieldLabel>

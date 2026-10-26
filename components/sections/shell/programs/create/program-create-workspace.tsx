@@ -22,6 +22,7 @@ import { ProgramFormBuilder } from "./form-builder/program-form-builder";
 import {
   getProgramFormFieldNameErrors,
   parseProgramFormDefinition,
+  upgradeProgramFormDefinition,
 } from "./form-builder/utils";
 import { mapEditableDocumentConfigs } from "@/components/sections/shell/documents/document-default-types";
 import { mapEditablePaymentDefaults } from "@/components/sections/shell/payments/defaults/payment-default-state";
@@ -106,10 +107,14 @@ export function ProgramCreateWorkspace({
   const [isSaving, setIsSaving] = useState(false);
 
   const handleUseTemplate = async (template: Doc<"formTemplates">) => {
-    const nextDefinition = buildProgramFormDefinitionFromTemplate(
+    const templateDefinition = buildProgramFormDefinitionFromTemplate(
       template,
       formCopy,
     );
+    const nextDefinition =
+      formDefinition.version === 2
+        ? upgradeProgramFormDefinition(templateDefinition)
+        : templateDefinition;
 
     setIsSaving(true);
 

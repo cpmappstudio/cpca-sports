@@ -1,7 +1,5 @@
 export type ProgramFormWidth =
-  | "col-span-full"
-  | "md:col-span-3"
-  | "md:col-span-2";
+  "col-span-full" | "md:col-span-3" | "md:col-span-2";
 
 type BaseElement = {
   id: string;
@@ -23,12 +21,7 @@ export type ProgramFormOption = {
 };
 
 export type ProgramFormStepIcon =
-  | "number"
-  | "athlete"
-  | "address"
-  | "school"
-  | "parents"
-  | "general";
+  "number" | "athlete" | "address" | "school" | "parents" | "general";
 
 export type ProgramFormTextElement = BaseElement & {
   fieldType: "Text";
@@ -105,7 +98,7 @@ export type ProgramFormStep = {
 };
 
 export type ProgramFormDefinition = {
-  version: 1;
+  version: 1 | 2;
   isMultiStep: boolean;
   steps: ProgramFormStep[];
 };

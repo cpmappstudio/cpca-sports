@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import type { Application, ApplicationStatus } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
+import { usesCoreApplicantFields } from "@/lib/forms/program-form-core";
 import { getCountryName } from "@/lib/countries/countries";
 import { ApplicationPhoto } from "./pre-admission/application-photo";
 import { Id } from "@/convex/_generated/dataModel";
@@ -489,113 +490,135 @@ export function ApplicationHeader({
           </div>
         }
       >
-        <div className="grid grid-cols-1 gap-3 text-sm">
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">{t("age")}:</span>
-            <span className="text-muted-foreground">
-              {birthDate ? `${calculateAge(birthDate)} years` : "-"}
-            </span>
+        {usesCoreApplicantFields(application.formDefinitionSnapshot) ? (
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 shrink-0 text-primary" />
+              <span className="font-semibold text-foreground">
+                {t("program")}:
+              </span>
+              <span className="text-muted-foreground">{program || "-"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 shrink-0 text-primary" />
+              <span className="break-all text-muted-foreground">
+                {email || "-"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4 shrink-0 text-primary" />
+              <span className="text-muted-foreground">{telephone || "-"}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">
-              {t("birthCountry")}:
-            </span>
-            <span className="text-muted-foreground">
-              {getCountryName(countryOfBirth) || "-"}
-            </span>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">{t("age")}:</span>
+              <span className="text-muted-foreground">
+                {birthDate ? `${calculateAge(birthDate)} years` : "-"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">
+                {t("birthCountry")}:
+              </span>
+              <span className="text-muted-foreground">
+                {getCountryName(countryOfBirth) || "-"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">
+                {t("citizenship")}:
+              </span>
+              <span className="text-muted-foreground">
+                {getCountryName(countryOfCitizenship) || "-"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">
+                {t("address")}:
+              </span>
+              <span className="text-muted-foreground">
+                {streetAddress && city && country
+                  ? `${streetAddress}, ${city}, ${getCountryName(country)}`
+                  : "-"}
+              </span>
+            </div>
+            <hr />
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">
+                {t("format")}:
+              </span>
+              <span className="text-muted-foreground capitalize">
+                {format || "-"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">
+                {t("program")}:
+              </span>
+              <span className="text-muted-foreground capitalize">
+                {program || "-"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">
+                {t("gradeEntering")}:
+              </span>
+              <span className="text-muted-foreground">
+                {gradeEntering
+                  ? gradeEntering === "postgraduate"
+                    ? tAthlete("gradePostgraduate")
+                    : tAthlete(`grade${gradeEntering}` as keyof typeof tAthlete)
+                  : "-"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">
+                {t("enrollmentYear")}:
+              </span>
+              <span className="text-muted-foreground">
+                {enrollmentYear || "-"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">
+                {t("graduationYear")}:
+              </span>
+              <span className="text-muted-foreground">
+                {graduationYear || "-"}
+              </span>
+            </div>
+            <hr />
+            <div className="flex items-center gap-2">
+              <IdCard className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">
+                {t("needsI20")}:
+              </span>
+              <span className="text-muted-foreground">
+                {needsI20 === "yes" ? t("yes") : t("no")}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Home className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-semibold text-foreground">
+                {t("boarding")}:
+              </span>
+              <span className="text-muted-foreground">
+                {interestedInBoarding === "yes" ? t("yes") : t("no")}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">
-              {t("citizenship")}:
-            </span>
-            <span className="text-muted-foreground">
-              {getCountryName(countryOfCitizenship) || "-"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">
-              {t("address")}:
-            </span>
-            <span className="text-muted-foreground">
-              {streetAddress && city && country
-                ? `${streetAddress}, ${city}, ${getCountryName(country)}`
-                : "-"}
-            </span>
-          </div>
-          <hr />
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">
-              {t("format")}:
-            </span>
-            <span className="text-muted-foreground capitalize">
-              {format || "-"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">
-              {t("program")}:
-            </span>
-            <span className="text-muted-foreground capitalize">
-              {program || "-"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <GraduationCap className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">
-              {t("gradeEntering")}:
-            </span>
-            <span className="text-muted-foreground">
-              {gradeEntering
-                ? gradeEntering === "postgraduate"
-                  ? tAthlete("gradePostgraduate")
-                  : tAthlete(`grade${gradeEntering}` as keyof typeof tAthlete)
-                : "-"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">
-              {t("enrollmentYear")}:
-            </span>
-            <span className="text-muted-foreground">
-              {enrollmentYear || "-"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">
-              {t("graduationYear")}:
-            </span>
-            <span className="text-muted-foreground">
-              {graduationYear || "-"}
-            </span>
-          </div>
-          <hr />
-          <div className="flex items-center gap-2">
-            <IdCard className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">
-              {t("needsI20")}:
-            </span>
-            <span className="text-muted-foreground">
-              {needsI20 === "yes" ? t("yes") : t("no")}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Home className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">
-              {t("boarding")}:
-            </span>
-            <span className="text-muted-foreground">
-              {interestedInBoarding === "yes" ? t("yes") : t("no")}
-            </span>
-          </div>
-        </div>
+        )}
       </EntityDetailProfile>
       <ApplicationBalanceCard
         totalDue={totalDue}
