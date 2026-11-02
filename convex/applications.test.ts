@@ -199,3 +199,168 @@ test("new applications retain their real program and form when that program is l
   expect(documents).toHaveLength(1);
   expect(documents[0].documentTypeId).toBe("consent");
 });
+
+const summaryDefinition = JSON.stringify({
+  version: 1,
+  steps: [
+    {
+      id: "athlete",
+      title: "Athlete",
+      elements: [
+        {
+          id: "contract",
+          name: "select_a8f3",
+          fieldType: "Select",
+          label: "Contract",
+          options: [{ id: "yes", label: "YES", value: "YES" }],
+        },
+        {
+          id: "first-name",
+          name: "firstName",
+          fieldType: "Input",
+          inputType: "text",
+        },
+        {
+          id: "instructions",
+          name: "instructions",
+          fieldType: "Text",
+          static: true,
+          content: "Instructions",
+        },
+      ],
+    },
+  ],
+});
+
+test.each([undefined, 1] as const)(
+  "summary settings apply to existing applications with snapshot version %s without changing stored data",
+  async (version) => {
+    const { t, admin, programId, applicationId } = await setup(version);
+    const before = await t.run((ctx) =>
+      ctx.db.get("applications", applicationId),
+    );
+    await admin.mutation(api.programs.save, {
+      programId,
+      name: "Real program",
+      formDefinition: summaryDefinition,
+      summaryFields: ["contract"],
+      saveProgram: true,
+      saveTemplate: false,
+    });
+    const detail = await admin.query(api.applications.getById, {
+      applicationId,
+    });
+    expect(detail?.summaryConfiguration).toEqual({
+      formDefinition: summaryDefinition,
+      fields: ["contract"],
+    });
+    expect(
+      await t.run((ctx) => ctx.db.get("applications", applicationId)),
+    ).toEqual(before);
+
+    await admin.mutation(api.programs.save, {
+      programId,
+      name: "Real program",
+      summaryFields: [],
+      saveProgram: true,
+      saveTemplate: false,
+    });
+    expect(
+      (await admin.query(api.applications.getById, { applicationId }))
+        ?.summaryConfiguration?.fields,
+    ).toEqual([]);
+  },
+);
+
+test.each([
+  ["missing"],
+  ["contract", "contract"],
+  ["first-name"],
+  ["instructions"],
+])("summary configuration rejects invalid fields %j", async (...ids) => {
+  const { t, admin, programId } = await setup();
+  await expect(
+    admin.mutation(api.programs.save, {
+      programId,
+      name: "Real program",
+      formDefinition: summaryDefinition,
+      summaryFields: ids,
+      saveProgram: true,
+      saveTemplate: false,
+    }),
+  ).rejects.toThrow("Invalid application summary fields");
+  expect(
+    (await t.run((ctx) => ctx.db.get("programs", programId)))?.summaryFields,
+  ).toBeUndefined();
+});
+
+test("removing a field prunes saved summary references while unspecified configuration keeps defaults", async () => {
+  const { t, admin, programId, applicationId } = await setup();
+  const save = {
+    programId,
+    name: "Real program",
+    saveProgram: true,
+    saveTemplate: false,
+  };
+  await admin.mutation(api.programs.save, {
+    ...save,
+    formDefinition: summaryDefinition,
+  });
+  expect(
+    (await admin.query(api.applications.getById, { applicationId }))
+      ?.summaryConfiguration?.fields,
+  ).toBeUndefined();
+  await admin.mutation(api.programs.save, {
+    ...save,
+    summaryFields: ["contract"],
+  });
+  await admin.mutation(api.programs.save, {
+    ...save,
+    formDefinition: JSON.stringify({ version: 2, steps: [] }),
+  });
+  expect(
+    (await t.run((ctx) => ctx.db.get("programs", programId)))?.summaryFields,
+  ).toEqual([]);
+});
+
+test("summary configuration keeps application read access and program admin permissions", async () => {
+  const { t, admin, applicationId, programId } = await setup();
+  await t.run(async (ctx) => {
+    await ctx.db.insert("users", {
+      clerkId: "outsider",
+      firstName: "Other",
+      lastName: "User",
+      email: "other@example.com",
+      isActive: true,
+      isSuperAdmin: false,
+    });
+  });
+  const outsider = t.withIdentity({ subject: "outsider" });
+  await expect(
+    outsider.query(api.applications.getById, { applicationId }),
+  ).rejects.toThrow("Unauthorized");
+  await expect(
+    outsider.mutation(api.programs.save, {
+      programId,
+      name: "Real program",
+      summaryFields: [],
+      saveProgram: true,
+      saveTemplate: false,
+    }),
+  ).rejects.toThrow("Admin access required");
+  await admin.mutation(api.programs.save, {
+    programId,
+    name: "Real program",
+    formDefinition: summaryDefinition,
+    saveProgram: true,
+    saveTemplate: false,
+  });
+  await t.run(async (ctx) => {
+    const application = (await ctx.db.get("applications", applicationId))!;
+    await ctx.db.patch("users", application.userId, { isSuperAdmin: false });
+  });
+  expect(
+    (await admin.query(api.applications.getById, { applicationId }))
+      ?.summaryConfiguration?.formDefinition,
+  ).toBe(summaryDefinition);
+});

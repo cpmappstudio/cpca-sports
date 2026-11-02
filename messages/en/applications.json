@@ -92,7 +92,8 @@
       "phone": "Phone",
       "accountEmail": "Account Email",
       "createdAt": "Created At"
-    }
+    },
+    "columnsSaveError": "Could not save your columns. Please try again."
   },
   "tabs": {
     "active": "Current",
@@ -229,7 +230,8 @@
     "howDidYouHear": "How Did You Hear About Us",
     "needsI20": "Needs I-20?",
     "submittedAt": "Submitted At",
-    "message": "Additional Message"
+    "message": "Additional Message",
+    "summaryNoInformation": "No data"
   },
   "payments": {
     "summary": {

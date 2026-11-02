@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Authenticated, Preloaded, usePreloadedQuery } from "convex/react";
+import {
+  Authenticated,
+  Preloaded,
+  usePreloadedQuery,
+  useMutation,
+} from "convex/react";
 import { Archive, Inbox } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api } from "@/convex/_generated/api";
@@ -10,8 +15,12 @@ import { TabsNavigation } from "@/components/common/tabs-navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ApplicationsAnalytics } from "./applications-analytics";
 import { ApplicationsTable } from "./applications-table";
+import { toast } from "sonner";
 
 interface ApplicationsTableAdminWrapperProps {
+  preloadedTableConfiguration: Preloaded<
+    typeof api.applications.getTableConfiguration
+  >;
   preloadedApplications: Preloaded<
     typeof api.applications.listByOrganizationSummary
   >;
@@ -31,6 +40,7 @@ type ApplicationsTab = "active" | "archived";
 function ApplicationsTableContent({
   preloadedApplications,
   preloadedArchivedApplications,
+  preloadedTableConfiguration,
   organizationSlug,
   initialTab = "active",
   title,
@@ -40,7 +50,29 @@ function ApplicationsTableContent({
 }: ApplicationsTableAdminWrapperProps) {
   const applications = usePreloadedQuery(preloadedApplications);
   const archivedApplications = usePreloadedQuery(preloadedArchivedApplications);
+  const tableConfiguration = usePreloadedQuery(preloadedTableConfiguration);
   const t = useTranslations("Applications");
+  const setColumns = useMutation(
+    api.applications.setTableColumns,
+  ).withOptimisticUpdate((store, args) => {
+    const queryArgs = { organizationSlug: args.organizationSlug };
+    const current = store.getQuery(
+      api.applications.getTableConfiguration,
+      queryArgs,
+    );
+    if (current)
+      store.setQuery(api.applications.getTableConfiguration, queryArgs, {
+        ...current,
+        visibleColumns: args.visibleColumns,
+      });
+  });
+  const handleColumnsChange = async (visibleColumns: string[]) => {
+    try {
+      await setColumns({ organizationSlug, visibleColumns });
+    } catch {
+      toast.error(t("table.columnsSaveError"));
+    }
+  };
   const [activeTab, setActiveTab] = useState<ApplicationsTab>(initialTab);
   const [analyticsApplications, setAnalyticsApplications] = useState(
     initialTab === "active" ? applications : archivedApplications,
@@ -106,6 +138,8 @@ function ApplicationsTableContent({
             analyticsApplications={analyticsApplications}
             organizationSlug={organizationSlug}
             isAdmin={true}
+            tableConfiguration={tableConfiguration}
+            onColumnsChange={handleColumnsChange}
             onFilteredApplicationsChange={handleFilteredApplicationsChange}
           />
         </TabsContent>
@@ -115,6 +149,8 @@ function ApplicationsTableContent({
             analyticsApplications={analyticsApplications}
             organizationSlug={organizationSlug}
             isAdmin={true}
+            tableConfiguration={tableConfiguration}
+            onColumnsChange={handleColumnsChange}
             emptyMessage={t("emptyMessageArchived")}
             onFilteredApplicationsChange={handleFilteredApplicationsChange}
           />

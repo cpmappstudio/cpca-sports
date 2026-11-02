@@ -1,4 +1,8 @@
-import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import type {
+  ColumnDef,
+  SortingState,
+  VisibilityState,
+} from "@tanstack/react-table";
 import type { ReactNode } from "react";
 
 export interface FilterOption {
@@ -20,6 +24,11 @@ export interface DataTableProps<TData> {
   filterPlaceholder?: string;
   emptyMessage?: string;
   columnsMenuLabel?: string;
+  columnLabels?: Record<string, string>;
+  columnGroups?: Record<string, string>;
+  columnVisibility?: VisibilityState;
+  onColumnVisibilityChange?: (visibility: VisibilityState) => void;
+  exportDisabled?: boolean;
   exportButtonLabel?: string;
   filterConfigs?: FilterConfig[];
   filtersMenuLabel?: string;
@@ -35,7 +44,7 @@ export interface DataTableProps<TData> {
   pageSize?: number;
   enableRowSelection?: boolean;
   onCreate?: () => void;
-  onExport?: (rows: TData[]) => void;
+  onExport?: (rows: TData[], visibleColumnIds: string[]) => void;
   onFilteredDataChange?: (rows: TData[]) => void;
   onRowClick?: (row: TData) => void;
   renderBulkActions?: (

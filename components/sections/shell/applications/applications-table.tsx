@@ -13,7 +13,6 @@ import {
   useClientApplicationColumns,
   useApplicationFilters,
 } from "@/components/sections/shell/applications/columns";
-import { formatApplicationDate } from "@/components/sections/shell/applications/date-format";
 import { ROUTES } from "@/lib/navigation/routes";
 import type { ApplicationListItem } from "@/lib/applications/list-types";
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ApplicationPaymentStatusChart } from "./applications-analytics";
+import {
+  DEFAULT_APPLICATION_COLUMNS,
+  type ApplicationTableConfiguration,
+} from "@/lib/applications/table-fields";
+import {
+  convertApplicationsToCSV,
+  formatApplicationTableValue,
+  getApplicationFieldSortValue,
+  compareApplicationTableValues,
+} from "@/lib/applications/table-values";
+import { createSortableHeader } from "@/components/table/column-helpers";
+import type { ColumnDef } from "@tanstack/react-table";
 
 interface ApplicationsTableProps {
   applications: ApplicationListItem[];
@@ -37,6 +48,8 @@ interface ApplicationsTableProps {
   emptyMessage?: string;
   analyticsApplications?: ApplicationListItem[];
   onFilteredApplicationsChange?: (applications: ApplicationListItem[]) => void;
+  tableConfiguration?: ApplicationTableConfiguration;
+  onColumnsChange?: (ids: string[]) => void;
 }
 
 type ArchiveRequest = {
@@ -52,12 +65,50 @@ export function ApplicationsTable({
   emptyMessage,
   analyticsApplications = applications,
   onFilteredApplicationsChange,
+  tableConfiguration,
+  onColumnsChange,
 }: ApplicationsTableProps) {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("Applications");
   const tTable = useTranslations("Common.table");
   const tActions = useTranslations("Common.actions");
+  const tDetail = useTranslations("Applications.detail");
+  const columnLabels = useMemo<Record<string, string>>(() => {
+    const base = {
+      _creationTime: t("date"),
+      fullName: t("fullName"),
+      program: t("program"),
+      enrollmentYear: t("enrollmentYear"),
+      contact: t("contact"),
+      paymentProgress: t("payment"),
+      status: t("status"),
+    };
+    return {
+      ...base,
+      ...Object.fromEntries(
+        (tableConfiguration?.fields ?? []).map((field) => [
+          field.id,
+          Object.values(base).includes(field.label)
+            ? `${field.label} — ${field.section}`
+            : field.label,
+        ]),
+      ),
+    };
+  }, [t, tableConfiguration?.fields]);
+  const columnGroups = tableConfiguration
+    ? {
+        ...Object.fromEntries(
+          DEFAULT_APPLICATION_COLUMNS.map((id) => [
+            id,
+            tTable("generalColumns"),
+          ]),
+        ),
+        ...Object.fromEntries(
+          tableConfiguration.fields.map((field) => [field.id, field.section]),
+        ),
+      }
+    : undefined;
   const paymentStatusHeader = useMemo(
     () =>
       isAdmin ? (
@@ -83,8 +134,22 @@ export function ApplicationsTable({
   };
 
   const handleExport = isAdmin
-    ? (rows: ApplicationListItem[]) => {
-        const csv = convertToCSV(rows, t, locale);
+    ? (rows: ApplicationListItem[], visibleColumnIds: string[]) => {
+        const csv = convertApplicationsToCSV(rows, visibleColumnIds, {
+          labels: columnLabels,
+          locale,
+          yes: tDetail("yes"),
+          no: tDetail("no"),
+          missing: tDetail("summaryNoInformation"),
+          noFees: t("paymentNoFees"),
+          statuses: {
+            pending: t("statusOptions.pending"),
+            reviewing: t("statusOptions.reviewing"),
+            "pre-admitted": t("statusOptions.pre-admitted"),
+            admitted: t("statusOptions.admitted"),
+            denied: t("statusOptions.denied"),
+          },
+        });
         downloadCSV(
           csv,
           `applications-${organizationSlug}-${new Date().toISOString().split("T")[0]}.csv`,
@@ -146,10 +211,67 @@ export function ApplicationsTable({
   });
   const clientColumns = useClientApplicationColumns();
 
-  const columns = useMemo(
-    () => (isAdmin ? adminColumns : clientColumns),
-    [adminColumns, clientColumns, isAdmin],
-  );
+  const columns = useMemo<ColumnDef<ApplicationListItem>[]>(() => {
+    if (!isAdmin) return clientColumns;
+    return [
+      ...adminColumns,
+      ...(tableConfiguration?.fields ?? []).map(
+        (field): ColumnDef<ApplicationListItem> => ({
+          id: field.id,
+          header: createSortableHeader(columnLabels[field.id]),
+          accessorFn: (row) => getApplicationFieldSortValue(row, field.id),
+          sortUndefined: "last",
+          sortingFn: (left, right, columnId) =>
+            compareApplicationTableValues(
+              left.getValue(columnId),
+              right.getValue(columnId),
+              locale,
+            ),
+          cell: ({ row }) => (
+            <span className="block max-w-xs whitespace-normal break-words">
+              {formatApplicationTableValue(
+                row.original.formValues?.[field.id],
+                {
+                  yes: tDetail("yes"),
+                  no: tDetail("no"),
+                  missing: tDetail("summaryNoInformation"),
+                },
+              )}
+            </span>
+          ),
+        }),
+      ),
+    ];
+  }, [
+    adminColumns,
+    clientColumns,
+    columnLabels,
+    isAdmin,
+    locale,
+    tableConfiguration?.fields,
+    tDetail,
+  ]);
+  const configurableColumnIds = [
+    ...DEFAULT_APPLICATION_COLUMNS,
+    ...(tableConfiguration?.fields ?? []).map((field) => field.id),
+  ];
+  const columnVisibility = tableConfiguration
+    ? Object.fromEntries(
+        [...configurableColumnIds, "sex"].map((id) => [
+          id,
+          tableConfiguration.visibleColumns.includes(id),
+        ]),
+      )
+    : undefined;
+  const selectedFieldIds =
+    tableConfiguration?.visibleColumns.filter((id) => id.startsWith("form:")) ??
+    [];
+  const exportDisabled =
+    tableConfiguration !== undefined &&
+    (tableConfiguration.visibleColumns.length === 0 ||
+      applications.some((row) =>
+        selectedFieldIds.some((id) => row.formValues?.[id] === undefined),
+      ));
 
   const resultsCountLabel = (
     filtered: number,
@@ -178,6 +300,20 @@ export function ApplicationsTable({
           (isAdmin ? t("emptyMessageAdmin") : t("emptyMessageClient"))
         }
         columnsMenuLabel={tTable("columns")}
+        columnLabels={columnLabels}
+        columnGroups={columnGroups}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={
+          onColumnsChange
+            ? (visibility) =>
+                onColumnsChange(
+                  configurableColumnIds.filter(
+                    (id) => visibility[id] !== false,
+                  ),
+                )
+            : undefined
+        }
+        exportDisabled={exportDisabled}
         exportButtonLabel={tActions("export")}
         filtersMenuLabel={tTable("filters")}
         filterConfigs={isAdmin ? filters : undefined}
@@ -281,57 +417,6 @@ export function ApplicationsTable({
       </AlertDialog>
     </>
   );
-}
-
-function convertToCSV(
-  data: ApplicationListItem[],
-  t: ReturnType<typeof useTranslations<"Applications">>,
-  locale: string,
-): string {
-  if (data.length === 0) return "";
-
-  const headers = [
-    t("table.exportHeaders.code"),
-    t("status"),
-    t("fullName"),
-    t("table.exportHeaders.email"),
-    t("table.exportHeaders.phone"),
-    t("program"),
-    t("enrollmentYear"),
-    t("contact"),
-    t("table.exportHeaders.accountEmail"),
-    t("table.exportHeaders.createdAt"),
-  ];
-
-  const rows = data.map((app) => {
-    const fullName =
-      `${app.applicant.firstName} ${app.applicant.lastName}`.trim();
-    const accountName =
-      `${app.account.firstName} ${app.account.lastName}`.trim() ||
-      app.account.email;
-
-    return [
-      app.applicationCode,
-      app.status,
-      fullName,
-      app.applicant.email,
-      app.applicant.telephone,
-      app.program.name,
-      app.enrollmentYear ?? "",
-      accountName,
-      app.account.email,
-      formatApplicationDate(app._creationTime, locale),
-    ];
-  });
-
-  const csvContent = [
-    headers.join(","),
-    ...rows.map((row) =>
-      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
-    ),
-  ].join("\n");
-
-  return csvContent;
 }
 
 function downloadCSV(csv: string, filename: string) {

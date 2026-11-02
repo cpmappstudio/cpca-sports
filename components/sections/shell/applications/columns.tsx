@@ -22,6 +22,10 @@ import { getProgramIcon } from "@/lib/programs/icon-catalog";
 import type { ApplicationStatus } from "@/lib/applications/types";
 import type { ApplicationListItem } from "@/lib/applications/list-types";
 import type { FilterConfig } from "@/lib/table/types";
+import {
+  getApplicationAccountName,
+  getApplicationPaymentProgress,
+} from "@/lib/applications/table-values";
 import { formatCurrency } from "@/lib/utils/currency";
 import { api } from "@/convex/_generated/api";
 
@@ -89,9 +93,11 @@ function ApplicantPhotoThumb({
 function ApplicantCell({
   row,
   t,
+  showMetadata,
 }: {
   row: ApplicationListItem;
   t: ReturnType<typeof useTranslations<"Applications">>;
+  showMetadata: boolean;
 }) {
   const firstName = row.applicant.firstName;
   const lastName = row.applicant.lastName;
@@ -116,25 +122,24 @@ function ApplicantCell({
             {firstName} {lastName}
           </div>
         </div>
-        <div className="mt-1 inline-flex flex-col gap-1 text-xs text-muted-foreground lg:hidden">
-          <div className="flex gap-1">
-            <span className="font-mono uppercase">{t("program")}:</span>
-            <Icon className="h-3 w-3" />
-            <span>{program || "-"}</span>
+        {showMetadata ? (
+          <div className="mt-1 inline-flex flex-col gap-1 text-xs text-muted-foreground lg:hidden">
+            <div className="flex gap-1">
+              <span className="font-mono uppercase">{t("program")}:</span>
+              <Icon className="h-3 w-3" />
+              <span>{program || "-"}</span>
+            </div>
+            <div>
+              <span className="font-mono uppercase">
+                {t("enrollmentYear")}:
+              </span>
+              <span>{row.enrollmentYear || "-"}</span>
+            </div>
           </div>
-          <div>
-            <span className="font-mono uppercase">{t("enrollmentYear")}:</span>
-            <span>{row.enrollmentYear || "-"}</span>
-          </div>
-        </div>
+        ) : null}
       </div>
     </div>
   );
-}
-
-function getAccountDisplayName(row: ApplicationListItem) {
-  const fullName = `${row.account.firstName} ${row.account.lastName}`.trim();
-  return fullName || row.account.email || "-";
 }
 
 function getAccountSortValue(row: ApplicationListItem) {
@@ -149,7 +154,7 @@ function getAccountInitials(row: ApplicationListItem) {
 }
 
 function ContactCell({ row }: { row: ApplicationListItem }) {
-  const accountDisplayName = getAccountDisplayName(row);
+  const accountDisplayName = getApplicationAccountName(row);
   const accountInitials = getAccountInitials(row);
 
   return (
@@ -174,15 +179,6 @@ function ContactCell({ row }: { row: ApplicationListItem }) {
         <span>{row.applicant.telephone || "-"}</span>
       </div>
     </div>
-  );
-}
-
-function getPaymentProgress(summary: ApplicationListItem["paymentSummary"]) {
-  if (summary.totalDue <= 0) return 0;
-
-  return Math.min(
-    100,
-    Math.max(0, (summary.totalPaid / summary.totalDue) * 100),
   );
 }
 
@@ -214,7 +210,7 @@ function PaymentProgressCell({
     api.fees.getPaymentDetails,
     open && hasFees ? { applicationId } : "skip",
   );
-  const progress = getPaymentProgress(paymentSummary);
+  const progress = getApplicationPaymentProgress(paymentSummary);
   const roundedProgress = Math.round(progress);
   const noFeesLabel = t("paymentNoFees");
   const label = hasFees
@@ -355,8 +351,10 @@ function PaymentProgressCell({
 
 function useApplicationColumnsBase({
   paymentStatusHeader,
+  responsive = true,
 }: {
   paymentStatusHeader?: ReactNode;
+  responsive?: boolean;
 } = {}) {
   const locale = useLocale();
   const t = useTranslations("Applications");
@@ -384,7 +382,7 @@ function useApplicationColumnsBase({
           );
         },
         meta: {
-          className: "hidden md:table-cell",
+          className: responsive ? "hidden md:table-cell" : undefined,
         },
       },
       {
@@ -392,7 +390,9 @@ function useApplicationColumnsBase({
         header: createSortableHeader(fullNameHeader),
         accessorFn: (row) =>
           `${row.applicant.firstName} ${row.applicant.lastName}`.trim(),
-        cell: ({ row }) => <ApplicantCell row={row.original} t={t} />,
+        cell: ({ row }) => (
+          <ApplicantCell row={row.original} t={t} showMetadata={responsive} />
+        ),
       },
       {
         id: "program",
@@ -409,7 +409,7 @@ function useApplicationColumnsBase({
           );
         },
         meta: {
-          className: "hidden lg:table-cell",
+          className: responsive ? "hidden lg:table-cell" : undefined,
         },
         filterFn: (row, id, value) => {
           return value.includes(row.getValue(id));
@@ -420,7 +420,7 @@ function useApplicationColumnsBase({
         header: createSortableHeader(t("enrollmentYear")),
         cell: ({ row }) => row.getValue("enrollmentYear") || "-",
         meta: {
-          className: "hidden xl:table-cell",
+          className: responsive ? "hidden xl:table-cell" : undefined,
         },
         filterFn: (row, id, value) => {
           return value.includes(row.getValue(id));
@@ -432,7 +432,7 @@ function useApplicationColumnsBase({
         accessorFn: (row) => getAccountSortValue(row),
         cell: ({ row }) => <ContactCell row={row.original} />,
         meta: {
-          className: "hidden md:table-cell",
+          className: responsive ? "hidden md:table-cell" : undefined,
         },
       },
 
@@ -448,7 +448,7 @@ function useApplicationColumnsBase({
             <PaymentSortableHeader column={column} />
           </div>
         ),
-        accessorFn: (row) => getPaymentProgress(row.paymentSummary),
+        accessorFn: (row) => getApplicationPaymentProgress(row.paymentSummary),
         cell: ({ row }) => (
           <PaymentProgressCell
             applicationId={row.original._id}
@@ -478,13 +478,14 @@ function useApplicationColumnsBase({
         enableHiding: false,
         meta: {
           className: "hidden",
+          filterOnly: true,
         },
         filterFn: (row, id, value) => {
           return value.includes(row.getValue(id));
         },
       },
     ];
-  }, [locale, paymentStatusHeader, statusMap, t]);
+  }, [locale, paymentStatusHeader, responsive, statusMap, t]);
 }
 
 export function useAdminApplicationColumns({
@@ -494,6 +495,7 @@ export function useAdminApplicationColumns({
 } = {}) {
   return useApplicationColumnsBase({
     paymentStatusHeader,
+    responsive: false,
   });
 }
 

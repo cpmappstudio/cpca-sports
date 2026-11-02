@@ -12,6 +12,8 @@ export interface ApplicationListItem {
   isArchived: boolean;
   enrollmentYear?: string;
   sex?: "male" | "female" | "other";
+  formValues?: Record<string, string | number | boolean | null>;
+  formSortValues?: Record<string, number | null>;
   applicant: {
     firstName: string;
     lastName: string;

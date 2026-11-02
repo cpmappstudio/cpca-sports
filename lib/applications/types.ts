@@ -1,11 +1,7 @@
 import type { Id } from "@/convex/_generated/dataModel";
 
 export type ApplicationStatus =
-  | "pending"
-  | "reviewing"
-  | "pre-admitted"
-  | "admitted"
-  | "denied";
+  "pending" | "reviewing" | "pre-admitted" | "admitted" | "denied";
 
 export type FormData = Record<
   string,
@@ -39,6 +35,10 @@ export interface Application {
   applicant?: ApplicationApplicant;
   programSnapshot?: ApplicationProgramSnapshot;
   formDefinitionSnapshot?: string;
+  summaryConfiguration?: {
+    formDefinition: string;
+    fields?: string[];
+  };
   formData: FormData;
   reviewedBy?: Id<"users">;
   reviewedAt?: number;

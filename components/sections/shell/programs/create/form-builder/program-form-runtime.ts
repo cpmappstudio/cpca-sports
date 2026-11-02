@@ -8,12 +8,7 @@ import type {
 } from "./types";
 import { isStaticElement } from "./utils";
 
-type StoredProgramFormValue =
-  | string
-  | number
-  | boolean
-  | null
-  | Id<"_storage">;
+type StoredProgramFormValue = string | number | boolean | null | Id<"_storage">;
 
 type StoredProgramFormData = Record<
   string,
@@ -48,7 +43,7 @@ function parseStoredDateRange(value: string) {
   }
 }
 
-function deserializeProgramFormValue(
+export function deserializeProgramFormValue(
   element: ProgramFormElement,
   value: StoredProgramFormValue | undefined,
 ) {
@@ -180,18 +175,17 @@ export function buildProgramFormData(
   values: ProgramFormValues,
 ): StoredProgramFormData {
   return definition.steps.reduce<StoredProgramFormData>((result, step) => {
-    const section = step.elements.reduce<Record<string, StoredProgramFormValue>>(
-      (current, element) => {
-        const value = serializeProgramFormValue(element, values[element.name]);
-        if (value === undefined) {
-          return current;
-        }
-
-        current[element.name] = value;
+    const section = step.elements.reduce<
+      Record<string, StoredProgramFormValue>
+    >((current, element) => {
+      const value = serializeProgramFormValue(element, values[element.name]);
+      if (value === undefined) {
         return current;
-      },
-      {},
-    );
+      }
+
+      current[element.name] = value;
+      return current;
+    }, {});
 
     if (Object.keys(section).length > 0) {
       result[step.id] = section;

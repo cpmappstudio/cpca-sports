@@ -36,7 +36,11 @@
     "noResults": "Sin resultados",
     "selectedRows": "{selected} de {total} fila(s) seleccionada(s)",
     "selectPage": "Seleccionar todas las filas de esta página",
-    "selectRow": "Seleccionar fila"
+    "selectRow": "Seleccionar fila",
+    "searchColumns": "Buscar columnas...",
+    "generalColumns": "General",
+    "showColumn": "Mostrar {column}",
+    "hideColumn": "Ocultar {column}"
   },
   "gender": {
     "male": "Masculino",
@@ -139,21 +143,13 @@
     "inactive": "Inactivo"
   },
   "staff": {
+    "title": "Cuerpo Técnico",
     "searchPlaceholder": "Buscar por nombre...",
-    "emptyMessage": "No se encontraron miembros del personal. Agrega tu primer miembro del personal para comenzar.",
-    "emptyDescription": "Agrega entrenadores, preparadores físicos y otros miembros del personal para gestionar tu equipo.",
-    "addFirst": "Agregar Miembro del Personal",
+    "emptyMessage": "No se encontraron miembros del staff. Agrega tu primer director técnico para comenzar.",
     "name": "Nombre",
     "role": "Rol",
     "team": "Equipo",
-    "notAssigned": "Sin asignar",
-    "title": "Personal",
-    "create": "Agregar Miembro del Personal",
-    "firstName": "Nombre",
-    "lastName": "Apellido",
-    "email": "Correo electrónico",
-    "phoneNumber": "Teléfono",
-    "selectRole": "Seleccionar rol"
+    "notAssigned": "Sin asignar"
   },
   "settings": {
     "general": "General",
@@ -182,15 +178,6 @@
   "staffRole": {
     "technical_director": "Director Técnico",
     "assistant_coach": "Asistente Técnico"
-  },
-  "staff": {
-    "title": "Cuerpo Técnico",
-    "searchPlaceholder": "Buscar por nombre...",
-    "emptyMessage": "No se encontraron miembros del staff. Agrega tu primer director técnico para comenzar.",
-    "name": "Nombre",
-    "role": "Rol",
-    "team": "Equipo",
-    "notAssigned": "Sin asignar"
   },
   "status": {
     "active": "Activo",

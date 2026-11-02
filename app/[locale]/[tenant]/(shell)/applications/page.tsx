@@ -45,24 +45,33 @@ export default async function ApplicationsPage({
     // Request-scoped server value serialized to the client for hydration-stable buckets.
     // eslint-disable-next-line react-hooks/purity
     const analyticsNow = Date.now();
-    const [preloadedApplications, preloadedArchivedApplications] =
-      await Promise.all([
-        preloadQuery(
-          api.applications.listByOrganizationSummary,
-          { organizationSlug: tenant },
-          { token },
-        ),
-        preloadQuery(
-          api.applications.listByOrganizationSummary,
-          { organizationSlug: tenant, isArchived: true },
-          { token },
-        ),
-      ]);
+    const [
+      preloadedApplications,
+      preloadedArchivedApplications,
+      preloadedTableConfiguration,
+    ] = await Promise.all([
+      preloadQuery(
+        api.applications.listByOrganizationSummary,
+        { organizationSlug: tenant },
+        { token },
+      ),
+      preloadQuery(
+        api.applications.listByOrganizationSummary,
+        { organizationSlug: tenant, isArchived: true },
+        { token },
+      ),
+      preloadQuery(
+        api.applications.getTableConfiguration,
+        { organizationSlug: tenant },
+        { token },
+      ),
+    ]);
 
     return (
       <ApplicationsTableAdminWrapper
         preloadedApplications={preloadedApplications}
         preloadedArchivedApplications={preloadedArchivedApplications}
+        preloadedTableConfiguration={preloadedTableConfiguration}
         organizationSlug={tenant}
         initialTab={initialTab}
         title={t("titleAdmin")}

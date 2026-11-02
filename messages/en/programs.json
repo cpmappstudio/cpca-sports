@@ -348,6 +348,12 @@
       "saveTemplateSuccess": "Template saved.",
       "saveBothSuccess": "Program and template saved.",
       "saveError": "Failed to save the program. Please try again."
+    },
+    "summary": {
+      "title": "Summary fields",
+      "description": "Choose which fields appear in application summaries for this program.",
+      "fixedFields": "Photo, name, status, and program are always visible.",
+      "empty": "Add fields to the form to include them in the summary."
     }
   }
 }

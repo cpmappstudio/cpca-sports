@@ -1,8 +1,20 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { getCurrentUser, getCurrentUserOrNull } from "./lib/auth";
-import { requireOrgAccess, hasOrgAdminAccess } from "./lib/permissions";
+import {
+  requireOrgAccess,
+  requireOrgAdmin,
+  hasOrgAdminAccess,
+} from "./lib/permissions";
+import {
+  applicationTableConfigurationValidator,
+  getApplicationTableConfiguration,
+  getApplicationTableCatalog,
+  getApplicationTablePreference,
+  projectApplicationTableFields,
+} from "./lib/applicationTable";
+import { DEFAULT_APPLICATION_COLUMNS } from "../lib/applications/table-fields";
 import {
   cloneProgramDocumentConfigsToApplication,
   cloneProgramPaymentConfigsToApplication,
@@ -300,7 +312,10 @@ export const listByOrganizationSummary = query({
     isArchived: v.optional(v.boolean()),
   },
   returns: v.array(applicationListItemValidator),
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<Infer<typeof applicationListItemValidator>[]> => {
     const organization = await ctx.db
       .query("organizations")
       .withIndex("bySlug", (q) => q.eq("slug", args.organizationSlug))
@@ -357,7 +372,76 @@ export const listByOrganizationSummary = query({
             .order("desc")
             .collect();
 
-    return await buildApplicationListSummary(ctx, applications);
+    const preference = await getApplicationTablePreference(
+      ctx,
+      user._id,
+      organization._id,
+    );
+    const fieldIds = (preference?.visibleColumns ?? []).filter((id) =>
+      id.startsWith("form:"),
+    );
+    if (!fieldIds.length)
+      return await buildApplicationListSummary(ctx, applications);
+    const [summary, projectedFields] = await Promise.all([
+      buildApplicationListSummary(ctx, applications),
+      projectApplicationTableFields(ctx, applications, fieldIds),
+    ]);
+    return summary.map((row, index) => ({
+      ...row,
+      ...projectedFields[index],
+    }));
+  },
+});
+
+export const getTableConfiguration = query({
+  args: { organizationSlug: v.string() },
+  returns: applicationTableConfigurationValidator,
+  handler: async (ctx, args) => {
+    const { user, organization } = await requireOrgAdmin(
+      ctx,
+      args.organizationSlug,
+    );
+    return await getApplicationTableConfiguration(
+      ctx,
+      user._id,
+      organization._id,
+    );
+  },
+});
+
+export const setTableColumns = mutation({
+  args: { organizationSlug: v.string(), visibleColumns: v.array(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { user, organization } = await requireOrgAdmin(
+      ctx,
+      args.organizationSlug,
+    );
+    const [fields, preference] = await Promise.all([
+      getApplicationTableCatalog(ctx, organization._id),
+      getApplicationTablePreference(ctx, user._id, organization._id),
+    ]);
+    const available = new Set([
+      ...DEFAULT_APPLICATION_COLUMNS,
+      ...fields.map((field) => field.id),
+    ]);
+    if (
+      new Set(args.visibleColumns).size !== args.visibleColumns.length ||
+      args.visibleColumns.some((id) => !available.has(id))
+    ) {
+      throw new Error("Invalid application table columns");
+    }
+    if (preference)
+      await ctx.db.patch("applicationTablePreferences", preference._id, {
+        visibleColumns: args.visibleColumns,
+      });
+    else
+      await ctx.db.insert("applicationTablePreferences", {
+        userId: user._id,
+        organizationId: organization._id,
+        visibleColumns: args.visibleColumns,
+      });
+    return null;
   },
 });
 
@@ -368,7 +452,18 @@ export const listByOrganizationSummary = query({
  */
 export const getById = query({
   args: { applicationId: v.id("applications") },
-  returns: v.union(applicationValidator, v.null()),
+  returns: v.union(
+    v.object({
+      ...applicationValidator.fields,
+      summaryConfiguration: v.optional(
+        v.object({
+          formDefinition: v.string(),
+          fields: v.optional(v.array(v.string())),
+        }),
+      ),
+    }),
+    v.null(),
+  ),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     const application = await ctx.db.get(args.applicationId);
@@ -377,23 +472,28 @@ export const getById = query({
       return null;
     }
 
-    // Owner can always access
-    if (application.userId === user._id) {
-      return application;
-    }
-
-    // Check admin access
-    const isAdmin = await hasOrgAdminAccess(
-      ctx,
-      user._id,
-      application.organizationId,
-    );
-
-    if (!isAdmin) {
+    if (
+      application.userId !== user._id &&
+      !(await hasOrgAdminAccess(ctx, user._id, application.organizationId))
+    ) {
       throw new Error("Unauthorized: Cannot access this application");
     }
 
-    return application;
+    const program = application.programId
+      ? await ctx.db.get("programs", application.programId)
+      : null;
+    return {
+      ...application,
+      ...(program?.organizationId === application.organizationId &&
+      program.formDefinition
+        ? {
+            summaryConfiguration: {
+              formDefinition: program.formDefinition,
+              fields: program.summaryFields,
+            },
+          }
+        : {}),
+    };
   },
 });
 

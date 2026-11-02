@@ -22,6 +22,7 @@ import type * as legacyMigration from "../legacyMigration.js";
 import type * as lib_applicationDefaults from "../lib/applicationDefaults.js";
 import type * as lib_applicationSnapshots from "../lib/applicationSnapshots.js";
 import type * as lib_applicationSummary from "../lib/applicationSummary.js";
+import type * as lib_applicationTable from "../lib/applicationTable.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_auth_types from "../lib/auth_types.js";
 import type * as lib_coachAccess from "../lib/coachAccess.js";
@@ -69,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   "lib/applicationDefaults": typeof lib_applicationDefaults;
   "lib/applicationSnapshots": typeof lib_applicationSnapshots;
   "lib/applicationSummary": typeof lib_applicationSummary;
+  "lib/applicationTable": typeof lib_applicationTable;
   "lib/auth": typeof lib_auth;
   "lib/auth_types": typeof lib_auth_types;
   "lib/coachAccess": typeof lib_coachAccess;
