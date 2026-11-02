@@ -8,6 +8,7 @@ import type {
 } from "../../lib/applications/types";
 import { applicationStatus } from "./validators";
 import { feeSummaryValidator, getFeeSummary } from "./feeSummary";
+import { applicationFormValuesValidator } from "./applicationTable";
 import {
   getApplicationApplicant,
   getApplicationPhotoStorageId,
@@ -53,6 +54,10 @@ export const applicationListItemValidator = v.object({
   program: applicationListProgramValidator,
   account: applicationListAccountValidator,
   paymentSummary: feeSummaryValidator,
+  formValues: v.optional(applicationFormValuesValidator),
+  formSortValues: v.optional(
+    v.record(v.string(), v.union(v.number(), v.null())),
+  ),
 });
 
 type ApplicationSummarySource = {

@@ -92,7 +92,8 @@
       "phone": "Teléfono",
       "accountEmail": "Correo de la cuenta",
       "createdAt": "Fecha de creación"
-    }
+    },
+    "columnsSaveError": "No se pudieron guardar las columnas. Inténtalo de nuevo."
   },
   "tabs": {
     "active": "Actuales",
@@ -229,7 +230,8 @@
     "howDidYouHear": "Cómo Nos Conociste",
     "needsI20": "Necesita I-20?",
     "submittedAt": "Enviado El",
-    "message": "Mensaje Adicional"
+    "message": "Mensaje Adicional",
+    "summaryNoInformation": "Sin datos"
   },
   "payments": {
     "summary": {

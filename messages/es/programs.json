@@ -348,6 +348,12 @@
       "saveTemplateSuccess": "Plantilla guardada.",
       "saveBothSuccess": "Programa y plantilla guardados.",
       "saveError": "No se pudo guardar el programa. Inténtalo de nuevo."
+    },
+    "summary": {
+      "title": "Campos del resumen",
+      "description": "Elige qué datos mostrar en el resumen de las postulaciones de este programa.",
+      "fixedFields": "La foto, el nombre, el estado y el programa siempre se muestran.",
+      "empty": "Agrega campos al formulario para incluirlos en el resumen."
     }
   }
 }

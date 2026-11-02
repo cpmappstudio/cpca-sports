@@ -17,8 +17,7 @@ import {
 } from "@/components/ui/select";
 import type { Application, ApplicationStatus } from "@/lib/applications/types";
 import { getFormField } from "@/lib/applications/types";
-import { usesCoreApplicantFields } from "@/lib/forms/program-form-core";
-import { getCountryName } from "@/lib/countries/countries";
+import { ApplicationProfileSummary } from "./application-profile-summary";
 import { ApplicationPhoto } from "./pre-admission/application-photo";
 import { Id } from "@/convex/_generated/dataModel";
 import {
@@ -27,20 +26,11 @@ import {
   prepareApplicationPhoto,
 } from "@/lib/images/application-photo";
 import {
-  BookOpen,
-  GraduationCap,
-  Calendar,
   ArrowRightLeft,
   Mail,
   Phone,
-  Globe,
-  Home,
-  FileText,
-  User,
-  IdCard,
   Trash2,
   MoreVertical,
-  MapPin,
   Archive,
   ArchiveRestore,
 } from "lucide-react";
@@ -95,13 +85,11 @@ export function ApplicationHeader({
   associatedUser,
 }: ApplicationHeaderProps) {
   const t = useTranslations("Applications.detail");
-  const tAthlete = useTranslations("preadmission.athlete");
   const { isAdmin } = useIsAdmin();
   const tStatus = useTranslations("Applications.statusOptions");
 
   const { formData } = application;
   const applicant = application.applicant;
-  const programSnapshot = application.programSnapshot;
 
   const [status, setStatus] = useState<ApplicationStatus>(application.status);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -132,29 +120,6 @@ export function ApplicationHeader({
   const email = applicant?.email || getFormField(formData, "athlete", "email");
   const telephone =
     applicant?.telephone || getFormField(formData, "athlete", "telephone");
-  const birthDate = getFormField(formData, "athlete", "birthDate");
-  const countryOfBirth = getFormField(formData, "athlete", "countryOfBirth");
-  const countryOfCitizenship = getFormField(
-    formData,
-    "athlete",
-    "countryOfCitizenship",
-  );
-  const format = getFormField(formData, "athlete", "format");
-  const program =
-    programSnapshot?.name || getFormField(formData, "athlete", "program");
-  const gradeEntering = getFormField(formData, "athlete", "gradeEntering");
-  const enrollmentYear = getFormField(formData, "athlete", "enrollmentYear");
-  const graduationYear = getFormField(formData, "athlete", "graduationYear");
-  const needsI20 = getFormField(formData, "athlete", "needsI20");
-  const interestedInBoarding = getFormField(
-    formData,
-    "general",
-    "interestedInBoarding",
-  );
-
-  const streetAddress = getFormField(formData, "address", "streetAddress");
-  const city = getFormField(formData, "address", "city");
-  const country = getFormField(formData, "address", "country");
   const currentAssociatedUser: TransferUser | null =
     liveAssociatedUser === undefined
       ? associatedUser
@@ -353,19 +318,6 @@ export function ApplicationHeader({
     </DropdownMenu>
   );
 
-  const calculateAge = (birthDate: string) => {
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birth.getDate())
-    ) {
-      age--;
-    }
-    return age;
-  };
   return (
     <section className="flex flex-col gap-4">
       <EntityDetailBackButton
@@ -490,135 +442,7 @@ export function ApplicationHeader({
           </div>
         }
       >
-        {usesCoreApplicantFields(application.formDefinitionSnapshot) ? (
-          <div className="grid grid-cols-1 gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 shrink-0 text-primary" />
-              <span className="font-semibold text-foreground">
-                {t("program")}:
-              </span>
-              <span className="text-muted-foreground">{program || "-"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 shrink-0 text-primary" />
-              <span className="break-all text-muted-foreground">
-                {email || "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 shrink-0 text-primary" />
-              <span className="text-muted-foreground">{telephone || "-"}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">{t("age")}:</span>
-              <span className="text-muted-foreground">
-                {birthDate ? `${calculateAge(birthDate)} years` : "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("birthCountry")}:
-              </span>
-              <span className="text-muted-foreground">
-                {getCountryName(countryOfBirth) || "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("citizenship")}:
-              </span>
-              <span className="text-muted-foreground">
-                {getCountryName(countryOfCitizenship) || "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("address")}:
-              </span>
-              <span className="text-muted-foreground">
-                {streetAddress && city && country
-                  ? `${streetAddress}, ${city}, ${getCountryName(country)}`
-                  : "-"}
-              </span>
-            </div>
-            <hr />
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("format")}:
-              </span>
-              <span className="text-muted-foreground capitalize">
-                {format || "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("program")}:
-              </span>
-              <span className="text-muted-foreground capitalize">
-                {program || "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("gradeEntering")}:
-              </span>
-              <span className="text-muted-foreground">
-                {gradeEntering
-                  ? gradeEntering === "postgraduate"
-                    ? tAthlete("gradePostgraduate")
-                    : tAthlete(`grade${gradeEntering}` as keyof typeof tAthlete)
-                  : "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("enrollmentYear")}:
-              </span>
-              <span className="text-muted-foreground">
-                {enrollmentYear || "-"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("graduationYear")}:
-              </span>
-              <span className="text-muted-foreground">
-                {graduationYear || "-"}
-              </span>
-            </div>
-            <hr />
-            <div className="flex items-center gap-2">
-              <IdCard className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("needsI20")}:
-              </span>
-              <span className="text-muted-foreground">
-                {needsI20 === "yes" ? t("yes") : t("no")}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Home className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-semibold text-foreground">
-                {t("boarding")}:
-              </span>
-              <span className="text-muted-foreground">
-                {interestedInBoarding === "yes" ? t("yes") : t("no")}
-              </span>
-            </div>
-          </div>
-        )}
+        <ApplicationProfileSummary application={application} />
       </EntityDetailProfile>
       <ApplicationBalanceCard
         totalDue={totalDue}

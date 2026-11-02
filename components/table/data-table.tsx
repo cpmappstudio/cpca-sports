@@ -12,24 +12,13 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import {
-  Columns3Icon,
-  Download,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Download, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableFilters } from "@/components/table/data-table-filters";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DataTableColumns } from "@/components/table/data-table-columns";
 import {
   InputGroup,
   InputGroupAddon,
@@ -60,6 +49,12 @@ export function DataTable<TData>({
   filterColumn,
   filterPlaceholder,
   emptyMessage,
+  columnsMenuLabel,
+  columnLabels,
+  columnGroups,
+  columnVisibility: controlledVisibility,
+  onColumnVisibilityChange,
+  exportDisabled,
   exportButtonLabel,
   filterConfigs,
   filtersMenuLabel,
@@ -82,11 +77,12 @@ export function DataTable<TData>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   );
-  const [columnVisibility, setColumnVisibility] =
+  const [internalVisibility, setInternalVisibility] =
     React.useState<VisibilityState>({
       search: false,
     });
   const [rowSelection, setRowSelection] = React.useState({});
+  const columnVisibility = controlledVisibility ?? internalVisibility;
 
   const table = useReactTable({
     data: data ?? [],
@@ -97,7 +93,12 @@ export function DataTable<TData>({
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnVisibilityChange: (updater) => {
+      const next =
+        typeof updater === "function" ? updater(columnVisibility) : updater;
+      if (onColumnVisibilityChange) onColumnVisibilityChange(next);
+      else setInternalVisibility(next);
+    },
     onRowSelectionChange: setRowSelection,
     enableRowSelection: enableRowSelection ?? false,
     initialState: {
@@ -174,9 +175,17 @@ export function DataTable<TData>({
       return;
     }
     const rows = table
-      .getFilteredRowModel()
+      .getSortedRowModel()
       .rows.map((row) => row.original as TData);
-    onExport(rows);
+    const visibleColumns = table
+      .getVisibleLeafColumns()
+      .filter(
+        (column) =>
+          !(column.columnDef.meta as { filterOnly?: boolean } | undefined)
+            ?.filterOnly,
+      )
+      .map((column) => column.id);
+    onExport(rows, visibleColumns);
   }, [onExport, table]);
 
   const clearRowSelection = React.useCallback(() => {
@@ -217,38 +226,23 @@ export function DataTable<TData>({
           )}
 
           {onExport && (
-            <Button variant="outline" onClick={exportRows}>
+            <Button
+              variant="outline"
+              onClick={exportRows}
+              disabled={exportDisabled}
+            >
               <Download className="size-3.5" />
               <span className="hidden md:block mr-1">{exportButtonLabel}</span>
             </Button>
           )}
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild className="hidden md:flex">
-              <Button variant="outline" size="icon">
-                {/* <span className="hidden md:block mr-1">{columnsMenuLabel}</span> */}
-                <Columns3Icon className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <DataTableColumns
+            table={table}
+            label={columnsMenuLabel}
+            labels={columnLabels}
+            groups={columnGroups}
+            className={controlledVisibility ? undefined : "hidden md:flex"}
+          />
         </div>
       </div>
 
@@ -390,7 +384,10 @@ export function DataTable<TData>({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length + (enableRowSelection ? 1 : 0)}
+                  colSpan={
+                    table.getVisibleLeafColumns().length +
+                    (enableRowSelection ? 1 : 0)
+                  }
                   className="h-24 text-center"
                 >
                   {emptyMessage}

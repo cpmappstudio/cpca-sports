@@ -36,7 +36,11 @@
     "noResults": "No results",
     "selectedRows": "{selected} of {total} row(s) selected",
     "selectPage": "Select all rows on this page",
-    "selectRow": "Select row"
+    "selectRow": "Select row",
+    "searchColumns": "Search columns...",
+    "generalColumns": "General",
+    "showColumn": "Show {column}",
+    "hideColumn": "Hide {column}"
   },
   "gender": {
     "male": "Male",

@@ -27,6 +27,8 @@ import {
 } from "./lib/formTemplates";
 import { hasOrgAdminAccess, requireOrgAccess } from "./lib/permissions";
 import { isProgramIconKey } from "../lib/programs/icon-keys";
+import { getProgramSummaryFields } from "../lib/applications/summary-fields";
+import { parseProgramFormDefinition } from "../components/sections/shell/programs/create/form-builder/utils";
 
 const programValidator = v.object({
   _id: v.id("programs"),
@@ -37,6 +39,7 @@ const programValidator = v.object({
   iconKey: v.optional(v.string()),
   formTemplateId: v.optional(v.id("formTemplates")),
   formDefinition: v.optional(v.string()),
+  summaryFields: v.optional(v.array(v.string())),
   isDraft: v.boolean(),
   isActive: v.optional(v.boolean()),
   createdBy: v.id("users"),
@@ -233,6 +236,7 @@ export const save = mutation({
     description: v.optional(v.string()),
     iconKey: v.optional(v.string()),
     formDefinition: v.optional(v.string()),
+    summaryFields: v.optional(v.array(v.string())),
     saveProgram: v.boolean(),
     saveTemplate: v.boolean(),
     templateName: v.optional(v.string()),
@@ -279,6 +283,24 @@ export const save = mutation({
     let templateId: Id<"formTemplates"> | null = null;
 
     if (shouldSaveProgram) {
+      const availableFields = new Set(
+        getProgramSummaryFields(
+          parseProgramFormDefinition(
+            args.formDefinition ?? program.formDefinition,
+          ),
+        ).map(({ field }) => field.id),
+      );
+      if (
+        args.summaryFields &&
+        (new Set(args.summaryFields).size !== args.summaryFields.length ||
+          args.summaryFields.some((id) => !availableFields.has(id)))
+      ) {
+        throw new Error("Invalid application summary fields");
+      }
+      const summaryFields = (
+        args.summaryFields ?? program.summaryFields
+      )?.filter((id) => availableFields.has(id));
+
       await ctx.db.patch(args.programId, {
         name,
         ...(args.description !== undefined && {
@@ -290,6 +312,7 @@ export const save = mutation({
         ...(args.formDefinition !== undefined && {
           formDefinition: args.formDefinition,
         }),
+        ...(summaryFields !== undefined && { summaryFields }),
         updatedAt: Date.now(),
       });
 

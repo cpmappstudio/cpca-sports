@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useConvex, useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -30,6 +30,8 @@ import { ProgramSaveDialog } from "./program-save-dialog";
 import { ProgramUseTemplateDialog } from "./program-use-template-dialog";
 import { ProgramIconPicker } from "./program-icon-picker";
 import { ProgramCoachOptions } from "./program-coach-options";
+import { ProgramSummarySettings } from "./program-summary-settings";
+import { getSelectedSummaryFields } from "@/lib/applications/summary-fields";
 
 interface ProgramCreateWorkspaceProps {
   initialProgram: Doc<"programs">;
@@ -92,8 +94,26 @@ export function ProgramCreateWorkspace({
   const { serializedFormDefinition } = editorState;
   const { savablePaymentConfigs } = editorState;
   const [savedIconKey, setSavedIconKey] = useState(initialProgram.iconKey);
+  const [summaryFields, setSummaryFields] = useState(
+    initialProgram.summaryFields,
+  );
+  const [savedSummaryFields, setSavedSummaryFields] = useState(
+    JSON.stringify(initialProgram.summaryFields),
+  );
+  useEffect(() => {
+    setSummaryFields(initialProgram.summaryFields);
+    setSavedSummaryFields(JSON.stringify(initialProgram.summaryFields));
+  }, [initialProgram._id, initialProgram.summaryFields]);
+  const selectedSummaryFields =
+    summaryFields === undefined
+      ? undefined
+      : getSelectedSummaryFields(formDefinition, summaryFields).map(
+          ({ field }) => field.id,
+        );
   const hasUnsavedProgram =
-    editorState.hasUnsavedCore || iconKey !== savedIconKey;
+    editorState.hasUnsavedCore ||
+    iconKey !== savedIconKey ||
+    JSON.stringify(selectedSummaryFields) !== savedSummaryFields;
   const canSaveProgram = hasUnsavedProgram || editorState.hasUnsavedChanges;
   const [selectedTemplateName, setSelectedTemplateName] = useState(() => {
     const currentTemplate = templates.find(
@@ -178,6 +198,7 @@ export function ProgramCreateWorkspace({
         description: description || undefined,
         iconKey,
         formDefinition: serializedFormDefinition,
+        summaryFields: selectedSummaryFields,
         saveProgram: shouldSaveProgram,
         saveTemplate: shouldSaveTemplate,
         templateName: shouldSaveTemplate ? values.templateName : undefined,
@@ -196,6 +217,8 @@ export function ProgramCreateWorkspace({
 
       if (result.savedProgram) {
         setSavedIconKey(iconKey);
+        setSummaryFields(selectedSummaryFields);
+        setSavedSummaryFields(JSON.stringify(selectedSummaryFields));
         editorState.markCurrentStateAsSaved();
       }
 
@@ -273,10 +296,18 @@ export function ProgramCreateWorkspace({
         }}
         onTabChange={setActiveTab}
         applicationContent={
-          <ProgramFormBuilder
-            value={formDefinition}
-            onChange={setFormDefinition}
-          />
+          <>
+            <ProgramSummarySettings
+              definition={formDefinition}
+              selectedIds={summaryFields}
+              disabled={isSaving}
+              onChange={setSummaryFields}
+            />
+            <ProgramFormBuilder
+              value={formDefinition}
+              onChange={setFormDefinition}
+            />
+          </>
         }
         documentsContent={
           <ProgramDocuments

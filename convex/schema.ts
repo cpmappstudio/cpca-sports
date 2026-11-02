@@ -111,6 +111,12 @@ export default defineSchema({
     .index("byUserAndOrg", ["userId", "organizationId"])
     .index("byClerkMembershipId", ["clerkMembershipId"]),
 
+  applicationTablePreferences: defineTable({
+    userId: v.id("users"),
+    organizationId: v.id("organizations"),
+    visibleColumns: v.array(v.string()),
+  }).index("by_userId_and_organizationId", ["userId", "organizationId"]),
+
   formTemplates: defineTable({
     organizationId: v.id("organizations"),
     version: v.number(),
@@ -144,6 +150,7 @@ export default defineSchema({
     iconKey: v.optional(v.string()),
     formTemplateId: v.optional(v.id("formTemplates")),
     formDefinition: v.optional(v.string()),
+    summaryFields: v.optional(v.array(v.string())),
     isDraft: v.boolean(),
     isActive: v.optional(v.boolean()),
     createdBy: v.id("users"),
