@@ -127,11 +127,12 @@ export function ActivityDialog({
     try {
       let imageStorageId: Id<"_storage"> | undefined;
       if (image instanceof File && image.size > 0) {
-        const optimizedImage = await prepareApplicationPhoto(image).catch(
-          () => {
-            throw new Error(t("imageInvalid"));
-          },
-        );
+        const optimizedImage = await prepareApplicationPhoto(
+          image,
+          Infinity,
+        ).catch(() => {
+          throw new Error(t("imageInvalid"));
+        });
         const uploadUrl = await generateUploadUrl({
           coachId,
           activityId: activity?._id,

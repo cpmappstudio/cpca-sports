@@ -12,10 +12,7 @@ const APPLICATION_PHOTO_OUTPUT_TYPE = "image/webp";
 const APPLICATION_PHOTO_FALLBACK_TYPE = "image/jpeg";
 
 export type ApplicationPhotoErrorCode =
-  | "invalidType"
-  | "maxSize"
-  | "decodeFailed"
-  | "optimizeFailed";
+  "invalidType" | "maxSize" | "decodeFailed" | "optimizeFailed";
 
 export class ApplicationPhotoError extends Error {
   constructor(readonly code: ApplicationPhotoErrorCode) {
@@ -23,8 +20,11 @@ export class ApplicationPhotoError extends Error {
   }
 }
 
-export async function prepareApplicationPhoto(file: File) {
-  validateApplicationPhoto(file);
+export async function prepareApplicationPhoto(
+  file: File,
+  maxSizeBytes = APPLICATION_PHOTO_MAX_SIZE_BYTES,
+) {
+  validateApplicationPhoto(file, maxSizeBytes);
 
   const image = await loadImage(file);
   const canvas = resizeImage(image);
@@ -50,12 +50,12 @@ export async function prepareApplicationPhoto(file: File) {
   });
 }
 
-function validateApplicationPhoto(file: File) {
+function validateApplicationPhoto(file: File, maxSizeBytes: number) {
   if (!APPLICATION_PHOTO_ALLOWED_TYPES.has(file.type)) {
     throw new ApplicationPhotoError("invalidType");
   }
 
-  if (file.size > APPLICATION_PHOTO_MAX_SIZE_BYTES) {
+  if (file.size > maxSizeBytes) {
     throw new ApplicationPhotoError("maxSize");
   }
 }
@@ -110,7 +110,11 @@ function getImageSize(image: HTMLImageElement) {
   };
 }
 
-function getCanvasBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
+function getCanvasBlob(
+  canvas: HTMLCanvasElement,
+  type: string,
+  quality: number,
+) {
   return new Promise<Blob | null>((resolve) => {
     canvas.toBlob(resolve, type, quality);
   });

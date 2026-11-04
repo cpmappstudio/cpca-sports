@@ -61,9 +61,6 @@ async function assertImage(
   if (!metadata || !metadata.contentType?.startsWith("image/")) {
     throw new Error("A valid image is required");
   }
-  if (metadata.size > 5 * 1024 * 1024) {
-    throw new Error("Image must be smaller than 5 MB");
-  }
   const existingActivity = await ctx.db
     .query("coachActivities")
     .withIndex("byImageStorageId", (q) => q.eq("imageStorageId", storageId))
