@@ -108,7 +108,7 @@
     "currentImage": "Imagen actual de la actividad",
     "chooseImage": "Seleccionar una imagen",
     "selectedImage": "Lista para subir · {size} KB",
-    "imageFormats": "JPG, PNG o WebP · máximo 5 MB",
+    "imageFormats": "JPG, PNG o WebP",
     "removeSelectedImage": "Quitar imagen seleccionada",
     "completed": "Realizada",
     "cancel": "Cancelar",
@@ -117,7 +117,7 @@
     "created": "Actividad registrada",
     "updated": "Actividad actualizada",
     "imageRequired": "La imagen es obligatoria",
-    "imageInvalid": "Usa una imagen JPG, PNG o WebP menor de 5 MB",
+    "imageInvalid": "Usa una imagen JPG, PNG o WebP válida",
     "uploadError": "No se pudo subir la imagen",
     "saveError": "No se pudo guardar la actividad"
   },
