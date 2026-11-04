@@ -143,12 +143,18 @@ export function useFormDefaultsEditorState({
   const markCurrentStateAsSaved = (overrides?: {
     name?: string;
     description?: string;
+    documents?: EditableDocumentConfig[] | null;
   }) => {
     setSavedName((overrides?.name ?? name).trim());
     setSavedDescription((overrides?.description ?? description).trim());
     setSavedFormDefinition(serializedFormDefinition);
 
-    if (serializedDocumentConfigs !== null) {
+    if (overrides?.documents) {
+      setDocumentConfigs(overrides.documents);
+      setSavedDocumentConfigs(
+        serializeEditableDocumentConfigs(overrides.documents),
+      );
+    } else if (serializedDocumentConfigs !== null) {
       setSavedDocumentConfigs(serializedDocumentConfigs);
     }
     if (serializedPaymentConfigs !== null) {

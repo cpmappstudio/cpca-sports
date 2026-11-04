@@ -486,6 +486,7 @@
     }
   },
   "documents": {
+    "empty": "No documents requested.",
     "title": "Documents",
     "description": "Upload required documents for this application",
     "visibility": {
@@ -494,38 +495,35 @@
       "hidden": "Hidden"
     },
     "status": {
-      "pending": "Pending",
+      "pending": "Pending review",
       "approved": "Approved",
       "rejected": "Rejected",
-      "notUploaded": "Not uploaded"
+      "notUploaded": "Not submitted"
     },
     "actions": {
       "upload": "Upload file",
-      "replace": "Replace file",
-      "view": "View",
-      "approve": "Approve",
-      "reject": "Reject",
-      "delete": "Delete file",
+      "replace": "Upload another file",
+      "delete": "Delete submission",
       "changeVisibility": "Change visibility",
       "addDocument": "Add Document",
       "cancel": "Cancel",
       "deleteDialog": {
-        "title": "Delete document?",
-        "description": "This will permanently delete this document from the application. This action cannot be undone.",
+        "title": "Delete submission?",
+        "description": "This permanently deletes the submitted file. This action cannot be undone.",
         "cancel": "Cancel",
         "confirm": "Delete"
       },
-      "edit": "Edit",
-      "deleteType": "Delete",
-      "moreOptions": "More options",
+      "edit": "Edit requirement",
+      "deleteType": "Delete requirement",
+      "moreOptions": "Requirement settings",
       "editDialog": {
-        "title": "Edit document type",
+        "title": "Edit requirement",
         "save": "Save changes",
         "saving": "Saving..."
       },
       "deleteTypeDialog": {
-        "title": "Delete document type?",
-        "description": "This will permanently delete this custom document type. If a file was uploaded, it will also be deleted. This action cannot be undone.",
+        "title": "Delete requirement?",
+        "description": "This permanently deletes this custom requirement and its submitted file, if any.",
         "cancel": "Cancel",
         "confirm": "Delete"
       }
@@ -537,9 +535,80 @@
       "descriptionPlaceholder": "Enter description",
       "required": "Required",
       "adding": "Adding...",
-      "addButton": "Add Document"
+      "addButton": "Add Document",
+      "saveError": "Could not save the document. Try again."
     },
     "uploadedBy": "Uploaded on {date} by {name}",
-    "rejectionReason": "Rejection reason"
+    "rejectionReason": "Rejection reason",
+    "file": {
+      "uploading": "Uploading...",
+      "uploadFailed": "Could not upload the file. Try again."
+    },
+    "attachment": {
+      "title": "File to complete",
+      "remove": "Remove attachment",
+      "upload": "Attach file",
+      "replace": "Replace attachment",
+      "invalidType": "Choose a PDF, JPG or PNG file.",
+      "invalidSize": "Choose a file between 1 byte and 10 MB.",
+      "formats": "PDF, JPG or PNG · Up to 10 MB",
+      "schoolFile": "School document",
+      "viewFile": "View school document: {name}"
+    },
+    "pdf": {
+      "loading": "Loading document…",
+      "loadError": "We couldn’t preview this file here. Open the file to view it.",
+      "unavailable": "This document is no longer available.",
+      "complete": "Complete document",
+      "close": "Close",
+      "instructions": "Complete the document, then save and submit it for review.",
+      "unsaved": "Changes not submitted",
+      "download": "Download copy",
+      "submit": "Save and submit",
+      "saving": "Submitting…",
+      "retry": "Retry submission",
+      "saved": "Document submitted for review",
+      "saveError": "We couldn’t confirm your submission. Retry or download a copy of your work.",
+      "tooLarge": "The PDF could not be submitted. Check that it is valid and no larger than 10 MB.",
+      "downloadError": "We couldn’t download the copy. Please try again.",
+      "conflict": "The document changed or is no longer available. Download your work before closing and reopen the editor to continue.",
+      "restartWarning": "Your previous submission uses a different file or format. Continue with the current school document? Your previous submission will only be replaced when you submit.",
+      "restart": "Use current document",
+      "discardTitle": "Close without submitting?",
+      "discardDescription": "Your changes will be lost. Download a copy if you want to keep them.",
+      "keepEditing": "Keep editing",
+      "discard": "Discard changes",
+      "openFile": "Open file",
+      "saveChanges": "Save changes",
+      "changesSaved": "Changes saved. Submission pending review.",
+      "editInstructions": "Update the document, then save your changes."
+    },
+    "submission": {
+      "myTitle": "My submission",
+      "emptyMine": "You haven’t submitted a document yet.",
+      "viewFile": "View submission: {name}",
+      "unknownAuthor": "Unknown author",
+      "deleteError": "Could not delete the submission. Try again.",
+      "deleting": "Deleting…",
+      "title": "Submission",
+      "empty": "No document has been submitted yet.",
+      "editDocument": "Edit document",
+      "correct": "Correct submission",
+      "modifyFile": "Modify file",
+      "updating": "Updating submission…"
+    },
+    "review": {
+      "approve": "Approve submission",
+      "reject": "Reject submission",
+      "error": "Could not save the review. Try again.",
+      "reason": "Reason for rejection",
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "confirm": "Confirm rejection",
+      "label": "Review",
+      "changeDecision": "Change decision",
+      "newDecision": "New decision",
+      "confirmChange": "Confirm change"
+    }
   }
 }

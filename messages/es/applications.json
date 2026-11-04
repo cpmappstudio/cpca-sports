@@ -486,6 +486,7 @@
     }
   },
   "documents": {
+    "empty": "No hay documentos solicitados.",
     "title": "Documentos",
     "description": "Sube los documentos requeridos para esta solicitud",
     "visibility": {
@@ -494,38 +495,35 @@
       "hidden": "Oculto"
     },
     "status": {
-      "pending": "Pendiente",
-      "approved": "Aprobado",
-      "rejected": "Rechazado",
-      "notUploaded": "Sin subir"
+      "pending": "Pendiente de revisión",
+      "approved": "Aprobada",
+      "rejected": "Rechazada",
+      "notUploaded": "Sin entrega"
     },
     "actions": {
       "upload": "Subir archivo",
-      "replace": "Reemplazar archivo",
-      "view": "Ver",
-      "approve": "Aprobar",
-      "reject": "Rechazar",
-      "delete": "Eliminar archivo",
+      "replace": "Subir otro archivo",
+      "delete": "Eliminar entrega",
       "changeVisibility": "Cambiar visibilidad",
       "addDocument": "Agregar Documento",
       "cancel": "Cancelar",
       "deleteDialog": {
-        "title": "¿Eliminar documento?",
-        "description": "Esto eliminará permanentemente el archivo subido. Esta acción no se puede deshacer.",
+        "title": "¿Eliminar entrega?",
+        "description": "Se eliminará el archivo entregado de forma permanente. Esta acción no se puede deshacer.",
         "cancel": "Cancelar",
         "confirm": "Eliminar"
       },
-      "edit": "Editar",
-      "deleteType": "Eliminar",
-      "moreOptions": "Más opciones",
+      "edit": "Editar requisito",
+      "deleteType": "Eliminar requisito",
+      "moreOptions": "Configuración del requisito",
       "editDialog": {
-        "title": "Editar tipo de documento",
+        "title": "Editar requisito",
         "save": "Guardar cambios",
         "saving": "Guardando..."
       },
       "deleteTypeDialog": {
-        "title": "¿Eliminar tipo de documento?",
-        "description": "Esto eliminará permanentemente este tipo de documento personalizado. Si se subió un archivo, también será eliminado. Esta acción no se puede deshacer.",
+        "title": "¿Eliminar requisito?",
+        "description": "Se eliminarán de forma permanente este requisito personalizado y su archivo entregado, si lo tiene.",
         "cancel": "Cancelar",
         "confirm": "Eliminar"
       }
@@ -537,9 +535,80 @@
       "descriptionPlaceholder": "Ingresa una descripción",
       "required": "Requerido",
       "adding": "Agregando...",
-      "addButton": "Agregar Documento"
+      "addButton": "Agregar Documento",
+      "saveError": "No se pudo guardar el documento. Intenta de nuevo."
     },
-    "uploadedBy": "Subido el {date} por {name}",
-    "rejectionReason": "Motivo del rechazo"
+    "uploadedBy": "Cargado el {date} por {name}",
+    "rejectionReason": "Motivo del rechazo",
+    "file": {
+      "uploading": "Subiendo...",
+      "uploadFailed": "No se pudo subir el archivo. Intenta de nuevo."
+    },
+    "attachment": {
+      "title": "Archivo para diligenciar",
+      "remove": "Quitar adjunto",
+      "upload": "Adjuntar archivo",
+      "replace": "Reemplazar adjunto",
+      "invalidType": "Selecciona un archivo PDF, JPG o PNG.",
+      "invalidSize": "El archivo debe tener contenido y pesar hasta 10 MB.",
+      "formats": "PDF, JPG o PNG · Hasta 10 MB",
+      "schoolFile": "Archivo del colegio",
+      "viewFile": "Ver archivo del colegio: {name}"
+    },
+    "pdf": {
+      "loading": "Cargando documento…",
+      "loadError": "No pudimos previsualizar este archivo aquí. Ábrelo para verlo.",
+      "unavailable": "Este documento ya no está disponible.",
+      "complete": "Diligenciar documento",
+      "close": "Cerrar",
+      "instructions": "Diligencia el documento y envíalo para revisión.",
+      "unsaved": "Cambios sin enviar",
+      "download": "Descargar copia",
+      "submit": "Guardar y enviar",
+      "saving": "Enviando…",
+      "retry": "Reintentar envío",
+      "saved": "Documento enviado para revisión",
+      "saveError": "No pudimos confirmar el envío. Reintenta o descarga una copia de tu trabajo.",
+      "tooLarge": "No pudimos enviar el PDF. Verifica que sea válido y no supere los 10 MB.",
+      "downloadError": "No pudimos descargar la copia. Inténtalo de nuevo.",
+      "conflict": "El documento cambió o ya no está disponible. Descarga tu trabajo antes de cerrar y vuelve a abrir el editor para continuar.",
+      "restartWarning": "Tu entrega anterior usa otro archivo o formato. ¿Quieres usar el documento actual del colegio? Tu entrega anterior solo se reemplazará cuando envíes.",
+      "restart": "Usar documento actual",
+      "discardTitle": "¿Cerrar sin enviar?",
+      "discardDescription": "Perderás los cambios. Descarga una copia si quieres conservarlos.",
+      "keepEditing": "Seguir editando",
+      "discard": "Descartar cambios",
+      "openFile": "Abrir archivo",
+      "saveChanges": "Guardar cambios",
+      "changesSaved": "Cambios guardados. Entrega pendiente de revisión.",
+      "editInstructions": "Modifica el documento y guarda los cambios."
+    },
+    "submission": {
+      "myTitle": "Mi entrega",
+      "emptyMine": "Aún no has enviado un documento.",
+      "viewFile": "Ver entrega: {name}",
+      "unknownAuthor": "Autor desconocido",
+      "deleteError": "No se pudo eliminar la entrega. Inténtalo de nuevo.",
+      "deleting": "Eliminando…",
+      "title": "Entrega",
+      "empty": "Todavía no hay una entrega.",
+      "editDocument": "Editar documento",
+      "correct": "Corregir entrega",
+      "modifyFile": "Modificar archivo",
+      "updating": "Actualizando entrega…"
+    },
+    "review": {
+      "approve": "Aprobar entrega",
+      "reject": "Rechazar entrega",
+      "error": "No se pudo guardar la revisión. Inténtalo de nuevo.",
+      "reason": "Motivo del rechazo",
+      "cancel": "Cancelar",
+      "saving": "Guardando…",
+      "confirm": "Confirmar rechazo",
+      "label": "Revisión",
+      "changeDecision": "Cambiar decisión",
+      "newDecision": "Nueva decisión",
+      "confirmChange": "Confirmar cambio"
+    }
   }
 }

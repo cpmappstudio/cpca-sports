@@ -1,8 +1,15 @@
-import { query, mutation, QueryCtx, MutationCtx } from "./_generated/server";
+import { replaceApplicationDocument } from "./lib/applicationDocuments";
+import { documentMetadataMatches } from "./lib/documentSync";
+import {
+  assertDocumentAttachmentAccess,
+  documentAttachmentValidator,
+  getDocumentAttachment,
+  scheduleDocumentAttachmentCleanup,
+} from "./lib/documentAttachments";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getCurrentUser } from "./lib/auth";
-import { hasOrgAdminAccess } from "./lib/permissions";
-import { Id } from "./_generated/dataModel";
+import { verifyApplicationAccess } from "./lib/documentAccess";
 
 const documentStatus = v.union(
   v.literal("pending"),
@@ -21,9 +28,14 @@ const documentConfigValidator = v.object({
   _creationTime: v.number(),
   applicationId: v.id("applications"),
   documentTypeId: v.string(),
+  attachmentId: v.optional(v.id("documentAttachments")),
+  attachment: v.optional(documentAttachmentValidator),
   visibility: documentVisibility,
   updatedAt: v.number(),
   updatedBy: v.id("users"),
+  sourceProgramId: v.optional(v.id("programs")),
+  isCustomized: v.optional(v.boolean()),
+  isRemoved: v.optional(v.boolean()),
   isCustom: v.optional(v.boolean()),
   name: v.optional(v.string()),
   description: v.optional(v.string()),
@@ -36,6 +48,8 @@ const documentValidator = v.object({
   documentTypeId: v.string(),
   name: v.string(),
   description: v.optional(v.string()),
+  sourceAttachmentId: v.optional(v.id("documentAttachments")),
+  lastSaveId: v.optional(v.string()),
   storageId: v.id("_storage"),
   fileName: v.string(),
   contentType: v.string(),
@@ -54,38 +68,6 @@ const uploadedByUserValidator = v.object({
   lastName: v.string(),
   email: v.string(),
 });
-
-/**
- * Helper to verify user has access to an application.
- */
-async function verifyApplicationAccess(
-  ctx: QueryCtx | MutationCtx,
-  applicationId: Id<"applications">,
-  userId: Id<"users">,
-  requireAdmin: boolean = false,
-) {
-  const application = await ctx.db.get(applicationId);
-  if (!application) {
-    throw new Error("Application not found");
-  }
-
-  const isOwner = application.userId === userId;
-  const isAdmin = await hasOrgAdminAccess(
-    ctx,
-    userId,
-    application.organizationId,
-  );
-
-  if (requireAdmin && !isAdmin) {
-    throw new Error("Admin access required");
-  }
-
-  if (!isOwner && !isAdmin) {
-    throw new Error("Unauthorized");
-  }
-
-  return { application, isOwner, isAdmin };
-}
 
 /**
  * Generate an upload URL for file storage.
@@ -180,26 +162,15 @@ export const upload = mutation({
       )
       .unique();
 
-    // If exists, delete the old file from storage and the document record
-    if (existing) {
-      await ctx.storage.delete(existing.storageId);
-      await ctx.db.delete(existing._id);
-    }
-
-    // Create new document record
-    return await ctx.db.insert("applicationDocuments", {
-      applicationId: args.applicationId,
-      documentTypeId: args.documentTypeId,
-      name: args.name,
-      description: args.description,
-      storageId: args.storageId,
-      fileName: args.fileName,
-      contentType: args.contentType,
-      fileSize: args.fileSize,
-      status: "pending",
-      uploadedBy: user._id,
-      uploadedAt: Date.now(),
-    });
+    return await replaceApplicationDocument(
+      ctx,
+      {
+        ...args,
+        uploadedBy: user._id,
+        uploadedAt: Date.now(),
+      },
+      existing,
+    );
   },
 });
 
@@ -261,6 +232,36 @@ export const remove = mutation({
 
     // Delete document record
     await ctx.db.delete(args.documentId);
+    await scheduleDocumentAttachmentCleanup(ctx, document.sourceAttachmentId);
+
+    const config = await ctx.db
+      .query("applicationDocumentConfig")
+      .withIndex("byApplicationAndType", (q) =>
+        q
+          .eq("applicationId", document.applicationId)
+          .eq("documentTypeId", document.documentTypeId),
+      )
+      .unique();
+    const sourceProgramId = config?.sourceProgramId;
+    if (
+      config &&
+      sourceProgramId &&
+      !config.isCustomized &&
+      !config.isRemoved
+    ) {
+      const current = await ctx.db
+        .query("programDocumentConfig")
+        .withIndex("byProgramAndType", (q) =>
+          q
+            .eq("programId", sourceProgramId)
+            .eq("documentTypeId", config.documentTypeId),
+        )
+        .unique();
+      if (!current) {
+        await ctx.db.delete("applicationDocumentConfig", config._id);
+        await scheduleDocumentAttachmentCleanup(ctx, config.attachmentId);
+      }
+    }
 
     return null;
   },
@@ -305,14 +306,33 @@ export const getConfigByApplication = query({
   returns: v.array(documentConfigValidator),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
-    await verifyApplicationAccess(ctx, args.applicationId, user._id);
+    const { isAdmin } = await verifyApplicationAccess(
+      ctx,
+      args.applicationId,
+      user._id,
+    );
 
-    return await ctx.db
+    const configs = await ctx.db
       .query("applicationDocumentConfig")
       .withIndex("byApplication", (q) =>
         q.eq("applicationId", args.applicationId),
       )
       .collect();
+    return await Promise.all(
+      configs
+        .filter((config) => !config.isRemoved)
+        .map(async (config) => ({
+          ...config,
+          ...(config.attachmentId && (isAdmin || config.visibility !== "hidden")
+            ? {
+                attachment: await getDocumentAttachment(
+                  ctx,
+                  config.attachmentId,
+                ),
+              }
+            : {}),
+        })),
+    );
   },
 });
 
@@ -340,23 +360,40 @@ export const updateVisibility = mutation({
       )
       .unique();
 
+    const uploaded = existing?.name
+      ? null
+      : await ctx.db
+          .query("applicationDocuments")
+          .withIndex("byApplicationAndType", (q) =>
+            q
+              .eq("applicationId", args.applicationId)
+              .eq("documentTypeId", args.documentTypeId),
+          )
+          .unique();
+    const values = {
+      visibility: args.visibility,
+      isCustomized:
+        existing?.isCustomized === true ||
+        existing?.visibility !== args.visibility,
+      updatedAt: Date.now(),
+      updatedBy: user._id,
+      ...(uploaded
+        ? {
+            name: uploaded.name,
+            description: existing?.description ?? uploaded.description,
+          }
+        : {}),
+    };
+
     if (existing) {
-      // Update existing config
-      await ctx.db.patch(existing._id, {
-        visibility: args.visibility,
-        updatedAt: Date.now(),
-        updatedBy: user._id,
-      });
+      await ctx.db.patch(existing._id, values);
       return existing._id;
     }
 
-    // Create new config
     return await ctx.db.insert("applicationDocumentConfig", {
       applicationId: args.applicationId,
       documentTypeId: args.documentTypeId,
-      visibility: args.visibility,
-      updatedAt: Date.now(),
-      updatedBy: user._id,
+      ...values,
     });
   },
 });
@@ -370,11 +407,26 @@ export const createCustomDocumentType = mutation({
     name: v.string(),
     description: v.optional(v.string()),
     required: v.boolean(),
+    attachmentId: v.optional(v.id("documentAttachments")),
   },
   returns: v.id("applicationDocumentConfig"),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
-    await verifyApplicationAccess(ctx, args.applicationId, user._id, true);
+    const { application } = await verifyApplicationAccess(
+      ctx,
+      args.applicationId,
+      user._id,
+      true,
+    );
+    const name = args.name.trim();
+    if (!name) throw new Error("Document name is required");
+    if (args.attachmentId)
+      await assertDocumentAttachmentAccess(
+        ctx,
+        args.attachmentId,
+        application.organizationId,
+        application._id,
+      );
 
     // Generate a unique documentTypeId from the name
     const baseId = args.name
@@ -394,7 +446,9 @@ export const createCustomDocumentType = mutation({
       updatedAt: Date.now(),
       updatedBy: user._id,
       isCustom: true,
-      name: args.name,
+      isCustomized: true,
+      name,
+      attachmentId: args.attachmentId,
       description: args.description,
     });
   },
@@ -429,6 +483,11 @@ export const updateCustomDocumentType = mutation({
 
     await ctx.db.patch(args.configId, {
       name: args.name,
+      isCustomized:
+        config.isCustomized === true ||
+        config.name !== args.name ||
+        config.description !== args.description ||
+        config.visibility !== visibility,
       description: args.description,
       visibility,
       updatedAt: Date.now(),
@@ -477,9 +536,108 @@ export const deleteCustomDocumentType = mutation({
       await ctx.db.delete(uploadedDoc._id);
     }
 
-    // Delete the config
-    await ctx.db.delete(args.configId);
+    if (config.sourceProgramId) {
+      await ctx.db.patch("applicationDocumentConfig", config._id, {
+        attachmentId: undefined,
+        isRemoved: true,
+        isCustomized: true,
+        updatedAt: Date.now(),
+        updatedBy: user._id,
+      });
+    } else {
+      await ctx.db.delete(args.configId);
+    }
+    await scheduleDocumentAttachmentCleanup(ctx, config.attachmentId);
 
+    return null;
+  },
+});
+
+export const updateRequirement = mutation({
+  args: {
+    applicationId: v.id("applications"),
+    documentTypeId: v.string(),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    required: v.optional(v.boolean()),
+    attachmentId: v.optional(v.union(v.id("documentAttachments"), v.null())),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const { application } = await verifyApplicationAccess(
+      ctx,
+      args.applicationId,
+      user._id,
+      true,
+    );
+    const config = await ctx.db
+      .query("applicationDocumentConfig")
+      .withIndex("byApplicationAndType", (q) =>
+        q
+          .eq("applicationId", args.applicationId)
+          .eq("documentTypeId", args.documentTypeId),
+      )
+      .unique();
+    if (config?.isRemoved) throw new Error("Document type removed");
+    const upload = config
+      ? null
+      : await ctx.db
+          .query("applicationDocuments")
+          .withIndex("byApplicationAndType", (q) =>
+            q
+              .eq("applicationId", args.applicationId)
+              .eq("documentTypeId", args.documentTypeId),
+          )
+          .unique();
+    if (!config && !upload) throw new Error("Document type not found");
+    const attachmentId =
+      args.attachmentId === undefined
+        ? config?.attachmentId
+        : (args.attachmentId ?? undefined);
+    if (args.attachmentId)
+      await assertDocumentAttachmentAccess(
+        ctx,
+        args.attachmentId,
+        application.organizationId,
+        application._id,
+      );
+    const name = args.name?.trim() ?? config?.name ?? upload?.name;
+    if (!name) throw new Error("Document name is required");
+    const metadata = {
+      name,
+      description:
+        args.name === undefined
+          ? (config?.description ?? upload?.description)
+          : args.description,
+      visibility:
+        args.required === undefined
+          ? (config?.visibility ?? "optional")
+          : args.required
+            ? "required"
+            : config?.visibility === "hidden"
+              ? "hidden"
+              : "optional",
+      attachmentId,
+    } as const;
+    if (config && documentMetadataMatches(config, metadata)) return null;
+    const values = {
+      ...metadata,
+      updatedAt: Date.now(),
+      updatedBy: user._id,
+      isCustomized: true,
+    };
+    if (config) {
+      await ctx.db.patch("applicationDocumentConfig", config._id, values);
+      if (config.attachmentId !== attachmentId)
+        await scheduleDocumentAttachmentCleanup(ctx, config.attachmentId);
+    } else {
+      await ctx.db.insert("applicationDocumentConfig", {
+        applicationId: args.applicationId,
+        documentTypeId: args.documentTypeId,
+        ...values,
+      });
+    }
     return null;
   },
 });

@@ -1,5 +1,7 @@
 "use client";
 
+import { useDocumentAttachmentUpload } from "@/hooks/use-document-attachment-upload";
+
 import { useEffect, useMemo, useState } from "react";
 import { useConvex, useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
@@ -24,7 +26,11 @@ import {
   parseProgramFormDefinition,
   upgradeProgramFormDefinition,
 } from "./form-builder/utils";
-import { mapEditableDocumentConfigs } from "@/components/sections/shell/documents/document-default-types";
+import {
+  mapEditableDocumentConfigs,
+  getSavableDocumentConfigs,
+  uploadPendingDocumentAttachments,
+} from "@/components/sections/shell/documents/document-default-types";
 import { mapEditablePaymentDefaults } from "@/components/sections/shell/payments/defaults/payment-default-state";
 import { ProgramSaveDialog } from "./program-save-dialog";
 import { ProgramUseTemplateDialog } from "./program-use-template-dialog";
@@ -90,6 +96,9 @@ export function ProgramCreateWorkspace({
   const { description, setDescription } = editorState;
   const { formDefinition, setFormDefinition } = editorState;
   const { documentConfigs, setDocumentConfigs } = editorState;
+  const uploadAttachment = useDocumentAttachmentUpload({
+    programId: initialProgram._id,
+  });
   const { paymentConfigs, setPaymentConfigs } = editorState;
   const { serializedFormDefinition } = editorState;
   const { savablePaymentConfigs } = editorState;
@@ -192,6 +201,11 @@ export function ProgramCreateWorkspace({
     setIsSaving(true);
 
     try {
+      const resolvedDocuments = await uploadPendingDocumentAttachments(
+        documentConfigs,
+        uploadAttachment,
+      );
+      if (resolvedDocuments) setDocumentConfigs(resolvedDocuments);
       const result = await saveProgram({
         programId: initialProgram._id,
         name,
@@ -205,7 +219,7 @@ export function ProgramCreateWorkspace({
         templateDescription: shouldSaveTemplate
           ? description || undefined
           : undefined,
-        documentConfigs: documentConfigs === null ? undefined : documentConfigs,
+        documentConfigs: getSavableDocumentConfigs(resolvedDocuments),
         paymentConfigs:
           savablePaymentConfigs === null ? undefined : savablePaymentConfigs,
         templateSections: shouldSaveTemplate
@@ -219,7 +233,7 @@ export function ProgramCreateWorkspace({
         setSavedIconKey(iconKey);
         setSummaryFields(selectedSummaryFields);
         setSavedSummaryFields(JSON.stringify(selectedSummaryFields));
-        editorState.markCurrentStateAsSaved();
+        editorState.markCurrentStateAsSaved({ documents: resolvedDocuments });
       }
 
       setIsSaveDialogOpen(false);
@@ -312,6 +326,9 @@ export function ProgramCreateWorkspace({
         documentsContent={
           <ProgramDocuments
             documents={documentConfigs}
+            hasUnsavedChanges={editorState.hasDocumentChanges}
+            isSaving={isSaving}
+            onSave={() => setIsSaveDialogOpen(true)}
             onChange={setDocumentConfigs}
           />
         }

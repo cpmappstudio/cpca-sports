@@ -441,6 +441,8 @@ export default defineSchema({
     documentTypeId: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
+    sourceAttachmentId: v.optional(v.id("documentAttachments")),
+    lastSaveId: v.optional(v.string()),
     storageId: v.id("_storage"),
     fileName: v.string(),
     contentType: v.string(),
@@ -452,26 +454,43 @@ export default defineSchema({
     reviewedAt: v.optional(v.number()),
     rejectionReason: v.optional(v.string()),
   })
+    .index("by_sourceAttachmentId", ["sourceAttachmentId"])
     .index("byApplication", ["applicationId"])
     .index("byApplicationAndType", ["applicationId", "documentTypeId"]),
+
+  documentAttachments: defineTable({
+    organizationId: v.id("organizations"),
+    applicationId: v.optional(v.id("applications")),
+    storageId: v.optional(v.id("_storage")),
+    fileName: v.string(),
+    contentType: v.string(),
+    fileSize: v.number(),
+    uploadedBy: v.id("users"),
+  }).index("by_storageId", ["storageId"]),
 
   applicationDocumentConfig: defineTable({
     applicationId: v.id("applications"),
     documentTypeId: v.string(),
+    attachmentId: v.optional(v.id("documentAttachments")),
     visibility: documentVisibility,
     updatedAt: v.number(),
     updatedBy: v.id("users"),
+    sourceProgramId: v.optional(v.id("programs")),
+    isCustomized: v.optional(v.boolean()),
+    isRemoved: v.optional(v.boolean()),
     // Optional fields for custom document types (created by admin)
     isCustom: v.optional(v.boolean()),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
   })
     .index("byApplication", ["applicationId"])
-    .index("byApplicationAndType", ["applicationId", "documentTypeId"]),
+    .index("byApplicationAndType", ["applicationId", "documentTypeId"])
+    .index("by_attachmentId", ["attachmentId"]),
 
   programDocumentConfig: defineTable({
     programId: v.id("programs"),
     documentTypeId: v.string(),
+    attachmentId: v.optional(v.id("documentAttachments")),
     name: v.string(),
     description: v.optional(v.string()),
     visibility: documentVisibility,
@@ -479,11 +498,13 @@ export default defineSchema({
     updatedBy: v.id("users"),
   })
     .index("byProgram", ["programId"])
-    .index("byProgramAndType", ["programId", "documentTypeId"]),
+    .index("byProgramAndType", ["programId", "documentTypeId"])
+    .index("by_attachmentId", ["attachmentId"]),
 
   templateDocumentConfig: defineTable({
     templateId: v.id("formTemplates"),
     documentTypeId: v.string(),
+    attachmentId: v.optional(v.id("documentAttachments")),
     name: v.string(),
     description: v.optional(v.string()),
     visibility: documentVisibility,
@@ -491,7 +512,8 @@ export default defineSchema({
     updatedBy: v.id("users"),
   })
     .index("byTemplate", ["templateId"])
-    .index("byTemplateAndType", ["templateId", "documentTypeId"]),
+    .index("byTemplateAndType", ["templateId", "documentTypeId"])
+    .index("by_attachmentId", ["attachmentId"]),
 
   organizationPaymentSettings: defineTable({
     organizationId: v.id("organizations"),

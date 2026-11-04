@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +13,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { DocumentRequirementFields } from "./document-requirement-fields";
+import { DocumentFilePreview } from "@/components/documents/document-file-preview";
+import { DocumentAttachmentName } from "./document-reference-file";
 import {
   Popover,
   PopoverContent,
@@ -58,11 +60,12 @@ interface DocumentTypeCardProps {
   name: string;
   description?: string;
   visibility: DocumentTypeVisibility;
-  statusBadge?: ReactNode;
   className?: string;
   children?: ReactNode;
   canEdit?: boolean;
   canDelete?: boolean;
+  attachment?: EditDocumentTypeInput["attachment"];
+  pendingFile?: File;
   onSaveEdit?: (values: EditDocumentTypeInput) => Promise<void>;
   onDelete?: () => Promise<void>;
   onVisibilityChange?: (visibility: DocumentTypeVisibility) => Promise<void>;
@@ -175,13 +178,8 @@ function EditDocumentTypeDialog({
   onError?: ErrorHandler;
 }) {
   const t = useTranslations("Applications.documents");
-  const id = useId();
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editForm, setEditForm] = useState(initialValues);
-
-  useEffect(() => {
-    setEditForm(initialValues);
-  }, [initialValues]);
 
   const handleSave = async () => {
     if (!editForm.name.trim()) {
@@ -191,73 +189,46 @@ function EditDocumentTypeDialog({
     setIsSavingEdit(true);
     try {
       await onSaveEdit({
+        ...editForm,
         name: editForm.name.trim(),
         description: editForm.description?.trim() || undefined,
         required: editForm.required,
       });
       onOpenChange(false);
     } catch (error) {
-      handleDocumentTypeError(error, onError);
+      handleDocumentTypeError(
+        error,
+        onError ?? (() => toast.error(t("form.saveError"))),
+      );
     } finally {
       setIsSavingEdit(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!isSavingEdit) onOpenChange(next);
+      }}
+    >
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t("actions.editDialog.title")}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor={`${id}-edit-name`}>{t("form.documentName")}</Label>
-            <Input
-              id={`${id}-edit-name`}
-              value={editForm.name}
-              onChange={(event) =>
-                setEditForm((current) => ({
-                  ...current,
-                  name: event.target.value,
-                }))
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor={`${id}-edit-description`}>
-              {t("form.description")}
-            </Label>
-            <Input
-              id={`${id}-edit-description`}
-              value={editForm.description ?? ""}
-              onChange={(event) =>
-                setEditForm((current) => ({
-                  ...current,
-                  description: event.target.value,
-                }))
-              }
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id={`${id}-edit-required`}
-              checked={editForm.required}
-              onChange={(event) =>
-                setEditForm((current) => ({
-                  ...current,
-                  required: event.target.checked,
-                }))
-              }
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            <Label htmlFor={`${id}-edit-required`} className="cursor-pointer">
-              {t("form.required")}
-            </Label>
-          </div>
+        <div className="py-4">
+          <DocumentRequirementFields
+            value={editForm}
+            onChange={setEditForm}
+            disabled={isSavingEdit}
+          />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            disabled={isSavingEdit}
+            onClick={() => onOpenChange(false)}
+          >
             {t("actions.cancel")}
           </Button>
           <Button
@@ -330,12 +301,13 @@ export function DocumentTypeCard({
   name,
   description,
   visibility,
-  statusBadge,
   className,
   children,
   canEdit = false,
   canDelete = false,
   onSaveEdit,
+  attachment,
+  pendingFile,
   onDelete,
   onVisibilityChange,
   onError,
@@ -350,6 +322,8 @@ export function DocumentTypeCard({
     name,
     description,
     required: visibility === "required",
+    attachment,
+    pendingFile,
   };
 
   return (
@@ -364,7 +338,9 @@ export function DocumentTypeCard({
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <CardTitle className="text-base">{name}</CardTitle>
+              <CardTitle className="text-base" role="heading" aria-level={3}>
+                {name}
+              </CardTitle>
               <VisibilityBadge
                 visibility={visibility}
                 onVisibilityChange={onVisibilityChange}
@@ -378,7 +354,6 @@ export function DocumentTypeCard({
             ) : null}
           </div>
           <div className="flex items-center gap-2">
-            {statusBadge}
             {hasEditAction || hasDeleteAction ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -391,7 +366,7 @@ export function DocumentTypeCard({
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuContent align="end" className="w-52">
                   {hasEditAction ? (
                     <DropdownMenuGroup>
                       <DropdownMenuItem
@@ -423,11 +398,33 @@ export function DocumentTypeCard({
         </div>
       </CardHeader>
 
-      {children ? (
-        <CardContent className="space-y-3">{children}</CardContent>
+      {children || pendingFile || attachment ? (
+        <CardContent className="space-y-3">
+          {attachment || pendingFile ? (
+            <section
+              aria-label={t("attachment.schoolFile")}
+              className={cn("min-w-0 space-y-2", children && "border-b pb-4")}
+            >
+              <h4 className="text-sm font-medium">
+                {t("attachment.schoolFile")}
+              </h4>
+              {attachment && !pendingFile ? (
+                <DocumentFilePreview
+                  file={attachment}
+                  ariaLabel={t("attachment.viewFile", {
+                    name: attachment.fileName,
+                  })}
+                />
+              ) : (
+                <DocumentAttachmentName fileName={pendingFile?.name} />
+              )}
+            </section>
+          ) : null}
+          {children}
+        </CardContent>
       ) : null}
 
-      {hasEditAction ? (
+      {hasEditAction && isEditDialogOpen ? (
         <EditDocumentTypeDialog
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
