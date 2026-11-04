@@ -1,4 +1,9 @@
 import {
+  documentAttachmentValidator,
+  getDocumentAttachment,
+  scheduleDocumentAttachmentCleanup,
+} from "./lib/documentAttachments";
+import {
   mutation,
   query,
   type MutationCtx,
@@ -21,6 +26,8 @@ const templateDocumentConfigValidator = v.object({
   _creationTime: v.number(),
   templateId: v.id("formTemplates"),
   documentTypeId: v.string(),
+  attachmentId: v.optional(v.id("documentAttachments")),
+  attachment: v.optional(documentAttachmentValidator),
   name: v.string(),
   description: v.optional(v.string()),
   visibility: documentVisibility,
@@ -122,10 +129,20 @@ export const getByTemplate = query({
     const user = await getCurrentUser(ctx);
     await verifyTemplateAdminAccess(ctx, args.templateId, user._id);
 
-    return await ctx.db
+    const configs = await ctx.db
       .query("templateDocumentConfig")
       .withIndex("byTemplate", (q) => q.eq("templateId", args.templateId))
       .collect();
+    return await Promise.all(
+      configs.map(async (config) => ({
+        ...config,
+        ...(config.attachmentId
+          ? {
+              attachment: await getDocumentAttachment(ctx, config.attachmentId),
+            }
+          : {}),
+      })),
+    );
   },
 });
 
@@ -264,6 +281,7 @@ export const deleteType = mutation({
     );
 
     await ctx.db.delete(config._id);
+    await scheduleDocumentAttachmentCleanup(ctx, config.attachmentId);
 
     return { templateId };
   },

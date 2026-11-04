@@ -7,17 +7,20 @@ import type { EditableDocumentConfig } from "@/components/sections/shell/documen
 interface TemplateDocumentsProps {
   documents: EditableDocumentConfig[] | null;
   onChange: (documents: EditableDocumentConfig[]) => void;
+  isSaving: boolean;
 }
 
 export function TemplateDocuments({
   documents,
   onChange,
+  isSaving,
 }: TemplateDocumentsProps) {
   const t = useTranslations("Forms.template");
 
   return (
     <DocumentDefaultsManager
       documents={documents}
+      disabled={isSaving}
       loadingText={t("documents.loading")}
       emptyTitle={t("documents.emptyStateTitle")}
       emptyDescription={t("documents.emptyStateDescription")}

@@ -1518,12 +1518,14 @@ export const cleanupOrphanedStorage = mutation({
       applicationDocuments,
       coachActivities,
       legacyMappings,
+      documentAttachments,
     ] = await Promise.all([
       ctx.db.system.query("_storage").collect(),
       ctx.db.query("applications").collect(),
       ctx.db.query("applicationDocuments").collect(),
       ctx.db.query("coachActivities").collect(),
       ctx.db.query("legacyMigrationMappings").collect(),
+      ctx.db.query("documentAttachments").collect(),
     ]);
 
     const knownStorageIds = new Set<Id<"_storage">>(
@@ -1566,6 +1568,11 @@ export const cleanupOrphanedStorage = mutation({
         referencedFromDocuments += 1;
       }
       referencedStorageIds.add(candidate);
+    }
+
+    for (const attachment of documentAttachments) {
+      if (attachment.storageId && knownStorageIds.has(attachment.storageId))
+        referencedStorageIds.add(attachment.storageId);
     }
 
     for (const activity of coachActivities) {

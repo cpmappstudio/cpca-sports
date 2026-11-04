@@ -321,6 +321,9 @@
       }
     },
     "documents": {
+      "added": "Document added",
+      "unsavedChanges": "Unsaved changes",
+      "saveReminder": "Save the program to apply these changes.",
       "title": "Document requirements",
       "description": "Define the default documents that will be requested for applications using this program.",
       "saveProgramFirstTitle": "Save the program first",

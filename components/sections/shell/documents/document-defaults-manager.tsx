@@ -1,5 +1,6 @@
 "use client";
 
+import type { EditDocumentTypeInput } from "./document-type-shared";
 import { useState } from "react";
 import {
   AddDocumentTypeForm,
@@ -19,6 +20,8 @@ interface DocumentDefaultsManagerProps {
   activeHint: string;
   hiddenHint: string;
   onChange: (documents: EditableDocumentConfig[]) => void;
+  onDocumentAdded?: () => void;
+  disabled?: boolean;
 }
 
 export function DocumentDefaultsManager({
@@ -29,20 +32,19 @@ export function DocumentDefaultsManager({
   activeHint,
   hiddenHint,
   onChange,
+  onDocumentAdded,
+  disabled = false,
 }: DocumentDefaultsManagerProps) {
   const [isAddingDocument, setIsAddingDocument] = useState(false);
 
-  const handleAddDocument = async (document: {
-    name: string;
-    description?: string;
-    required: boolean;
-  }) => {
+  const handleAddDocument = async (document: EditDocumentTypeInput) => {
     const nextDocuments = [
       ...(documents ?? []),
       {
         documentTypeId: createEditableDocumentTypeId(document.name),
         name: document.name,
         description: document.description,
+        pendingFile: document.pendingFile,
         visibility: document.required
           ? ("required" as const)
           : ("optional" as const),
@@ -50,6 +52,7 @@ export function DocumentDefaultsManager({
     ];
 
     onChange(nextDocuments);
+    onDocumentAdded?.();
   };
 
   if (documents === null) {
@@ -61,7 +64,11 @@ export function DocumentDefaultsManager({
   }
 
   return (
-    <div className="space-y-4">
+    <fieldset
+      disabled={disabled}
+      className="min-w-0 space-y-4"
+      aria-busy={disabled}
+    >
       <DocumentTypeActions
         isAddingDocument={isAddingDocument}
         setIsAddingDocument={setIsAddingDocument}
@@ -83,7 +90,7 @@ export function DocumentDefaultsManager({
         </div>
       ) : null}
 
-      {documents.map((document) => (
+      {[...documents].reverse().map((document) => (
         <DocumentTypeCard
           key={document.documentTypeId}
           name={document.name}
@@ -91,7 +98,15 @@ export function DocumentDefaultsManager({
           visibility={document.visibility}
           canEdit
           canDelete
-          onSaveEdit={async ({ name, description, required }) => {
+          attachment={document.attachment}
+          pendingFile={document.pendingFile}
+          onSaveEdit={async ({
+            name,
+            description,
+            required,
+            pendingFile,
+            attachmentRemoved,
+          }) => {
             onChange(
               documents.map((current) =>
                 current.documentTypeId !== document.documentTypeId
@@ -100,6 +115,10 @@ export function DocumentDefaultsManager({
                       ...current,
                       name,
                       description,
+                      pendingFile,
+                      ...(attachmentRemoved
+                        ? { attachmentId: undefined, attachment: undefined }
+                        : {}),
                       visibility: required
                         ? "required"
                         : current.visibility === "hidden"
@@ -134,6 +153,6 @@ export function DocumentDefaultsManager({
           </p>
         </DocumentTypeCard>
       ))}
-    </div>
+    </fieldset>
   );
 }

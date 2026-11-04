@@ -80,12 +80,14 @@ export async function cloneProgramDocumentConfigsToApplication(
     await ctx.db.insert("applicationDocumentConfig", {
       applicationId: params.applicationId,
       documentTypeId: config.documentTypeId,
+      attachmentId: config.attachmentId,
       visibility: config.visibility,
       updatedAt,
       updatedBy: params.userId,
       name: config.name,
       description: config.description,
       isCustom: true,
+      sourceProgramId: params.programId,
     });
   }
 }

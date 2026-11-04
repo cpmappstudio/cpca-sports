@@ -1,4 +1,9 @@
 import {
+  documentAttachmentValidator,
+  getDocumentAttachment,
+  scheduleDocumentAttachmentCleanup,
+} from "./lib/documentAttachments";
+import {
   mutation,
   query,
   type MutationCtx,
@@ -8,6 +13,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { getCurrentUser } from "./lib/auth";
 import { hasOrgAdminAccess } from "./lib/permissions";
+import { scheduleProgramDocumentSync } from "./lib/documentSync";
 
 const documentVisibility = v.union(
   v.literal("required"),
@@ -20,6 +26,8 @@ const programDocumentConfigValidator = v.object({
   _creationTime: v.number(),
   programId: v.id("programs"),
   documentTypeId: v.string(),
+  attachmentId: v.optional(v.id("documentAttachments")),
+  attachment: v.optional(documentAttachmentValidator),
   name: v.string(),
   description: v.optional(v.string()),
   visibility: documentVisibility,
@@ -52,10 +60,20 @@ export const getByProgram = query({
     const user = await getCurrentUser(ctx);
     await verifyProgramAdminAccess(ctx, args.programId, user._id);
 
-    return await ctx.db
+    const configs = await ctx.db
       .query("programDocumentConfig")
       .withIndex("byProgram", (q) => q.eq("programId", args.programId))
       .collect();
+    return await Promise.all(
+      configs.map(async (config) => ({
+        ...config,
+        ...(config.attachmentId
+          ? {
+              attachment: await getDocumentAttachment(ctx, config.attachmentId),
+            }
+          : {}),
+      })),
+    );
   },
 });
 
@@ -84,7 +102,7 @@ export const createType = mutation({
     const timestamp = Date.now().toString(36);
     const documentTypeId = `program_${baseId}_${timestamp}`;
 
-    return await ctx.db.insert("programDocumentConfig", {
+    const configId = await ctx.db.insert("programDocumentConfig", {
       programId: args.programId,
       documentTypeId,
       name,
@@ -93,6 +111,8 @@ export const createType = mutation({
       updatedAt: Date.now(),
       updatedBy: user._id,
     });
+    await scheduleProgramDocumentSync(ctx, args.programId, user._id);
+    return configId;
   },
 });
 
@@ -126,6 +146,7 @@ export const updateType = mutation({
       updatedAt: Date.now(),
       updatedBy: user._id,
     });
+    await scheduleProgramDocumentSync(ctx, config.programId, user._id);
 
     return null;
   },
@@ -160,6 +181,7 @@ export const updateVisibility = mutation({
       updatedAt: Date.now(),
       updatedBy: user._id,
     });
+    await scheduleProgramDocumentSync(ctx, args.programId, user._id);
 
     return config._id;
   },
@@ -180,6 +202,8 @@ export const deleteType = mutation({
 
     await verifyProgramAdminAccess(ctx, config.programId, user._id);
     await ctx.db.delete(args.configId);
+    await scheduleDocumentAttachmentCleanup(ctx, config.attachmentId);
+    await scheduleProgramDocumentSync(ctx, config.programId, user._id);
 
     return null;
   },

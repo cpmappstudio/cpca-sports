@@ -321,6 +321,9 @@
       }
     },
     "documents": {
+      "added": "Documento agregado",
+      "unsavedChanges": "Cambios sin guardar",
+      "saveReminder": "Guarda el programa para aplicar estos cambios.",
       "title": "Requisitos documentales",
       "description": "Define los documentos por defecto que se solicitarán a las solicitudes que usen este programa.",
       "saveProgramFirstTitle": "Guarda primero el programa",

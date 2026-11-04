@@ -18,25 +18,15 @@ export function DocumentTypeActions({
   const t = useTranslations("Applications.documents");
   const { isAdmin } = useIsAdmin();
 
-  if (!isAdmin) {
+  if (!isAdmin || isAddingDocument) {
     return null;
   }
 
   return (
     <div className="flex items-center justify-start">
-      <Button
-        size="sm"
-        variant={isAddingDocument ? "outline" : "default"}
-        onClick={() => setIsAddingDocument((current) => !current)}
-      >
-        {isAddingDocument ? (
-          <span className="hidden md:inline">{t("actions.cancel")}</span>
-        ) : (
-          <>
-            <Plus />
-            <span className="hidden md:inline">{t("actions.addDocument")}</span>
-          </>
-        )}
+      <Button size="sm" onClick={() => setIsAddingDocument(true)}>
+        <Plus />
+        <span className="hidden md:inline">{t("actions.addDocument")}</span>
       </Button>
     </div>
   );

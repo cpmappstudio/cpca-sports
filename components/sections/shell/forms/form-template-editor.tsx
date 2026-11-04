@@ -1,5 +1,7 @@
 "use client";
 
+import { useDocumentAttachmentUpload } from "@/hooks/use-document-attachment-upload";
+
 import { startTransition, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
@@ -21,7 +23,11 @@ import { createProgramFormCopy } from "@/components/sections/shell/programs/crea
 import { buildProgramFormDefinitionFromTemplate } from "@/components/sections/shell/programs/create/form-builder/template-definition";
 import { buildTemplateSectionsFromProgramForm } from "@/components/sections/shell/programs/create/form-builder/template-sections";
 import { getProgramFormFieldNameErrors } from "@/components/sections/shell/programs/create/form-builder/utils";
-import { mapEditableDocumentConfigs } from "@/components/sections/shell/documents/document-default-types";
+import {
+  mapEditableDocumentConfigs,
+  getSavableDocumentConfigs,
+  uploadPendingDocumentAttachments,
+} from "@/components/sections/shell/documents/document-default-types";
 import { mapEditablePaymentDefaults } from "@/components/sections/shell/payments/defaults/payment-default-state";
 import { TemplateDocuments } from "./template-documents";
 import { TemplatePayments } from "./template-payments";
@@ -85,6 +91,9 @@ export function FormTemplateEditor({
   const { description, setDescription } = editorState;
   const { formDefinition, setFormDefinition } = editorState;
   const { documentConfigs, setDocumentConfigs } = editorState;
+  const uploadAttachment = useDocumentAttachmentUpload({
+    templateId: template._id,
+  });
   const { paymentConfigs, setPaymentConfigs } = editorState;
   const { serializedFormDefinition } = editorState;
   const { savablePaymentConfigs } = editorState;
@@ -113,12 +122,17 @@ export function FormTemplateEditor({
     setIsSaving(true);
 
     try {
+      const resolvedDocuments = await uploadPendingDocumentAttachments(
+        documentConfigs,
+        uploadAttachment,
+      );
+      if (resolvedDocuments) setDocumentConfigs(resolvedDocuments);
       const nextTemplateId = await updateTemplate({
         templateId: template._id,
         name: normalizedName,
         description: normalizedDescription || undefined,
         formDefinition: serializedFormDefinition,
-        documentConfigs: documentConfigs === null ? undefined : documentConfigs,
+        documentConfigs: getSavableDocumentConfigs(resolvedDocuments),
         paymentConfigs:
           savablePaymentConfigs === null ? undefined : savablePaymentConfigs,
         sections: buildTemplateSectionsFromProgramForm(
@@ -139,6 +153,7 @@ export function FormTemplateEditor({
       }
 
       editorState.markCurrentStateAsSaved({
+        documents: resolvedDocuments,
         name: normalizedName,
         description: normalizedDescription,
       });
@@ -204,6 +219,7 @@ export function FormTemplateEditor({
         }
         documentsContent={
           <TemplateDocuments
+            isSaving={isSaving}
             documents={documentConfigs}
             onChange={setDocumentConfigs}
           />

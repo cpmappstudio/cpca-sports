@@ -1,5 +1,6 @@
 "use client";
 
+import { useDocumentAttachmentUpload } from "@/hooks/use-document-attachment-upload";
 import { useState, useCallback, useEffect } from "react";
 import {
   Authenticated,
@@ -133,6 +134,10 @@ function ApplicationDetailContent({
   const updateFormData = useMutation(api.applications.updateFormData);
 
   // Document mutations
+  const uploadAttachment = useDocumentAttachmentUpload({
+    applicationId: convexApplicationId,
+  });
+  const updateRequirement = useMutation(api.documents.updateRequirement);
   const uploadDocument = useMutation(api.documents.upload);
   const updateDocumentStatus = useMutation(api.documents.updateStatus);
   const updateDocumentVisibility = useMutation(api.documents.updateVisibility);
@@ -140,9 +145,6 @@ function ApplicationDetailContent({
   const removeDocument = useMutation(api.documents.remove);
   const createCustomDocumentType = useMutation(
     api.documents.createCustomDocumentType,
-  );
-  const updateCustomDocumentType = useMutation(
-    api.documents.updateCustomDocumentType,
   );
   const deleteCustomDocumentType = useMutation(
     api.documents.deleteCustomDocumentType,
@@ -336,12 +338,13 @@ function ApplicationDetailContent({
                   documents={documents}
                   documentConfigs={documentConfigs}
                   onUpload={uploadDocument}
+                  onUploadAttachment={uploadAttachment}
+                  onUpdateRequirement={updateRequirement}
                   onUpdateStatus={updateDocumentStatus}
                   onUpdateVisibility={updateDocumentVisibility}
                   onGenerateUploadUrl={generateUploadUrl}
                   onRemove={removeDocument}
                   onCreateCustomDocumentType={createCustomDocumentType}
-                  onUpdateCustomDocumentType={updateCustomDocumentType}
                   onDeleteCustomDocumentType={deleteCustomDocumentType}
                 />
               )}

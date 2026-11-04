@@ -1,3 +1,4 @@
+import { scheduleDocumentAttachmentCleanup } from "./lib/documentAttachments";
 import { query, mutation } from "./_generated/server";
 import { v, type Infer } from "convex/values";
 import { Id } from "./_generated/dataModel";
@@ -908,9 +909,20 @@ export const deleteApplication = mutation({
     await Promise.all(
       [...storageIdsToDelete].map((storageId) => ctx.storage.delete(storageId)),
     );
-    await Promise.all(documents.map((document) => ctx.db.delete(document._id)));
     await Promise.all(
-      documentConfigs.map((config) => ctx.db.delete(config._id)),
+      documents.map(async (document) => {
+        await ctx.db.delete(document._id);
+        await scheduleDocumentAttachmentCleanup(
+          ctx,
+          document.sourceAttachmentId,
+        );
+      }),
+    );
+    await Promise.all(
+      documentConfigs.map(async (config) => {
+        await ctx.db.delete(config._id);
+        await scheduleDocumentAttachmentCleanup(ctx, config.attachmentId);
+      }),
     );
     await Promise.all(
       transactions.map((transaction) => ctx.db.delete(transaction._id)),

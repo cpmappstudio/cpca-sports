@@ -1,3 +1,4 @@
+import { save as saveDocumentPdf, options as documentPdfOptions } from "./documentPdfHttp";
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { Webhook } from "svix";
@@ -295,6 +296,8 @@ const handleSquareWebhook = httpAction(async (ctx, request) => {
 });
 
 const http = httpRouter();
+http.route({ path: "/application-document-pdf", method: "POST", handler: saveDocumentPdf });
+http.route({ path: "/application-document-pdf", method: "OPTIONS", handler: documentPdfOptions });
 
 http.route({
   path: CLERK_WEBHOOK_PATH,
