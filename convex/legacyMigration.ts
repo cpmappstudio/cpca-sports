@@ -1576,12 +1576,13 @@ export const cleanupOrphanedStorage = mutation({
     }
 
     for (const activity of coachActivities) {
-      const candidate = activity.imageStorageId;
-      if (!knownStorageIds.has(candidate)) continue;
-      if (!referencedStorageIds.has(candidate)) {
-        referencedFromCoachActivities += 1;
+      for (const candidate of [activity.imageStorageId, activity.checkOutImageStorageId]) {
+        if (!candidate || !knownStorageIds.has(candidate)) continue;
+        if (!referencedStorageIds.has(candidate)) {
+          referencedFromCoachActivities += 1;
+        }
+        referencedStorageIds.add(candidate);
       }
-      referencedStorageIds.add(candidate);
     }
 
     for (const mapping of legacyMappings) {

@@ -530,6 +530,9 @@ export const deleteLocal = mutation({
       .take(50);
     for (const activity of activities) {
       await ctx.storage.delete(activity.imageStorageId);
+      if (activity.checkOutImageStorageId) {
+        await ctx.storage.delete(activity.checkOutImageStorageId);
+      }
       await ctx.db.delete(activity._id);
     }
     const hasMoreActivities = await ctx.db

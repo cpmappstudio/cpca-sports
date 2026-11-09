@@ -17,9 +17,25 @@ export interface FilterConfig {
   options: FilterOption[];
 }
 
+export interface CursorPagination {
+  pageLabel: string;
+  navigationLabel: string;
+  canPreviousPage: boolean;
+  canNextPage: boolean;
+  onPreviousPage: () => void;
+  onNextPage: () => void;
+}
+
 export interface DataTableProps<TData> {
   data: TData[];
   columns: ColumnDef<TData, unknown>[];
+  getRowId?: (row: TData) => string;
+  cursorPagination?: CursorPagination;
+  isLoading?: boolean;
+  loadingMessage?: string;
+  variant?: "default" | "plain";
+  showColumnSelector?: boolean;
+  ariaLabel?: string;
   filterColumn?: string;
   filterPlaceholder?: string;
   emptyMessage?: string;
@@ -40,6 +56,8 @@ export interface DataTableProps<TData> {
     total: number,
     isFiltered: boolean,
   ) => string;
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
   initialSorting?: SortingState;
   pageSize?: number;
   enableRowSelection?: boolean;
@@ -47,6 +65,7 @@ export interface DataTableProps<TData> {
   onExport?: (rows: TData[], visibleColumnIds: string[]) => void;
   onFilteredDataChange?: (rows: TData[]) => void;
   onRowClick?: (row: TData) => void;
+  enableKeyboardRowActivation?: boolean;
   renderBulkActions?: (
     selectedRows: TData[],
     clearSelection: () => void,
