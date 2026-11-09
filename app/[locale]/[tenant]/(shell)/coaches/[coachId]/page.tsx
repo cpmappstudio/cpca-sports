@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { fetchQuery, preloadQuery, preloadedQueryResult } from "convex/nextjs";
+import { preloadQuery, preloadedQueryResult } from "convex/nextjs";
 import type { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { getAuthToken } from "@/lib/auth/auth";
@@ -12,14 +12,11 @@ export default async function Page({
 }) {
   const { tenant, coachId: value } = await params;
   const token = await getAuthToken();
-  const [preloadedCoach, organization] = await Promise.all([
-    preloadQuery(
-      api.coaches.getById,
-      { coachId: value as Id<"coaches">, organizationSlug: tenant },
-      { token },
-    ),
-    fetchQuery(api.organizations.getBySlug, { slug: tenant }, { token }),
-  ]);
+  const preloadedCoach = await preloadQuery(
+    api.coaches.getById,
+    { coachId: value as Id<"coaches">, organizationSlug: tenant },
+    { token },
+  );
   const coach = preloadedQueryResult(preloadedCoach);
   if (!coach) notFound();
   let programs: Array<{ _id: Id<"programs">; name: string }> = [];
@@ -39,7 +36,6 @@ export default async function Page({
       preloadedCoach={preloadedCoach}
       tenant={tenant}
       programs={programs}
-      organizationLogoUrl={organization?.imageUrl}
     />
   );
 }

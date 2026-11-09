@@ -1,4 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
+import { activityListingValidator } from "./lib/coachActivityListing";
 import { v } from "convex/values";
 
 const orgMemberRole = v.union(
@@ -188,16 +189,24 @@ export default defineSchema({
     .index("byPosition", ["positionId"]),
 
   coachActivities: defineTable({
+    listing: v.optional(activityListingValidator),
     coachId: v.id("coaches"),
     programId: v.id("programs"),
     placeId: v.id("programCoachOptions"),
     placeName: v.string(),
     activityDate: v.string(),
     startTime: v.string(),
-    endTime: v.string(),
+    endTime: v.optional(v.string()),
     title: v.string(),
     description: v.optional(v.string()),
     imageStorageId: v.id("_storage"),
+    checkOutImageStorageId: v.optional(v.id("_storage")),
+    checkInAt: v.optional(v.number()),
+    checkOutAt: v.optional(v.number()),
+    status: v.optional(
+      v.union(v.literal("in_progress"), v.literal("completed")),
+    ),
+    timeZone: v.optional(v.literal("America/New_York")),
     completed: v.boolean(),
     createdBy: v.id("users"),
     updatedBy: v.id("users"),
@@ -208,7 +217,29 @@ export default defineSchema({
     .index("byCoachAndDate", ["coachId", "activityDate"])
     .index("byProgram", ["programId"])
     .index("byPlace", ["placeId"])
-    .index("byImageStorageId", ["imageStorageId"]),
+    .index("byImageStorageId", ["imageStorageId"])
+    .index("by_checkOutImageStorageId", ["checkOutImageStorageId"])
+    .index("by_coachId_and_status", ["coachId", "status"])
+    .index("by_coachId_listing_group_listing_title", [
+      "coachId",
+      "listing.group",
+      "listing.title",
+    ])
+    .index("by_coachId_listing_group_listing_place", [
+      "coachId",
+      "listing.group",
+      "listing.place",
+    ])
+    .index("by_coachId_listing_group_listing_checkInOrder", [
+      "coachId",
+      "listing.group",
+      "listing.checkInOrder",
+    ])
+    .index("by_coachId_listing_group_listing_checkOutOrder", [
+      "coachId",
+      "listing.group",
+      "listing.checkOutOrder",
+    ]),
 
   programRecurringFeeConfig: defineTable({
     programId: v.id("programs"),

@@ -40,12 +40,20 @@ import {
 import type { DataTableProps } from "@/lib/table/types";
 import { shouldHandleRowClick } from "@/lib/table/utils";
 import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
+import { cn } from "@/lib/utils";
 
 const DEFAULT_PAGE_SIZE = 50;
 
 export function DataTable<TData>({
   data,
   columns,
+  getRowId,
+  cursorPagination,
+  isLoading = false,
+  loadingMessage,
+  variant = "default",
+  showColumnSelector = true,
+  ariaLabel,
   filterColumn,
   filterPlaceholder,
   emptyMessage,
@@ -58,8 +66,12 @@ export function DataTable<TData>({
   exportButtonLabel,
   filterConfigs,
   filtersMenuLabel,
+  previousLabel,
+  nextLabel,
   selectedRowsLabel,
   resultsCountLabel,
+  sorting: controlledSorting,
+  onSortingChange,
   initialSorting,
   pageSize,
   enableRowSelection,
@@ -67,11 +79,12 @@ export function DataTable<TData>({
   onExport,
   onFilteredDataChange,
   onRowClick,
+  enableKeyboardRowActivation = false,
   renderBulkActions,
   renderRowContextMenu,
 }: DataTableProps<TData>) {
   const resolvedPageSize = pageSize ?? DEFAULT_PAGE_SIZE;
-  const [sorting, setSorting] = React.useState<SortingState>(
+  const [internalSorting, setSorting] = React.useState<SortingState>(
     initialSorting ?? [],
   );
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -82,12 +95,23 @@ export function DataTable<TData>({
       search: false,
     });
   const [rowSelection, setRowSelection] = React.useState({});
+  const sorting = controlledSorting ?? internalSorting;
   const columnVisibility = controlledVisibility ?? internalVisibility;
 
   const table = useReactTable({
     data: data ?? [],
     columns,
-    onSortingChange: setSorting,
+    getRowId,
+    manualPagination: !!cursorPagination,
+    manualFiltering: !!cursorPagination,
+    manualSorting: !!cursorPagination,
+    onSortingChange: (updater) => {
+      const next = typeof updater === "function" ? updater(sorting) : updater;
+      if (onSortingChange) onSortingChange(next);
+      else setSorting(next);
+    },
+    enableSorting: !cursorPagination || !!onSortingChange,
+    enableMultiSort: !cursorPagination,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -165,9 +189,11 @@ export function DataTable<TData>({
       if (!onRowClick || !shouldHandleRowClick(event)) {
         return;
       }
+      if (enableKeyboardRowActivation)
+        event.currentTarget.focus({ preventScroll: true });
       handleRowClick(rowData);
     },
-    [handleRowClick, onRowClick],
+    [enableKeyboardRowActivation, handleRowClick, onRowClick],
   );
 
   const exportRows = React.useCallback(() => {
@@ -193,58 +219,68 @@ export function DataTable<TData>({
   }, []);
 
   return (
-    <div className="w-full">
-      <div className="flex items-center gap-2 pb-4">
-        {filterColumnInstance ? (
-          <InputGroup className="bg-card">
-            <InputGroupAddon>
-              <MagnifyingGlassIcon />
-            </InputGroupAddon>
-            <InputGroupInput
-              placeholder={filterPlaceholder}
-              value={(filterColumnInstance.getFilterValue() as string) ?? ""}
-              onChange={(event) =>
-                filterColumnInstance.setFilterValue(event.target.value)
-              }
-              className="max-w-sm"
-            />
-          </InputGroup>
-        ) : null}
-        {onCreate && (
-          <Button onClick={onCreate} size="icon" className="">
-            <Plus className="size-4 " />
-          </Button>
-        )}
-
-        <div className="ml-auto flex items-center gap-2">
-          {filterConfigs && filterConfigs.length > 0 && (
-            <DataTableFilters
-              table={table}
-              filterConfigs={filterConfigs}
-              filtersMenuLabel={filtersMenuLabel}
-            />
-          )}
-
-          {onExport && (
-            <Button
-              variant="outline"
-              onClick={exportRows}
-              disabled={exportDisabled}
-            >
-              <Download className="size-3.5" />
-              <span className="hidden md:block mr-1">{exportButtonLabel}</span>
+    <div className="w-full" aria-busy={isLoading}>
+      {filterColumnInstance ||
+      onCreate ||
+      onExport ||
+      filterConfigs?.length ||
+      showColumnSelector ? (
+        <div className="flex items-center gap-2 pb-4">
+          {filterColumnInstance ? (
+            <InputGroup className="bg-card">
+              <InputGroupAddon>
+                <MagnifyingGlassIcon />
+              </InputGroupAddon>
+              <InputGroupInput
+                placeholder={filterPlaceholder}
+                value={(filterColumnInstance.getFilterValue() as string) ?? ""}
+                onChange={(event) =>
+                  filterColumnInstance.setFilterValue(event.target.value)
+                }
+                className="max-w-sm"
+              />
+            </InputGroup>
+          ) : null}
+          {onCreate && (
+            <Button onClick={onCreate} size="icon" className="">
+              <Plus className="size-4 " />
             </Button>
           )}
 
-          <DataTableColumns
-            table={table}
-            label={columnsMenuLabel}
-            labels={columnLabels}
-            groups={columnGroups}
-            className={controlledVisibility ? undefined : "hidden md:flex"}
-          />
+          <div className="ml-auto flex items-center gap-2">
+            {filterConfigs && filterConfigs.length > 0 && (
+              <DataTableFilters
+                table={table}
+                filterConfigs={filterConfigs}
+                filtersMenuLabel={filtersMenuLabel}
+              />
+            )}
+
+            {onExport && (
+              <Button
+                variant="outline"
+                onClick={exportRows}
+                disabled={exportDisabled}
+              >
+                <Download className="size-3.5" />
+                <span className="hidden md:block mr-1">
+                  {exportButtonLabel}
+                </span>
+              </Button>
+            )}
+
+            {showColumnSelector && (
+              <DataTableColumns
+                table={table}
+                label={columnsMenuLabel}
+                labels={columnLabels}
+                groups={columnGroups}
+                className={controlledVisibility ? undefined : "hidden md:flex"}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {selectedRowsCount > 0 && renderBulkActions ? (
         <div className="pb-2 text-sm font-medium">
@@ -269,9 +305,20 @@ export function DataTable<TData>({
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-md border">
-        <Table className="bg-card">
-          <TableHeader className="bg-primary sticky top-0 z-10 ">
+      <div
+        className={cn(
+          "overflow-hidden",
+          variant === "default" && "rounded-md border",
+        )}
+      >
+        <Table className="bg-card" aria-label={ariaLabel}>
+          <TableHeader
+            className={
+              variant === "plain"
+                ? "bg-muted/40"
+                : "bg-primary sticky top-0 z-10"
+            }
+          >
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
                 key={headerGroup.id}
@@ -297,7 +344,20 @@ export function DataTable<TData>({
                     | undefined;
                   return (
                     <TableHead
-                      className={`text-muted ${meta?.className || ""} ${meta?.headerClassName || ""}`}
+                      className={cn(
+                        variant === "plain"
+                          ? "text-muted-foreground"
+                          : "text-muted",
+                        meta?.className,
+                        meta?.headerClassName,
+                      )}
+                      aria-sort={
+                        header.column.getIsSorted() === "asc"
+                          ? "ascending"
+                          : header.column.getIsSorted() === "desc"
+                            ? "descending"
+                            : undefined
+                      }
                       key={header.id}
                     >
                       {header.isPlaceholder
@@ -314,7 +374,7 @@ export function DataTable<TData>({
           </TableHeader>
 
           <TableBody>
-            {table.getRowModel().rows.length ? (
+            {!isLoading && table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => {
                 const rowContextMenu = renderRowContextMenu?.(row.original);
 
@@ -322,11 +382,31 @@ export function DataTable<TData>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
-                    className={
-                      onRowClick
-                        ? "cursor-pointer transition-colors"
+                    tabIndex={
+                      onRowClick && enableKeyboardRowActivation ? 0 : undefined
+                    }
+                    onKeyDown={
+                      onRowClick && enableKeyboardRowActivation
+                        ? (event) => {
+                            if (
+                              event.target === event.currentTarget &&
+                              (event.key === "Enter" || event.key === " ")
+                            ) {
+                              event.preventDefault();
+                              handleRowClick(row.original);
+                            }
+                          }
                         : undefined
                     }
+                    className={cn(
+                      variant === "plain" &&
+                        "hover:bg-primary/5 focus-within:bg-primary/5",
+                      enableKeyboardRowActivation &&
+                        "group outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                      onRowClick
+                        ? "cursor-pointer transition-colors"
+                        : undefined,
+                    )}
                     onClick={
                       onRowClick
                         ? (event) =>
@@ -390,7 +470,9 @@ export function DataTable<TData>({
                   }
                   className="h-24 text-center"
                 >
-                  {emptyMessage}
+                  <span role="status">
+                    {isLoading ? loadingMessage : emptyMessage}
+                  </span>
                 </TableCell>
               </TableRow>
             )}
@@ -398,48 +480,62 @@ export function DataTable<TData>({
         </Table>
       </div>
 
-      <div className="flex items-center justify-end space-x-2 py-4">
-        {/* <div className="flex-1 text-sm text-muted-foreground">
-                    {selectedRowsLabel?.(
-                        table.getFilteredSelectedRowModel().rows.length,
-                        table.getFilteredRowModel().rows.length
-                    ) ?? `${table.getFilteredSelectedRowModel().rows.length} of ${table.getFilteredRowModel().rows.length} row(s) selected.`}
-                </div> */}
-
+      <nav
+        aria-label={cursorPagination?.navigationLabel}
+        className={cn(
+          "flex flex-wrap items-center justify-end gap-2 py-4",
+          variant === "plain" && "border-t px-3",
+        )}
+      >
         <div className="flex-1 text-muted-foreground text-sm font-medium">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {renderResultsCount(true)}
-            <span>
-              {t("table.pageInfo", {
-                current: table.getState().pagination.pageIndex + 1,
-                total: table.getPageCount(),
-              })}
+            <span aria-live="polite">
+              {cursorPagination?.pageLabel ??
+                t("table.pageInfo", {
+                  current: table.getState().pagination.pageIndex + 1,
+                  total: table.getPageCount(),
+                })}
             </span>
           </div>
         </div>
 
-        <div className="space-x-2">
+        <div className="flex gap-2">
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            size={previousLabel ? "default" : "icon"}
+            className={previousLabel ? "min-h-11" : undefined}
+            onClick={
+              cursorPagination?.onPreviousPage ?? (() => table.previousPage())
+            }
+            disabled={
+              isLoading ||
+              !(cursorPagination?.canPreviousPage ?? table.getCanPreviousPage())
+            }
           >
-            <span className="sr-only">Go to previous page</span>
+            {!previousLabel && (
+              <span className="sr-only">Go to previous page</span>
+            )}
             <ChevronLeft />
+            {previousLabel}
           </Button>
 
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            size={nextLabel ? "default" : "icon"}
+            className={nextLabel ? "min-h-11" : undefined}
+            onClick={cursorPagination?.onNextPage ?? (() => table.nextPage())}
+            disabled={
+              isLoading ||
+              !(cursorPagination?.canNextPage ?? table.getCanNextPage())
+            }
           >
-            <span className="sr-only">Go to next page</span>
+            {!nextLabel && <span className="sr-only">Go to next page</span>}
+            {nextLabel}
             <ChevronRight />
           </Button>
         </div>
-      </div>
+      </nav>
     </div>
   );
 }
