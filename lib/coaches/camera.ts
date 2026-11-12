@@ -1,3 +1,5 @@
+import { optimizePhoto } from "../images/optimize-photo";
+
 export type CameraState =
   | "idle"
   | "requesting"
@@ -174,19 +176,11 @@ export class ActivityCamera {
       )
         throw fail("frame");
       this.emit("capturing");
-      const canvas = document.createElement("canvas");
-      const scale = Math.min(
-        1,
-        1280 / Math.max(this.video.videoWidth, this.video.videoHeight),
-      );
-      canvas.width = Math.max(1, Math.round(this.video.videoWidth * scale));
-      canvas.height = Math.max(1, Math.round(this.video.videoHeight * scale));
-      const context = canvas.getContext("2d");
-      if (!context) throw fail("encode");
-      context.drawImage(this.video, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/jpeg", 0.85),
-      );
+      const blob = await optimizePhoto(this.video, {
+        width: this.video.videoWidth,
+        height: this.video.videoHeight,
+        maxDimension: 1280,
+      });
       if (generation !== this.generation) return null;
       if (!blob?.size) throw fail("encode");
       this.stop("captured");

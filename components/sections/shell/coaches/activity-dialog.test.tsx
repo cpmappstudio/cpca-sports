@@ -64,7 +64,7 @@ vi.mock("./activity-camera", () => ({
         type="button"
         disabled={disabled}
         onClick={() =>
-          onCapture(new Blob(["captured"], { type: "image/jpeg" }))
+          onCapture(new Blob(["captured"], { type: "image/webp" }))
         }
       >
         Tomar foto de prueba
@@ -224,7 +224,8 @@ test("check-in has a details step and requires a camera photo before confirming"
   );
   expect(state.fetch.mock.calls[0][1]).toMatchObject({
     method: "POST",
-    headers: { "Content-Type": "image/jpeg" },
+    headers: { "Content-Type": "image/webp" },
+    body: expect.any(Blob),
   });
   expect(result.close).toHaveBeenCalledWith(false);
 });
@@ -257,6 +258,10 @@ test("checkout takes a new photo for the selected activity without editable time
   );
   expect(state.checkIn).not.toHaveBeenCalled();
   expect(state.generateUploadUrl).toHaveBeenCalledWith({ coachId, activityId });
+  expect(state.fetch.mock.calls[0][1]).toMatchObject({
+    headers: { "Content-Type": "image/webp" },
+    body: expect.any(Blob),
+  });
 });
 test("editing saves only title, description and place and never requests camera uploads", async () => {
   const result = view("edit");
