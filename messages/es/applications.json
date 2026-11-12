@@ -560,7 +560,6 @@
       "loadError": "No pudimos previsualizar este archivo aquí. Ábrelo para verlo.",
       "unavailable": "Este documento ya no está disponible.",
       "complete": "Diligenciar documento",
-      "close": "Cerrar",
       "instructions": "Diligencia el documento y envíalo para revisión.",
       "unsaved": "Cambios sin enviar",
       "download": "Descargar copia",
@@ -570,7 +569,6 @@
       "saved": "Documento enviado para revisión",
       "saveError": "No pudimos confirmar el envío. Reintenta o descarga una copia de tu trabajo.",
       "tooLarge": "No pudimos enviar el PDF. Verifica que sea válido y no supere los 10 MB.",
-      "downloadError": "No pudimos descargar la copia. Inténtalo de nuevo.",
       "conflict": "El documento cambió o ya no está disponible. Descarga tu trabajo antes de cerrar y vuelve a abrir el editor para continuar.",
       "restartWarning": "Tu entrega anterior usa otro archivo o formato. ¿Quieres usar el documento actual del colegio? Tu entrega anterior solo se reemplazará cuando envíes.",
       "restart": "Usar documento actual",
@@ -594,7 +592,6 @@
       "empty": "Todavía no hay una entrega.",
       "editDocument": "Editar documento",
       "correct": "Corregir entrega",
-      "modifyFile": "Modificar archivo",
       "updating": "Actualizando entrega…"
     },
     "review": {

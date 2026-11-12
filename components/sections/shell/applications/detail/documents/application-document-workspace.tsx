@@ -2,8 +2,8 @@
 
 import { useRef, useState, type ComponentProps } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronDown, Loader2, Pencil, Trash2, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2, Pencil, Trash2, Upload } from "lucide-react";
+import { DocumentViewerActions } from "@/components/documents/document-viewer-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,11 +21,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DocumentFilePreviewDialog } from "@/components/documents/document-file-preview";
 import { DocumentFileUpload } from "@/components/sections/shell/documents/document-file-upload";
@@ -151,63 +148,59 @@ export function ApplicationDocumentWorkspace({
         onOpenChange={(next) => {
           if (!next && !busyRef.current && !deleteTarget) onClose();
         }}
-        actions={
+        closeDisabled={disabled}
+        renderActions={(viewerActions) => (
           <DocumentFileUpload
             id={`replace-${document.id}`}
             label={t("actions.replace")}
             disabled={disabled}
             onSelect={replace}
             renderTrigger={({ onClick, disabled: uploading, label }) => (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={uploading}
-                  >
-                    {label === t("actions.replace")
-                      ? t("submission.modifyFile")
-                      : label}
-                    <ChevronDown />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  onCloseAutoFocus={(event) => {
-                    if (deleteTarget || editing) event.preventDefault();
-                  }}
-                >
-                  {canEditPdf ? (
-                    <DropdownMenuItem
-                      onSelect={() =>
-                        setEditing({ storageId: uploadedDocument.storageId })
+              <DocumentViewerActions
+                {...viewerActions}
+                disabled={disabled}
+                primary={
+                  canEditPdf
+                    ? {
+                        label: t("submission.editDocument"),
+                        icon: Pencil,
+                        onClick: () =>
+                          setEditing({ storageId: uploadedDocument.storageId }),
                       }
+                    : undefined
+                }
+                onMenuCloseAutoFocus={(event) => {
+                  if (deleteTarget) event.preventDefault();
+                }}
+                menuItems={
+                  <>
+                    <DropdownMenuItem
+                      className="min-h-11"
+                      onSelect={onClick}
+                      disabled={uploading}
                     >
-                      <Pencil />
-                      {t("submission.editDocument")}
+                      <Upload aria-hidden="true" />
+                      {label}
                     </DropdownMenuItem>
-                  ) : null}
-                  <DropdownMenuItem onSelect={onClick} disabled={uploading}>
-                    <Upload />
-                    {label}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onSelect={() => {
-                      setRemoveError(false);
-                      setDeleteTarget(uploadedDocument);
-                    }}
-                  >
-                    <Trash2 />
-                    {t("actions.delete")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="min-h-11"
+                      variant="destructive"
+                      disabled={disabled}
+                      onSelect={() => {
+                        setRemoveError(false);
+                        setDeleteTarget(uploadedDocument);
+                      }}
+                    >
+                      <Trash2 aria-hidden="true" />
+                      {t("actions.delete")}
+                    </DropdownMenuItem>
+                  </>
+                }
+              />
             )}
           />
-        }
+        )}
         headerContent={
           <ApplicationDocumentReview
             key={`${uploadedDocument._id}:${uploadedDocument.status}`}

@@ -244,5 +244,32 @@
     "limitExceeded": "No se pudo mostrar este período completo. Puedes seleccionar un rango más corto. No se muestra un total parcial.",
     "pendingExcluded": "{count, plural, one {# actividad pendiente de salida. Su duración aún no está incluida en el total.} other {# actividades pendientes de salida. Sus duraciones aún no están incluidas en el total.}}",
     "unknownExcluded": "{count, plural, one {# actividad sin duración disponible con los datos registrados. No está incluida en el tiempo total.} other {# actividades sin duración disponible con los datos registrados. No están incluidas en el tiempo total.}}"
+  },
+  "report": {
+    "title": "Reporte de actividades",
+    "generate": "Generar reporte",
+    "selectPeriod": "Selecciona un período para generar el reporte.",
+    "download": "Descargar PDF",
+    "generating": "Generando el reporte…",
+    "error": "No se pudo generar el reporte. Intenta nuevamente.",
+    "retry": "Reintentar",
+    "previewError": "No se pudo mostrar la vista previa. Puedes abrir o descargar el PDF con las acciones del encabezado.",
+    "status": "Estado",
+    "notRecorded": "Sin registrar",
+    "pending": "Pendiente",
+    "incomplete": "Horario incompleto",
+    "completed": "Completada",
+    "empty": "No hay actividades en el período seleccionado.",
+    "recordedTime": "Tiempo registrado",
+    "includedCount": "{total, plural, =0 {No hay actividades en este período.} one {Duración de la actividad del período.} other {Suma de {included, number} de las # actividades del período.}}",
+    "excludedTitle": "No incluidas en el total",
+    "pendingExcluded": "{count, plural, one {# actividad pendiente de salida.} other {# actividades pendientes de salida.}}",
+    "unknownExcluded": "{count, plural, one {# actividad sin duración disponible.} other {# actividades sin duración disponible.}}",
+    "periodBasis": "Se incluyen las actividades cuya entrada está dentro del período seleccionado. Ambas fechas están incluidas.",
+    "activities": "Detalle de actividades",
+    "generated": "Generado: {date}",
+    "page": "Página {page, number} de {pages, number}",
+    "totalPrecision": "Las duraciones se suman antes de expresarse en horas y minutos completos.",
+    "fileName": "actividades-{name}-{from}-{to}-{locale}.pdf"
   }
 }

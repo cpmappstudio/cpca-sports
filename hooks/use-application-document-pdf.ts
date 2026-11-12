@@ -7,6 +7,7 @@ import type { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { PdfViewerHandle } from "@/components/documents/pdf-viewer";
 import { DOCUMENT_ATTACHMENT_MAX_SIZE } from "@/lib/applications/document-attachments";
+import { downloadDocument } from "@/lib/documents/download-document";
 
 type PdfDocument = NonNullable<FunctionReturnType<typeof api.documentPdf.get>>;
 type PendingSave = { blob: Blob; saveId: string };
@@ -134,12 +135,7 @@ export function useApplicationDocumentPdf({
 
   async function download() {
     const blob = pending?.blob ?? (await viewer.current!.exportPdf());
-    const url = URL.createObjectURL(blob);
-    const link = window.document.createElement("a");
-    link.href = url;
-    link.download = document.fileName;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    await downloadDocument(blob, document.fileName);
   }
 
   return {

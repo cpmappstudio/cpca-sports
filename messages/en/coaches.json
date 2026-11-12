@@ -244,5 +244,32 @@
     "limitExceeded": "This period could not be displayed in full. You can select a shorter range. No partial total is shown.",
     "pendingExcluded": "{count, plural, one {# activity awaiting checkout. Its duration is not yet included in the total.} other {# activities awaiting checkout. Their durations are not yet included in the total.}}",
     "unknownExcluded": "{count, plural, one {# activity has no duration available from the recorded data. It is not included in the time total.} other {# activities have no duration available from the recorded data. They are not included in the time total.}}"
+  },
+  "report": {
+    "title": "Activity report",
+    "generate": "Generate report",
+    "selectPeriod": "Select a period to generate the report.",
+    "download": "Download PDF",
+    "generating": "Generating the report…",
+    "error": "The report could not be generated. Please try again.",
+    "retry": "Try again",
+    "previewError": "The preview could not be displayed. You can open or download the PDF using the header actions.",
+    "status": "Status",
+    "notRecorded": "Not recorded",
+    "pending": "Pending",
+    "incomplete": "Incomplete time record",
+    "completed": "Completed",
+    "empty": "No activities in the selected period.",
+    "recordedTime": "Recorded time",
+    "includedCount": "{total, plural, =0 {No activities in this period.} one {Duration of the activity in this period.} other {Sum of {included, number} of the # activities in this period.}}",
+    "excludedTitle": "Not included in the total",
+    "pendingExcluded": "{count, plural, one {# activity awaiting checkout.} other {# activities awaiting checkout.}}",
+    "unknownExcluded": "{count, plural, one {# activity with no duration available.} other {# activities with no duration available.}}",
+    "periodBasis": "Activities are included by their check-in date. Both dates in the selected period are included.",
+    "activities": "Activity details",
+    "generated": "Generated: {date}",
+    "page": "Page {page, number} of {pages, number}",
+    "totalPrecision": "Durations are added together before being displayed in whole hours and minutes.",
+    "fileName": "activities-{name}-{from}-{to}-{locale}.pdf"
   }
 }

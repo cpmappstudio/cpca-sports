@@ -31,3 +31,18 @@ export type CoachActivityPeriodSelection = {
   preset: CoachActivityPeriodPreset;
   range: CoachActivityDateRange | null;
 };
+
+export type CoachActivityReportSnapshot = {
+  coach: { name: string; program: string; position: string };
+  range: CoachActivityDateRange;
+  period: Extract<CoachActivityPeriod, { status: "ready" }>;
+  locale: string;
+  generatedAt: number;
+};
+
+export type CoachActivityReportTranslate = (
+  key:
+    | `report.${keyof (typeof import("@/messages/en/coaches.json"))["report"]}`
+    | `detail.${keyof (typeof import("@/messages/en/coaches.json"))["detail"]}`,
+  values?: Record<string, string | number>,
+) => string;

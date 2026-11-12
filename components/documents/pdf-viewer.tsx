@@ -22,13 +22,32 @@ import {
   type HistoryPlugin,
   type PDFViewerConfig,
   type PluginRegistry,
+  type PrintPlugin,
 } from "@embedpdf/react-pdf-viewer";
 
 const inkBehavior: AnnotationTool<PdfInkAnnoObject>["behavior"] = {
   commitDelay: 0,
 };
 
-export type PdfViewerHandle = { exportPdf: () => Promise<Blob> };
+export type PdfViewerHandle = {
+  exportPdf: () => Promise<Blob>;
+  printPdf: () => Promise<void>;
+};
+
+async function commitEdits(registry: PluginRegistry | null) {
+  const annotations = registry
+    ?.getPlugin<AnnotationPlugin>("annotation")
+    ?.provides();
+  if (!annotations) throw new Error("PDF_NOT_READY");
+  // Flush the active native field and unfinished strokes before any document output.
+  const active = document.activeElement;
+  if (active instanceof HTMLElement) {
+    const input = active.shadowRoot?.activeElement;
+    if (input instanceof HTMLElement) input.blur();
+    active.blur();
+  }
+  await annotations.commit().toPromise();
+}
 
 export default function PdfViewer({
   src,
@@ -68,24 +87,22 @@ export default function PdfViewer({
     viewerRef,
     () => ({
       async exportPdf() {
-        const annotations = registry.current
-          ?.getPlugin<AnnotationPlugin>("annotation")
-          ?.provides();
         const exporter = registry.current
           ?.getPlugin<ExportPlugin>("export")
           ?.provides();
-        if (!annotations || !exporter) throw new Error("PDF_NOT_READY");
-        // Flush the active field's blur handler before exporting its last keystroke.
-        const active = document.activeElement;
-        if (active instanceof HTMLElement) {
-          const input = active.shadowRoot?.activeElement;
-          if (input instanceof HTMLElement) input.blur();
-          active.blur();
-        }
-        await annotations.commit().toPromise();
+        if (!exporter) throw new Error("PDF_NOT_READY");
+        await commitEdits(registry.current);
         return new Blob([await exporter.saveAsCopy().toPromise()], {
           type: "application/pdf",
         });
+      },
+      async printPdf() {
+        const printer = registry.current
+          ?.getPlugin<PrintPlugin>("print")
+          ?.provides();
+        if (!printer) throw new Error("PDF_NOT_READY");
+        await commitEdits(registry.current);
+        await printer.print({ includeAnnotations: true }).toPromise();
       },
     }),
     [],
@@ -121,6 +138,8 @@ export default function PdfViewer({
         "document-open",
         "document-close",
         "document-protect",
+        "document-export",
+        "document-print",
         "form",
         "redaction",
         "signature",

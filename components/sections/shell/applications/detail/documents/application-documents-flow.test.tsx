@@ -24,6 +24,7 @@ import type {
   DocumentConfig,
 } from "@/lib/applications/document-types";
 import messages from "@/messages/es/applications.json";
+import common from "@/messages/es/common.json";
 const pdfState = vi.hoisted(() => ({
   latest: {
     name: "Licencia",
@@ -50,17 +51,25 @@ vi.mock("next/dynamic", () => ({
     }: {
       src: string;
       readOnly?: boolean;
-      viewerRef?: Ref<{ exportPdf: () => Promise<Blob> }>;
+      viewerRef?: Ref<{
+        exportPdf: () => Promise<Blob>;
+        printPdf: () => Promise<void>;
+      }>;
       onReady: () => void;
       onChange?: () => void;
     }) {
       const ready = useRef(onReady);
       const [value, setValue] = useState("");
       useEffect(() => ready.current(), []);
-      useImperativeHandle(viewerRef, () => ({
-        exportPdf: async () =>
-          new Blob(["%PDF-test"], { type: "application/pdf" }),
-      }));
+      useImperativeHandle(
+        viewerRef,
+        () => ({
+          printPdf: async () => {},
+          exportPdf: async () =>
+            new Blob(["%PDF-test"], { type: "application/pdf" }),
+        }),
+        [],
+      );
       return readOnly ? (
         <div data-testid="pdf-preview" data-src={src} />
       ) : (
@@ -154,7 +163,7 @@ function setup({
     <NextIntlClientProvider
       locale="es"
       timeZone="UTC"
-      messages={{ Applications: messages }}
+      messages={{ Applications: messages, Common: common }}
     >
       <ApplicationDocuments {...props} />
     </NextIntlClientProvider>,
@@ -164,7 +173,7 @@ function setup({
       <NextIntlClientProvider
         locale="es"
         timeZone="UTC"
-        messages={{ Applications: messages }}
+        messages={{ Applications: messages, Common: common }}
       >
         <ApplicationDocuments {...props} />
       </NextIntlClientProvider>,
@@ -178,7 +187,7 @@ async function openDelivery() {
 async function moreActions() {
   if (!screen.queryByRole("dialog")) await openDelivery();
   fireEvent.pointerDown(
-    screen.getByRole("button", { name: "Modificar archivo" }),
+    screen.getByRole("button", { name: "Acciones del documento" }),
     { button: 0, ctrlKey: false },
   );
   return await screen.findByRole("menu");
@@ -330,10 +339,10 @@ test("approval disables repeated review actions while saving", async () => {
   expect(approve.hasAttribute("disabled")).toBe(true);
   expect(
     screen
-      .getByRole("button", { name: "Modificar archivo" })
+      .getByRole("button", { name: "Acciones del documento" })
       .hasAttribute("disabled"),
   ).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
   expect(screen.getByRole("dialog")).toBeTruthy();
   await act(async () => finish(null));
 });
@@ -368,7 +377,7 @@ test("empty and rejected submissions expose the next action without school revie
       .getAttribute("data-variant"),
   ).toBe("default");
   expect(
-    within(region).queryByRole("button", { name: "Modificar archivo" }),
+    within(region).queryByRole("button", { name: "Acciones del documento" }),
   ).toBeNull();
   expect(screen.queryByRole("button", { name: "Revisar entrega" })).toBeNull();
 });
@@ -385,7 +394,7 @@ test("filenames open the original or delivery directly without separate view act
   expect(
     within(dialog).queryByRole("button", { name: "Aprobar entrega" }),
   ).toBeNull();
-  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Cerrar" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   fireEvent.click(screen.getByRole("link", { name: "Ver entrega: form.pdf" }));
   dialog = await screen.findByRole("dialog");
@@ -398,7 +407,7 @@ test("the admin opens one read-only viewer with review and contextual modificati
   setup();
   expect(screen.queryByRole("button", { name: "Revisar entrega" })).toBeNull();
   expect(
-    screen.queryByRole("button", { name: "Modificar archivo" }),
+    screen.queryByRole("button", { name: "Acciones del documento" }),
   ).toBeNull();
   const dialog = await openDelivery();
   const header = dialog.querySelector("header")!;
@@ -413,17 +422,17 @@ test("the admin opens one read-only viewer with review and contextual modificati
     within(review).getByRole("button", { name: "Rechazar entrega" }),
   ).toBeTruthy();
   expect(
-    within(review).queryByRole("button", { name: "Modificar archivo" }),
+    within(review).queryByRole("button", { name: "Acciones del documento" }),
   ).toBeNull();
   expect(
-    within(header).getByRole("button", { name: "Modificar archivo" }),
+    within(header).getByRole("button", { name: "Acciones del documento" }),
   ).toBeTruthy();
   expect(dialog.getAttribute("aria-labelledby")).toBeTruthy();
   expect(
     within(dialog).getByTestId("pdf-preview").getAttribute("data-src"),
   ).toBe(upload.url);
   expect(
-    within(dialog).getByRole("button", { name: "Modificar archivo" }),
+    within(dialog).getByRole("button", { name: "Acciones del documento" }),
   ).toBeTruthy();
   expect(
     within(dialog).getByRole("button", { name: "Aprobar entrega" }),
@@ -447,9 +456,9 @@ test("replacing a delivery while the editor is open preserves local work and rep
     needsRestart: false,
   };
   const { props, refresh } = setup();
-  const menu = await moreActions();
+  const dialog = await openDelivery();
   fireEvent.click(
-    within(menu).getByRole("menuitem", { name: "Editar documento" }),
+    within(dialog).getByRole("button", { name: "Editar documento" }),
   );
   const input = await screen.findByRole("textbox", {
     name: "Respuesta del PDF",
@@ -542,7 +551,7 @@ test("the applicant gets the same file entry with modification actions and no re
   setup({ isAdmin: false });
   const dialog = await openDelivery();
   expect(
-    within(dialog).getByRole("button", { name: "Modificar archivo" }),
+    within(dialog).getByRole("button", { name: "Acciones del documento" }),
   ).toBeTruthy();
   expect(
     within(dialog).queryByRole("button", { name: "Aprobar entrega" }),
@@ -550,10 +559,10 @@ test("the applicant gets the same file entry with modification actions and no re
   expect(
     within(dialog).queryByRole("button", { name: "Rechazar entrega" }),
   ).toBeNull();
-  const menu = await moreActions();
   expect(
-    within(menu).getByRole("menuitem", { name: "Editar documento" }),
+    within(dialog).getByRole("button", { name: "Editar documento" }),
   ).toBeTruthy();
+  const menu = await moreActions();
   expect(
     within(menu).getByRole("menuitem", { name: "Subir otro archivo" }),
   ).toBeTruthy();
@@ -582,17 +591,15 @@ test("an admin saves edits before returning to the updated preview and explicitl
   const { props, refresh } = setup({
     submission: { ...upload, status: "approved" },
   });
-  const menu = await moreActions();
+  const preview = await openDelivery();
   fireEvent.click(
-    within(menu).getByRole("menuitem", { name: "Editar documento" }),
+    within(preview).getByRole("button", { name: "Editar documento" }),
   );
   const input = await screen.findByRole("textbox", {
     name: "Respuesta del PDF",
   });
   expect(screen.queryByRole("button", { name: "Aprobar entrega" })).toBeNull();
-  expect(
-    screen.queryByRole("button", { name: "Modificar archivo" }),
-  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "Editar documento" })).toBeNull();
   fireEvent.change(input, { target: { value: "Corregido por el colegio" } });
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
@@ -703,7 +710,7 @@ test("a missing preview URL does not hide the existing permission to replace or 
   );
   const menu = await moreActions();
   expect(
-    within(menu).queryByRole("menuitem", { name: "Editar documento" }),
+    within(dialog).queryByRole("button", { name: "Editar documento" }),
   ).toBeNull();
   expect(
     within(menu).getByRole("menuitem", { name: "Subir otro archivo" }),

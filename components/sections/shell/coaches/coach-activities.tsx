@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
 import type { SortingState } from "@tanstack/react-table";
@@ -38,12 +38,14 @@ export function CoachActivities({
   periodSelection,
   onPeriodChange,
   periodResult,
+  reportAction,
 }: {
   coachId: Id<"coaches">;
   isArchived: boolean;
   periodSelection: CoachActivityPeriodSelection;
   onPeriodChange: (selection: CoachActivityPeriodSelection) => void;
   periodResult?: CoachActivityPeriod;
+  reportAction?: ReactNode;
 }) {
   const t = useTranslations("Coaches.detail");
   const range = periodSelection.range;
@@ -187,27 +189,30 @@ export function CoachActivities({
       className="min-w-0 space-y-5 rounded-xl bg-card px-3 py-4 text-card-foreground sm:px-5 sm:py-5"
       aria-labelledby="coach-activities-heading"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2
             id="coach-activities-heading"
             ref={heading}
             tabIndex={-1}
-            className="scroll-mt-6 text-xl font-semibold outline-none"
+            className="scroll-mt-6 text-xl font-semibold outline-none sm:py-2"
           >
             {t("activities")}
           </h2>
         </div>
-        {!isArchived ? (
-          <Button
-            type="button"
-            onClick={() => setDialog({ action: "checkIn" })}
-            className="min-h-11"
-          >
-            <Plus />
-            {t("checkin")}
-          </Button>
-        ) : null}
+        <div className="grid auto-cols-fr grid-flow-col items-start gap-2 sm:flex sm:gap-3">
+          {reportAction}
+          {!isArchived ? (
+            <Button
+              type="button"
+              onClick={() => setDialog({ action: "checkIn" })}
+              className="h-auto min-h-11 w-full whitespace-normal sm:w-auto"
+            >
+              <Plus />
+              {t("checkin")}
+            </Button>
+          ) : null}
+        </div>
       </div>
       {isArchived ? (
         <p className="text-sm text-muted-foreground">
@@ -218,6 +223,9 @@ export function CoachActivities({
         selection={periodSelection}
         onChange={changePeriod}
       />
+      <p className="text-xs text-muted-foreground">
+        {t("timeZoneNotice", { timeZone: COACH_ACTIVITY_TIME_ZONE })}
+      </p>
       {range ? <ActivityPeriodNotice result={periodResult} /> : null}
       <Tabs value={activeTab} onValueChange={switchTab}>
         <TabsList aria-label={t("activities")} className="mb-0 justify-start">

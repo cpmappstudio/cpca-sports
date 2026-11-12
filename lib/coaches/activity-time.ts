@@ -11,3 +11,19 @@ export function formatActivityTimestamp(timestamp: number, locale: string) {
     timeZoneName: "short",
   }).format(timestamp);
 }
+
+export function formatActivityDuration(
+  durationMs: number | null,
+  t: (
+    key: "durationUnavailable" | "lessThanMinute" | "durationValue",
+    values?: Record<string, number>,
+  ) => string,
+  total = false,
+) {
+  if (durationMs === null) return t("durationUnavailable");
+  if (!total && durationMs < 60000) return t("lessThanMinute");
+  return t("durationValue", {
+    hours: Math.floor(durationMs / 3600000),
+    minutes: Math.floor(durationMs / 60000) % 60,
+  });
+}

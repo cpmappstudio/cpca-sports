@@ -3,7 +3,10 @@
 import { LogOut, PanelRightOpen } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import type { CoachActivityListItem } from "@/lib/coaches/types";
-import { formatActivityTimestamp } from "@/lib/coaches/activity-time";
+import {
+  formatActivityTimestamp,
+  formatActivityDuration,
+} from "@/lib/coaches/activity-time";
 import { Button } from "@/components/ui/button";
 
 export function ActivityName({
@@ -59,16 +62,11 @@ export function ActivityDuration({
   durationMs: number | null;
 }) {
   const t = useTranslations("Coaches.detail");
-  const duration =
-    durationMs == null
-      ? t("durationUnavailable")
-      : durationMs < 60000
-        ? t("lessThanMinute")
-        : t("durationValue", {
-            hours: Math.floor(durationMs / 3600000),
-            minutes: Math.floor(durationMs / 60000) % 60,
-          });
-  return <span className="whitespace-nowrap tabular-nums">{duration}</span>;
+  return (
+    <span className="whitespace-nowrap tabular-nums">
+      {formatActivityDuration(durationMs, t)}
+    </span>
+  );
 }
 
 export function ActivityCheckout({ onCheckout }: { onCheckout: () => void }) {

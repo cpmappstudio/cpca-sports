@@ -560,7 +560,6 @@
       "loadError": "We couldn’t preview this file here. Open the file to view it.",
       "unavailable": "This document is no longer available.",
       "complete": "Complete document",
-      "close": "Close",
       "instructions": "Complete the document, then save and submit it for review.",
       "unsaved": "Changes not submitted",
       "download": "Download copy",
@@ -570,7 +569,6 @@
       "saved": "Document submitted for review",
       "saveError": "We couldn’t confirm your submission. Retry or download a copy of your work.",
       "tooLarge": "The PDF could not be submitted. Check that it is valid and no larger than 10 MB.",
-      "downloadError": "We couldn’t download the copy. Please try again.",
       "conflict": "The document changed or is no longer available. Download your work before closing and reopen the editor to continue.",
       "restartWarning": "Your previous submission uses a different file or format. Continue with the current school document? Your previous submission will only be replaced when you submit.",
       "restart": "Use current document",
@@ -594,7 +592,6 @@
       "empty": "No document has been submitted yet.",
       "editDocument": "Edit document",
       "correct": "Correct submission",
-      "modifyFile": "Modify file",
       "updating": "Updating submission…"
     },
     "review": {

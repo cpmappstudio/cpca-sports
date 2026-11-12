@@ -242,5 +242,15 @@
   "languages": {
     "en": "English",
     "es": "Spanish"
+  },
+  "documentViewer": {
+    "close": "Close",
+    "actions": "Document actions",
+    "download": "Download",
+    "downloadError": "The document could not be downloaded. Please try again.",
+    "print": "Print",
+    "printing": "Preparing to print…",
+    "printError": "The document could not be printed. Please try again.",
+    "open": "Open file"
   }
 }
