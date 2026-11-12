@@ -583,7 +583,8 @@
     },
     "submission": {
       "myTitle": "Mi entrega",
-      "emptyMine": "Aún no has enviado un documento.",
+      "completeInstructions": "La institución ha adjuntado un documento. Puedes diligenciarlo aquí o subir una copia ya completada.",
+      "uploadInstructions": "Sube el documento solicitado por la institución.",
       "viewFile": "Ver entrega: {name}",
       "unknownAuthor": "Autor desconocido",
       "deleteError": "No se pudo eliminar la entrega. Inténtalo de nuevo.",

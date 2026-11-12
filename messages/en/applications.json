@@ -583,7 +583,8 @@
     },
     "submission": {
       "myTitle": "My submission",
-      "emptyMine": "You haven’t submitted a document yet.",
+      "completeInstructions": "The school has provided a document. Complete it here or upload a completed copy.",
+      "uploadInstructions": "Upload the document requested by the school.",
       "viewFile": "View submission: {name}",
       "unknownAuthor": "Unknown author",
       "deleteError": "Could not delete the submission. Try again.",

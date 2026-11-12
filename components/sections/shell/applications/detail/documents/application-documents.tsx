@@ -242,7 +242,7 @@ function ApplicationDocumentCard({
       description={document.description}
       visibility={visibility}
       canEdit={isAdmin}
-      attachment={attachment}
+      attachment={isAdmin ? attachment : undefined}
       canDelete={isAdmin && isCustom && !!customConfigId}
       onSaveEdit={async ({
         name,

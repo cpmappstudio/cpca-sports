@@ -194,17 +194,19 @@ async function moreActions() {
 }
 
 test.each([false, true])(
-  "identical filenames have separate source, submission and review contexts (admin: %s)",
+  "parents see their submission and admins also see the separate school source (admin: %s)",
   (isAdmin) => {
     setup({ isAdmin });
-    const original = screen.getByRole("region", {
+    const original = screen.queryByRole("region", {
       name: "Archivo del colegio",
     });
-    expect(
-      within(original)
-        .getByRole("link", { name: "Ver archivo del colegio: form.pdf" })
-        .getAttribute("href"),
-    ).toBe(config.attachment!.url);
+    if (isAdmin)
+      expect(
+        within(original!)
+          .getByRole("link", { name: "Ver archivo del colegio: form.pdf" })
+          .getAttribute("href"),
+      ).toBe(config.attachment!.url);
+    else expect(original).toBeNull();
     const submission = screen.getByRole("region", {
       name: isAdmin ? "Entrega" : "Mi entrega",
     });
@@ -349,7 +351,9 @@ test("approval disables repeated review actions while saving", async () => {
 
 test("empty and rejected submissions expose the next action without school review controls for applicants", () => {
   const empty = setup({ isAdmin: false, submission: null });
-  expect(screen.getByText("Aún no has enviado un documento.")).toBeTruthy();
+  expect(
+    screen.getByText(messages.documents.submission.completeInstructions),
+  ).toBeTruthy();
   expect(
     screen
       .getByRole("button", { name: "Diligenciar documento" })
@@ -370,6 +374,11 @@ test("empty and rejected submissions expose the next action without school revie
     },
   });
   const region = screen.getByRole("region", { name: "Mi entrega" });
+  expect(
+    within(region).queryByText(
+      messages.documents.submission.completeInstructions,
+    ),
+  ).toBeNull();
   expect(within(region).getByText("Falta la firma.")).toBeTruthy();
   expect(
     within(region)
@@ -382,8 +391,38 @@ test("empty and rejected submissions expose the next action without school revie
   expect(screen.queryByRole("button", { name: "Revisar entrega" })).toBeNull();
 });
 
-test("filenames open the original or delivery directly without separate view actions", async () => {
-  setup({ isAdmin: false });
+test.each([undefined, "image/png"])(
+  "a parent without a PDF template only gets upload guidance (%s)",
+  (contentType) => {
+    setup({
+      isAdmin: false,
+      submission: null,
+      requirement: {
+        ...config,
+        attachment: contentType
+          ? { ...config.attachment!, contentType, fileName: "template.png" }
+          : undefined,
+      },
+    });
+    expect(
+      screen.getByText(messages.documents.submission.uploadInstructions),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText(messages.documents.submission.completeInstructions),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Diligenciar documento" }),
+    ).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: "Subir archivo" })
+        .getAttribute("data-variant"),
+    ).toBe("default");
+  },
+);
+
+test("admins open the original or delivery directly from their filenames", async () => {
+  setup();
   fireEvent.click(
     screen.getByRole("link", { name: "Ver archivo del colegio: form.pdf" }),
   );
@@ -527,6 +566,9 @@ test("the first PDF delivery also survives a concurrent upload without losing lo
     needsRestart: false,
   };
   const { props, refresh } = setup({ submission: null, isAdmin: false });
+  expect(
+    screen.queryByRole("link", { name: /Ver archivo del colegio:/ }),
+  ).toBeNull();
   fireEvent.click(
     screen.getByRole("button", { name: "Diligenciar documento" }),
   );
