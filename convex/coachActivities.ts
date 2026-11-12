@@ -5,7 +5,7 @@ import {
 } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import type { Id, Doc } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireCoachAccess } from "./lib/coachAccess";
 import {
   COACH_ACTIVITY_TIME_ZONE,
@@ -121,6 +121,31 @@ async function assertPlace(
   }
   return place;
 }
+
+function findOpenActivity(ctx: QueryCtx | MutationCtx, coachId: Id<"coaches">) {
+  return ctx.db
+    .query("coachActivities")
+    .withIndex("by_coachId_and_status", (q) =>
+      q.eq("coachId", coachId).eq("status", "in_progress"),
+    )
+    .first();
+}
+
+async function assertCanCheckIn(ctx: MutationCtx, coach: Doc<"coaches">) {
+  if (coach.isArchived)
+    throw new ConvexError("Archived coaches cannot add activities");
+  if (await findOpenActivity(ctx, coach._id))
+    throw new ConvexError("Coach already has an activity in progress");
+}
+
+export const getOpenActivityId = query({
+  args: { coachId: v.id("coaches") },
+  returns: v.union(v.id("coachActivities"), v.null()),
+  handler: async (ctx, { coachId }) => {
+    await requireCoachAccess(ctx, coachId);
+    return (await findOpenActivity(ctx, coachId))?._id ?? null;
+  },
+});
 
 export const getSummary = query({
   args: { coachId: v.id("coaches") },
@@ -279,9 +304,7 @@ export const generateUploadUrl = mutation({
       ) {
         throw new ConvexError("Activity already checked out");
       }
-    } else if (coach.isArchived) {
-      throw new Error("Archived coaches cannot add activities");
-    }
+    } else await assertCanCheckIn(ctx, coach);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -306,8 +329,7 @@ export const checkIn = mutation({
     if (existing?.coachId === coach._id && existing.checkInAt !== undefined) {
       return existing._id;
     }
-    if (coach.isArchived)
-      throw new ConvexError("Archived coaches cannot add activities");
+    await assertCanCheckIn(ctx, coach);
     if (!args.title.trim()) throw new ConvexError("Title is required");
     const place = await assertPlace(ctx, args.placeId, coach.programId);
     await assertImage(ctx, args.imageStorageId);

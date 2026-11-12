@@ -9,6 +9,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import schema from "./schema";
+import { coachActivityListing } from "./lib/coachActivityListing";
 import {
   coachActivityDateTime,
   coachActivityDurationMs,
@@ -177,6 +178,27 @@ async function setup() {
       }),
     );
   };
+  const existingOpen = async (title = "Batting practice") => {
+    const id = await legacy(false);
+    await t.run(async (ctx) => {
+      const record = (await ctx.db.get("coachActivities", id))!;
+      const { activityDate, time } = coachActivityDateTime(Date.now());
+      const changes = {
+        title,
+        activityDate,
+        startTime: time,
+        endTime: undefined,
+        checkInAt: Date.now(),
+        status: "in_progress" as const,
+        timeZone: "America/New_York" as const,
+      };
+      await ctx.db.patch("coachActivities", id, {
+        ...changes,
+        listing: coachActivityListing({ ...record, ...changes }),
+      });
+    });
+    return id;
+  };
   return {
     t,
     ...ids,
@@ -188,6 +210,7 @@ async function setup() {
     checkIn,
     get,
     legacy,
+    existingOpen,
   };
 }
 
@@ -220,22 +243,84 @@ test("check-in uses server time in Poinciana and leaves checkout unset", async (
   expect(record?.imageUrl).toEqual(expect.any(String));
 });
 
-test("one coach may have several open activities and close each independently", async () => {
+test("another check-in is rejected until the previous activity checks out", async () => {
   const f = await setup();
   const first = await f.checkIn();
+  const before = await f.get(first);
   vi.setSystemTime(now + 1000);
-  const second = await f.checkIn();
+  await expect(f.checkIn()).rejects.toThrow(
+    "Coach already has an activity in progress",
+  );
+  await expect(
+    f.owner.mutation(api.coachActivities.generateUploadUrl, {
+      coachId: f.coachId,
+    }),
+  ).rejects.toThrow("Coach already has an activity in progress");
   const open = await f.owner.query(api.coachActivities.listOpenByCoach, {
     coachId: f.coachId,
     paginationOpts: { numItems: 10, cursor: null },
   });
-  expect(open.page.map((r) => r._id)).toEqual([second, first]);
+  expect(open.page.map((r) => r._id)).toEqual([first]);
+  expect(await f.get(first)).toEqual(before);
+  expect(
+    await f.owner.mutation(api.coachActivities.generateUploadUrl, {
+      coachId: f.coachId,
+      activityId: first,
+    }),
+  ).toEqual(expect.any(String));
   await f.owner.mutation(api.coachActivities.checkOut, {
     activityId: first,
     imageStorageId: await f.image(),
   });
-  expect((await f.get(second))?.status).toBe("in_progress");
   expect((await f.get(first))?.status).toBe("completed");
+  const second = await f.checkIn();
+  expect((await f.get(second))?.status).toBe("in_progress");
+});
+
+test("the rule also applies to administrators and is scoped to each coach", async () => {
+  const f = await setup();
+  await f.checkIn();
+  await expect(
+    f.admin.mutation(api.coachActivities.checkIn, {
+      coachId: f.coachId,
+      placeId: f.placeId,
+      title: "Admin entry",
+      imageStorageId: await f.image(),
+    }),
+  ).rejects.toThrow("Coach already has an activity in progress");
+  const other = await f.otherCoach.mutation(api.coachActivities.checkIn, {
+    coachId: f.otherCoachId,
+    placeId: f.placeId,
+    title: "Other coach",
+    imageStorageId: await f.image(),
+  });
+  expect(
+    (
+      await f.otherCoach.query(api.coachActivities.getById, {
+        activityId: other,
+      })
+    )?.status,
+  ).toBe("in_progress");
+});
+
+test("two devices cannot create two activities in progress for the same coach", async () => {
+  const f = await setup();
+  const images = [await f.image(), await f.image()];
+  const results = await Promise.allSettled(
+    images.map((imageStorageId) => f.checkIn({ imageStorageId })),
+  );
+  expect(
+    results.filter((result) => result.status === "fulfilled"),
+  ).toHaveLength(1);
+  const rejected = results.find((result) => result.status === "rejected");
+  expect(rejected?.status === "rejected" && String(rejected.reason)).toContain(
+    "Coach already has an activity in progress",
+  );
+  const open = await f.owner.query(api.coachActivities.listOpenByCoach, {
+    coachId: f.coachId,
+    paginationOpts: { numItems: 10, cursor: null },
+  });
+  expect(open.page).toHaveLength(1);
 });
 
 test("check-in retry with the same photo returns the original record and preserves its timestamps", async () => {
@@ -254,6 +339,78 @@ test("check-in retry with the same photo returns the original record and preserv
       })
     ).page,
   ).toHaveLength(1);
+});
+
+test("retrying a completed check-in does not create a new activity while another is open", async () => {
+  const f = await setup();
+  const imageStorageId = await f.image();
+  const first = await f.checkIn({ imageStorageId });
+  await f.owner.mutation(api.coachActivities.checkOut, {
+    activityId: first,
+    imageStorageId: await f.image(),
+  });
+  const second = await f.checkIn();
+  expect(await f.checkIn({ imageStorageId })).toBe(first);
+  expect(
+    await f.owner.query(api.coachActivities.getOpenActivityId, {
+      coachId: f.coachId,
+    }),
+  ).toBe(second);
+});
+
+test("pre-existing open activities must all be checked out before starting another", async () => {
+  const f = await setup();
+  const first = await f.checkIn();
+  vi.setSystemTime(now + 1);
+  const second = await f.existingOpen();
+  const open = () =>
+    f.owner.query(api.coachActivities.getOpenActivityId, {
+      coachId: f.coachId,
+    });
+  expect(await open()).toBe(first);
+  await f.owner.mutation(api.coachActivities.checkOut, {
+    activityId: first,
+    imageStorageId: await f.image(),
+  });
+  expect(await open()).toBe(second);
+  await expect(f.checkIn()).rejects.toThrow(
+    "Coach already has an activity in progress",
+  );
+  await f.owner.mutation(api.coachActivities.checkOut, {
+    activityId: second,
+    imageStorageId: await f.image(),
+  });
+  expect(await open()).toBeNull();
+  expect(await f.checkIn()).toEqual(expect.any(String));
+});
+
+test("open activity lookup is authorized, ignores earlier manual records and reacts to deletion", async () => {
+  const f = await setup();
+  await f.legacy(false);
+  expect(
+    await f.owner.query(api.coachActivities.getOpenActivityId, {
+      coachId: f.coachId,
+    }),
+  ).toBeNull();
+  const first = await f.checkIn();
+  expect(
+    await f.admin.query(api.coachActivities.getOpenActivityId, {
+      coachId: f.coachId,
+    }),
+  ).toBe(first);
+  for (const client of [f.t, f.otherCoach, f.otherAdmin])
+    await expect(
+      client.query(api.coachActivities.getOpenActivityId, {
+        coachId: f.coachId,
+      }),
+    ).rejects.toThrow();
+  await f.owner.mutation(api.coachActivities.remove, { activityId: first });
+  expect(
+    await f.owner.query(api.coachActivities.getOpenActivityId, {
+      coachId: f.coachId,
+    }),
+  ).toBeNull();
+  expect(await f.checkIn()).toEqual(expect.any(String));
 });
 
 test("checkout adds its own photo and server timestamp without changing check-in", async () => {
@@ -745,9 +902,9 @@ test("list pages stay bounded and photo URLs are resolved only in the detail", a
   const f = await setup();
   const first = await f.checkIn();
   vi.setSystemTime(now + 1);
-  const second = await f.checkIn();
+  const second = await f.existingOpen();
   vi.setSystemTime(now + 2);
-  const third = await f.checkIn();
+  const third = await f.existingOpen();
   await f.owner.mutation(api.coachActivities.checkOut, {
     activityId: third,
     imageStorageId: await f.image(),
@@ -940,7 +1097,7 @@ test("summary reports activity count and total duration with coach authorization
   const f = await setup();
   await f.legacy(true);
   const first = await f.checkIn();
-  await f.checkIn();
+  await f.existingOpen();
   await f.owner.mutation(api.coachActivities.checkOut, {
     activityId: first,
     imageStorageId: await f.image(),
@@ -962,7 +1119,7 @@ test("history pages exclude every open activity and retain completed and incompl
   const incomplete = await f.legacy(false);
   const completed = await f.legacy(true);
   const closed = await f.checkIn();
-  for (let i = 0; i < 12; i += 1) await f.checkIn();
+  for (let i = 0; i < 12; i += 1) await f.existingOpen();
   const history = (cursor: string | null) =>
     f.owner.query(api.coachActivities.listHistoryByCoach, {
       coachId: f.coachId,
@@ -1002,7 +1159,6 @@ test("total time sums completed activities across pages, includes valid earlier 
   const f = await setup();
   await f.legacy(true);
   await f.legacy(false);
-  for (let i = 0; i < 12; i += 1) await f.checkIn();
   const first = await f.checkIn();
   vi.setSystemTime(now + 35000);
   await f.owner.mutation(api.coachActivities.checkOut, {
@@ -1015,6 +1171,7 @@ test("total time sums completed activities across pages, includes valid earlier 
     activityId: second,
     imageStorageId: await f.image(),
   });
+  for (let i = 0; i < 12; i += 1) await f.existingOpen();
   const summary = () =>
     f.owner.query(api.coachActivities.getSummary, {
       coachId: f.coachId,
@@ -1142,12 +1299,12 @@ test("list durations are computed without storing them and distinguish unknown l
     ctx.db.patch("coachActivities", invalidLegacy, { endTime: "07:00" }),
   );
   const closed = await f.checkIn();
-  const open = await f.checkIn();
   vi.setSystemTime(now + 35000);
   await f.owner.mutation(api.coachActivities.checkOut, {
     activityId: closed,
     imageStorageId: await f.image(),
   });
+  const open = await f.checkIn();
   const args = {
     coachId: f.coachId,
     paginationOpts: { numItems: 10, cursor: null },
@@ -1181,7 +1338,7 @@ test("indexed sorting orders the whole coach list before pagination and keeps ot
   const ids = [];
   for (const [i, title] of ["Zulu", "alpha", "Beta"].entries()) {
     vi.setSystemTime(now + i * 60000);
-    ids.push(await f.checkIn({ title }));
+    ids.push(await f.existingOpen(title));
   }
   const query = (cursor: string | null, direction: "asc" | "desc" = "asc") =>
     f.owner.query(api.coachActivities.listOpenByCoach, {
@@ -1220,7 +1377,7 @@ test("metadata edits update title and place ordering without changing the record
   const f = await setup();
   const first = await f.checkIn({ title: "Alpha", placeId: f.secondPlaceId });
   vi.setSystemTime(now + 60000);
-  const second = await f.checkIn({ title: "Beta" });
+  const second = await f.existingOpen("Beta");
   const evidence = await f.get(first);
   const query = (
     field: "placeName" | "title" | "checkIn",

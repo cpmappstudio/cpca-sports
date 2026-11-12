@@ -9,12 +9,19 @@ import type {
   CoachActivityPeriod,
   CoachActivityPeriodSelection,
 } from "@/lib/coaches/types";
-import { Plus } from "lucide-react";
+import { Info, LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import { COACH_ACTIVITY_TIME_ZONE } from "@/convex/lib/coachActivityTime";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
+import {
+  Alert,
+  AlertContent,
+  AlertDescription,
+  AlertIcon,
+  AlertTitle,
+} from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sheet,
@@ -48,6 +55,10 @@ export function CoachActivities({
   reportAction?: ReactNode;
 }) {
   const t = useTranslations("Coaches.detail");
+  const activityErrors = useTranslations("Coaches.activityDialog.errors");
+  const openActivityId = useQuery(api.coachActivities.getOpenActivityId, {
+    coachId,
+  });
   const range = periodSelection.range;
   const period = periodResult?.status === "ready" ? periodResult : undefined;
   const heading = useRef<HTMLHeadingElement>(null);
@@ -200,20 +211,56 @@ export function CoachActivities({
             {t("activities")}
           </h2>
         </div>
-        <div className="grid auto-cols-fr grid-flow-col items-start gap-2 sm:flex sm:gap-3">
+        <div
+          role="group"
+          aria-label={t("activityActions")}
+          className="grid auto-cols-fr grid-flow-col items-start gap-2 sm:flex sm:gap-3"
+        >
           {reportAction}
-          {!isArchived ? (
+          {openActivityId || !isArchived ? (
             <Button
               type="button"
-              onClick={() => setDialog({ action: "checkIn" })}
+              disabled={openActivityId === undefined}
+              aria-describedby={
+                !isArchived && openActivityId
+                  ? "coach-open-activity-notice"
+                  : undefined
+              }
+              onClick={() => {
+                if (openActivityId) checkout(openActivityId);
+                else if (openActivityId === null)
+                  setDialog({ action: "checkIn" });
+              }}
               className="h-auto min-h-11 w-full whitespace-normal sm:w-auto"
             >
-              <Plus />
-              {t("checkin")}
+              {openActivityId ? <LogOut /> : <Plus />}
+              {t(openActivityId ? "checkout" : "checkin")}
             </Button>
           ) : null}
         </div>
       </div>
+      {!isArchived && openActivityId ? (
+        <Alert
+          id="coach-open-activity-notice"
+          role="note"
+          aria-labelledby="coach-open-activity-title"
+          variant="primary"
+          appearance="outline"
+          className="border-primary/20 bg-primary/5"
+        >
+          <AlertIcon>
+            <Info aria-hidden="true" />
+          </AlertIcon>
+          <AlertContent className="min-w-0 space-y-1">
+            <AlertTitle id="coach-open-activity-title">
+              {t("openActivityTitle")}
+            </AlertTitle>
+            <AlertDescription className="text-muted-foreground">
+              {activityErrors("activityInProgress")}
+            </AlertDescription>
+          </AlertContent>
+        </Alert>
+      ) : null}
       {isArchived ? (
         <p className="text-sm text-muted-foreground">
           {t("archivedActivities")}

@@ -29,6 +29,8 @@ const state = vi.hoisted(() => ({
   selected: null as CoachActivity | null,
   query: vi.fn(),
   canLoad: false,
+  openActivityId: undefined as string | null | undefined,
+  loadingOpenActivity: false,
 }));
 vi.mock("convex/react", async () => {
   const { getFunctionName } = await import("convex/server");
@@ -41,6 +43,12 @@ vi.mock("convex/react", async () => {
       const name = getFunctionName(reference);
       state.query(name, args);
       if (args === "skip") return undefined;
+      if (name.endsWith("getOpenActivityId"))
+        return state.loadingOpenActivity
+          ? undefined
+          : state.openActivityId === undefined
+            ? (state.open[0]?._id ?? null)
+            : state.openActivityId;
       if (name.endsWith("getById")) return state.selected;
       const isOpen = name.endsWith("listOpenByCoach");
       const next = args.paginationOpts?.cursor === "next";
@@ -142,6 +150,8 @@ beforeEach(() => {
   state.historyNext = [];
   state.selected = null;
   state.canLoad = false;
+  state.openActivityId = undefined;
+  state.loadingOpenActivity = false;
   state.remove.mockResolvedValue(null);
 });
 afterEach(() => {
@@ -149,11 +159,60 @@ afterEach(() => {
   Reflect.deleteProperty(Element.prototype, "scrollIntoView");
 });
 
-test("several open activities do not prevent a new check-in", () => {
+test("existing open activities replace check-in with checkout of the pending activity", () => {
   const result = view();
   expect(within(result.getByRole("table")).getAllByRole("row")).toHaveLength(3);
+  expect(
+    result.queryByRole("button", { name: "Registrar entrada" }),
+  ).toBeNull();
+  expect(
+    within(
+      result.getByRole("note", { name: messages.detail.openActivityTitle }),
+    ).getByText(messages.activityDialog.errors.activityInProgress),
+  ).toBeTruthy();
+  fireEvent.click(
+    within(
+      result.getByRole("group", { name: messages.detail.activityActions }),
+    ).getByRole("button", { name: "Registrar salida" }),
+  );
+  expect(result.getByRole("status").textContent).toBe("checkOut:Primera");
+});
+
+test("check-in becomes available only after the global open-activity query has loaded", () => {
+  state.open = [];
+  state.loadingOpenActivity = true;
+  const result = view();
+  const checkIn = result.getByRole("button", { name: "Registrar entrada" });
+  expect(checkIn.hasAttribute("disabled")).toBe(true);
+  fireEvent.click(checkIn);
+  expect(result.queryByText("checkIn:new")).toBeNull();
+});
+
+test("checkout on another device restores the check-in action reactively", () => {
+  const result = view();
+  expect(
+    result.queryByRole("button", { name: "Registrar entrada" }),
+  ).toBeNull();
+  state.open = [];
+  result.rerender(
+    <NextIntlClientProvider
+      locale="es"
+      timeZone="America/New_York"
+      messages={{ Coaches: messages, Common: common }}
+    >
+      <CoachActivities
+        coachId={"coach" as Id<"coaches">}
+        isArchived={false}
+        periodSelection={{ preset: "all", range: null }}
+        onPeriodChange={vi.fn()}
+      />
+    </NextIntlClientProvider>,
+  );
   fireEvent.click(result.getByRole("button", { name: "Registrar entrada" }));
-  expect(result.getByRole("status").textContent).toBe("checkIn:new");
+  expect(result.getByText("checkIn:new")).toBeTruthy();
+  expect(
+    result.queryByText(messages.activityDialog.errors.activityInProgress),
+  ).toBeNull();
 });
 test("each checkout targets its own activity", () => {
   const result = view();
@@ -443,6 +502,40 @@ function readyPeriod(
     },
   };
 }
+
+test("the pending checkout remains reachable outside the selected period and from Completed", () => {
+  state.openActivityId = "Fuera del período";
+  const result = periodView(
+    readyPeriod([
+      {
+        ...record("Completada"),
+        status: "completed",
+        completed: true,
+      },
+    ]),
+  );
+  expect(
+    result
+      .getByRole("tab", { name: messages.detail.activityHistory })
+      .getAttribute("aria-selected"),
+  ).toBe("true");
+  expect(
+    result.queryByRole("button", { name: "Registrar entrada" }),
+  ).toBeNull();
+  expect(result.queryByText("Fuera del período")).toBeNull();
+  fireEvent.click(
+    within(
+      result.getByRole("group", { name: messages.detail.activityActions }),
+    ).getByRole("button", { name: "Registrar salida" }),
+  );
+  expect(result.getByRole("status").textContent).toBe(
+    "checkOut:Fuera del período",
+  );
+  expect(state.query).toHaveBeenCalledWith(
+    "coachActivities:getOpenActivityId",
+    { coachId: "coach" },
+  );
+});
 
 test("bounded period uses local pages and sorting and keeps its page when opening and closing detail", async () => {
   const activities = Array.from({ length: 12 }, (_, i) => ({

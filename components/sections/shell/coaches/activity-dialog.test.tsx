@@ -243,8 +243,37 @@ test("a failed save retries the same uploaded photo and preserves the captured p
   expect(state.checkIn).toHaveBeenCalledTimes(2);
   expect(state.checkIn.mock.calls[1][0].imageStorageId).toBe("uploaded");
 });
+
+test.each(["generateUploadUrl", "checkIn"] as const)(
+  "a competing check-in shows the rule clearly at %s and retains the photo",
+  async (stage) => {
+    state[stage].mockRejectedValueOnce(
+      new ConvexError("Coach already has an activity in progress"),
+    );
+    const result = view("checkIn");
+    enterDetails(result);
+    fireEvent.click(
+      result.getByRole("button", { name: "Tomar foto de prueba" }),
+    );
+    fireEvent.click(result.getByRole("button", { name: "Confirmar entrada" }));
+    await waitFor(() =>
+      expect(state.error).toHaveBeenCalledWith(
+        messages.activityDialog.errors.activityInProgress,
+      ),
+    );
+    expect(result.close).not.toHaveBeenCalled();
+    expect(result.getByText("Foto capturada")).toBeTruthy();
+    if (stage === "generateUploadUrl") {
+      expect(state.fetch).not.toHaveBeenCalled();
+      expect(state.checkIn).not.toHaveBeenCalled();
+    }
+  },
+);
 test("checkout takes a new photo for the selected activity without editable times or metadata", async () => {
   const result = view("checkOut");
+  expect(
+    result.getByText(messages.activityDialog.checkOutDescription),
+  ).toBeTruthy();
   expect(result.queryByText(messages.activityDialog.automaticTime)).toBeNull();
   expect(result.queryByLabelText(/Título/)).toBeNull();
   expect(result.queryByRole("button", { name: "Confirmar salida" })).toBeNull();

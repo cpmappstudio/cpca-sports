@@ -4,6 +4,7 @@ const errorKeys: Record<string, string> = {
   "Title is required": "titleRequired",
   "Invalid place": "invalidPlace",
   "Archived coaches cannot add activities": "coachArchived",
+  "Coach already has an activity in progress": "activityInProgress",
   "Activity not found": "activityNotFound",
   "Activity is not open for checkout": "activityNotOpen",
   "Activity already checked out": "activityNotOpen",
