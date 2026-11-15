@@ -40,13 +40,17 @@ vi.mock("next/dynamic", () => ({
       onReady,
       onChange,
     }: {
-      viewerRef: Ref<{ exportPdf: () => Promise<Blob> }>;
+      viewerRef: Ref<{
+        exportPdf: () => Promise<Blob>;
+        printPdf: () => Promise<void>;
+      }>;
       onReady: () => void;
       onChange: () => void;
     }) {
       const ready = useRef(onReady);
       useEffect(() => ready.current(), []);
       useImperativeHandle(viewerRef, () => ({
+        printPdf: async () => {},
         exportPdf: async () =>
           new Blob(["%PDF-filled"], { type: "application/pdf" }),
       }));
@@ -112,9 +116,16 @@ test("closing asks before discarding; revoked access keeps the open work availab
   expect(
     screen.getByRole("button", { name: "submit" }).hasAttribute("disabled"),
   ).toBe(true);
+  fireEvent.pointerDown(screen.getByRole("button", { name: "actions" }), {
+    button: 0,
+    ctrlKey: false,
+  });
   expect(
-    screen.getByRole("button", { name: "download" }).hasAttribute("disabled"),
-  ).toBe(false);
+    screen
+      .getByRole("menuitem", { name: "download" })
+      .getAttribute("data-disabled"),
+  ).toBeNull();
+  fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
   fireEvent.click(screen.getByRole("button", { name: "close" }));
   fireEvent.click(screen.getByRole("button", { name: "discard" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());

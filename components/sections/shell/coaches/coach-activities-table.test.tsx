@@ -88,6 +88,30 @@ test("historical incomplete rows keep original time and never offer checkout", (
   expect(result).not.toContain("Registrar salida");
 });
 
+test("administrative closures have an explicit pending state and an undetermined duration", () => {
+  const closed: CoachActivityListItem = {
+    ...activity,
+    status: "completed",
+    completed: true,
+    administrativeClosure: {
+      migrationId: "test",
+      closedAt: 1,
+      operator: "operator@example.com",
+    },
+  };
+  const result = html(closed);
+  expect(result).toContain(messages.detail.pendingReconciliation);
+  expect(result).toContain(messages.detail.durationUndetermined);
+  expect(result).not.toContain("Registrar salida");
+  const reconciled = html({
+    ...closed,
+    checkOutAt: closed.checkInAt! + 3600000,
+    durationMs: 3600000,
+  });
+  expect(reconciled).not.toContain(messages.detail.pendingReconciliation);
+  expect(reconciled).not.toContain(messages.detail.durationUndetermined);
+});
+
 test("completed rows show full check-in and checkout timestamps without a status badge", () => {
   const result = html({
     ...activity,

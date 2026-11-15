@@ -57,10 +57,11 @@ function fixture(
   const canvas = document.createElement("canvas");
   vi.spyOn(document, "createElement").mockReturnValue(canvas);
   vi.spyOn(canvas, "getContext").mockReturnValue({
+    fillRect: vi.fn(),
     drawImage: vi.fn(),
   } as unknown as CanvasRenderingContext2D);
-  vi.spyOn(canvas, "toBlob").mockImplementation((callback) =>
-    callback(new Blob(["photo"], { type: "image/jpeg" })),
+  vi.spyOn(canvas, "toBlob").mockImplementation((callback, type) =>
+    callback(new Blob(["photo"], { type })),
   );
   const state = vi.fn();
   const camera = new ActivityCamera(video, state);
@@ -78,7 +79,13 @@ test("capture requests only video, limits the longest dimension and releases all
       height: { ideal: 960 },
     },
   });
-  expect((await f.camera.capture())?.type).toBe("image/jpeg");
+  expect((await f.camera.capture())?.type).toBe("image/webp");
+  expect(f.canvas.toBlob).toHaveBeenCalledOnce();
+  expect(f.canvas.toBlob).toHaveBeenCalledWith(
+    expect.any(Function),
+    "image/webp",
+    0.82,
+  );
   expect(f.canvas.width).toBe(1280);
   expect(f.canvas.height).toBe(720);
   expect(f.track.stop).toHaveBeenCalledOnce();
@@ -132,7 +139,7 @@ test("cancelling during photo encoding does not return a stale capture", async (
   await f.camera.start();
   const capturing = f.camera.capture();
   f.camera.stop();
-  finish(new Blob(["photo"]));
+  finish(new Blob(["photo"], { type: "image/webp" }));
   expect(await capturing).toBeNull();
 });
 test("a system interruption releases the stream and reports a useful state", async () => {
@@ -227,7 +234,31 @@ test("a repeated capture while encoding cannot interrupt the first capture", asy
   const first = f.camera.capture();
   expect(await f.camera.capture()).toBeNull();
   expect(f.track.stop).not.toHaveBeenCalled();
-  finish(new Blob(["photo"], { type: "image/jpeg" }));
+  finish(new Blob(["photo"], { type: "image/webp" }));
   expect(await first).toBeInstanceOf(Blob);
+  expect(f.track.stop).toHaveBeenCalledOnce();
+});
+
+test("capture falls back to JPEG when the browser cannot encode WebP", async () => {
+  const f = fixture();
+  vi.mocked(f.canvas.toBlob).mockImplementation((callback, type) =>
+    callback(
+      new Blob(["photo"], {
+        type: type === "image/webp" ? "image/png" : type,
+      }),
+    ),
+  );
+  await f.camera.start();
+  expect((await f.camera.capture())?.type).toBe("image/jpeg");
+  expect(f.canvas.toBlob).toHaveBeenCalledTimes(2);
+  expect(f.track.stop).toHaveBeenCalledOnce();
+});
+
+test("failed optimization releases the camera and reports a recoverable encoding error", async () => {
+  const f = fixture();
+  vi.mocked(f.canvas.toBlob).mockImplementation((callback) => callback(null));
+  await f.camera.start();
+  await expect(f.camera.capture()).rejects.toThrow("encode");
+  expect(f.state).toHaveBeenLastCalledWith("error", "encode");
   expect(f.track.stop).toHaveBeenCalledOnce();
 });

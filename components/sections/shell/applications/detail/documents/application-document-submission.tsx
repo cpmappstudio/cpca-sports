@@ -96,7 +96,13 @@ export function ApplicationDocumentSubmission({
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              {t(isAdmin ? "submission.empty" : "submission.emptyMine")}
+              {t(
+                isAdmin
+                  ? "submission.empty"
+                  : canEditPdf
+                    ? "submission.completeInstructions"
+                    : "submission.uploadInstructions",
+              )}
             </p>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               {canEditPdf ? (

@@ -38,7 +38,7 @@ function setup() {
       }),
     { initialProps: { latest: initial as typeof initial | null } },
   );
-  view.result.current.viewer.current = { exportPdf };
+  view.result.current.viewer.current = { exportPdf, printPdf: vi.fn(async () => {}) };
   act(() => {
     view.result.current.onReady();
   });

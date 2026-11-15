@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
 import type { SortingState } from "@tanstack/react-table";
@@ -9,12 +9,19 @@ import type {
   CoachActivityPeriod,
   CoachActivityPeriodSelection,
 } from "@/lib/coaches/types";
-import { Plus } from "lucide-react";
+import { Info, LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import { COACH_ACTIVITY_TIME_ZONE } from "@/convex/lib/coachActivityTime";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
+import {
+  Alert,
+  AlertContent,
+  AlertDescription,
+  AlertIcon,
+  AlertTitle,
+} from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sheet,
@@ -35,17 +42,25 @@ type ActivityTab = "open" | "history";
 export function CoachActivities({
   coachId,
   isArchived,
+  isAdmin = false,
   periodSelection,
   onPeriodChange,
   periodResult,
+  reportAction,
 }: {
   coachId: Id<"coaches">;
   isArchived: boolean;
+  isAdmin?: boolean;
   periodSelection: CoachActivityPeriodSelection;
   onPeriodChange: (selection: CoachActivityPeriodSelection) => void;
   periodResult?: CoachActivityPeriod;
+  reportAction?: ReactNode;
 }) {
   const t = useTranslations("Coaches.detail");
+  const activityErrors = useTranslations("Coaches.activityDialog.errors");
+  const openActivityId = useQuery(api.coachActivities.getOpenActivityId, {
+    coachId,
+  });
   const range = periodSelection.range;
   const period = periodResult?.status === "ready" ? periodResult : undefined;
   const heading = useRef<HTMLHeadingElement>(null);
@@ -187,28 +202,67 @@ export function CoachActivities({
       className="min-w-0 space-y-5 rounded-xl bg-card px-3 py-4 text-card-foreground sm:px-5 sm:py-5"
       aria-labelledby="coach-activities-heading"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2
             id="coach-activities-heading"
             ref={heading}
             tabIndex={-1}
-            className="scroll-mt-6 text-xl font-semibold outline-none"
+            className="scroll-mt-6 text-xl font-semibold outline-none sm:py-2"
           >
             {t("activities")}
           </h2>
         </div>
-        {!isArchived ? (
-          <Button
-            type="button"
-            onClick={() => setDialog({ action: "checkIn" })}
-            className="min-h-11"
-          >
-            <Plus />
-            {t("checkin")}
-          </Button>
-        ) : null}
+        <div
+          role="group"
+          aria-label={t("activityActions")}
+          className="grid auto-cols-fr grid-flow-col items-start gap-2 sm:flex sm:gap-3"
+        >
+          {reportAction}
+          {openActivityId || !isArchived ? (
+            <Button
+              type="button"
+              disabled={openActivityId === undefined}
+              aria-describedby={
+                !isArchived && openActivityId
+                  ? "coach-open-activity-notice"
+                  : undefined
+              }
+              onClick={() => {
+                if (openActivityId) checkout(openActivityId);
+                else if (openActivityId === null)
+                  setDialog({ action: "checkIn" });
+              }}
+              className="h-auto min-h-11 w-full whitespace-normal sm:w-auto"
+            >
+              {openActivityId ? <LogOut /> : <Plus />}
+              {t(openActivityId ? "checkout" : "checkin")}
+            </Button>
+          ) : null}
+        </div>
       </div>
+      {!isArchived && openActivityId ? (
+        <Alert
+          id="coach-open-activity-notice"
+          role="note"
+          aria-labelledby="coach-open-activity-title"
+          variant="primary"
+          appearance="outline"
+          className="border-primary/20 bg-primary/5"
+        >
+          <AlertIcon>
+            <Info aria-hidden="true" />
+          </AlertIcon>
+          <AlertContent className="min-w-0 space-y-1">
+            <AlertTitle id="coach-open-activity-title">
+              {t("openActivityTitle")}
+            </AlertTitle>
+            <AlertDescription className="text-muted-foreground">
+              {activityErrors("activityInProgress")}
+            </AlertDescription>
+          </AlertContent>
+        </Alert>
+      ) : null}
       {isArchived ? (
         <p className="text-sm text-muted-foreground">
           {t("archivedActivities")}
@@ -218,6 +272,9 @@ export function CoachActivities({
         selection={periodSelection}
         onChange={changePeriod}
       />
+      <p className="text-xs text-muted-foreground">
+        {t("timeZoneNotice", { timeZone: COACH_ACTIVITY_TIME_ZONE })}
+      </p>
       {range ? <ActivityPeriodNotice result={periodResult} /> : null}
       <Tabs value={activeTab} onValueChange={switchTab}>
         <TabsList aria-label={t("activities")} className="mb-0 justify-start">
@@ -298,6 +355,7 @@ export function CoachActivities({
             ) : (
               <ActivityHistoryItem
                 activity={selected}
+                isAdmin={isAdmin}
                 onEdit={() => edit(selected._id)}
                 onDelete={() => askDelete(selected._id)}
                 onCheckout={() => checkout(selected._id)}
@@ -310,6 +368,7 @@ export function CoachActivities({
         <ActivityDialog
           open
           coachId={coachId}
+          isAdmin={isAdmin}
           action={dialog.action}
           activityId={dialog.activityId}
           onOpenChange={(value) => {

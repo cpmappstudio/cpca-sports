@@ -5,8 +5,14 @@ import {
 } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import type { Id, Doc } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireCoachAccess } from "./lib/coachAccess";
+import { internal } from "./_generated/api";
+import { administrativeClosureValidator } from "./lib/coachActivityClosure";
+import {
+  activityTimeAdjustmentValidator,
+  recordActivityTimeAdjustment,
+} from "./lib/coachActivityAdjustments";
 import {
   COACH_ACTIVITY_TIME_ZONE,
   coachActivityDateTime,
@@ -28,6 +34,7 @@ import {
 } from "./lib/coachActivityPeriod";
 
 const activityFields = {
+  administrativeClosure: v.optional(administrativeClosureValidator),
   _id: v.id("coachActivities"),
   _creationTime: v.number(),
   coachId: v.id("coaches"),
@@ -121,6 +128,31 @@ async function assertPlace(
   }
   return place;
 }
+
+function findOpenActivity(ctx: QueryCtx | MutationCtx, coachId: Id<"coaches">) {
+  return ctx.db
+    .query("coachActivities")
+    .withIndex("by_coachId_and_status", (q) =>
+      q.eq("coachId", coachId).eq("status", "in_progress"),
+    )
+    .first();
+}
+
+async function assertCanCheckIn(ctx: MutationCtx, coach: Doc<"coaches">) {
+  if (coach.isArchived)
+    throw new ConvexError("Archived coaches cannot add activities");
+  if (await findOpenActivity(ctx, coach._id))
+    throw new ConvexError("Coach already has an activity in progress");
+}
+
+export const getOpenActivityId = query({
+  args: { coachId: v.id("coaches") },
+  returns: v.union(v.id("coachActivities"), v.null()),
+  handler: async (ctx, { coachId }) => {
+    await requireCoachAccess(ctx, coachId);
+    return (await findOpenActivity(ctx, coachId))?._id ?? null;
+  },
+});
 
 export const getSummary = query({
   args: { coachId: v.id("coaches") },
@@ -279,9 +311,7 @@ export const generateUploadUrl = mutation({
       ) {
         throw new ConvexError("Activity already checked out");
       }
-    } else if (coach.isArchived) {
-      throw new Error("Archived coaches cannot add activities");
-    }
+    } else await assertCanCheckIn(ctx, coach);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -306,8 +336,7 @@ export const checkIn = mutation({
     if (existing?.coachId === coach._id && existing.checkInAt !== undefined) {
       return existing._id;
     }
-    if (coach.isArchived)
-      throw new ConvexError("Archived coaches cannot add activities");
+    await assertCanCheckIn(ctx, coach);
     if (!args.title.trim()) throw new ConvexError("Title is required");
     const place = await assertPlace(ctx, args.placeId, coach.programId);
     await assertImage(ctx, args.imageStorageId);
@@ -383,15 +412,27 @@ export const update = mutation({
     placeId: v.id("programCoachOptions"),
     title: v.string(),
     description: v.optional(v.string()),
+    timeAdjustment: v.optional(activityTimeAdjustmentValidator),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const activity = await ctx.db.get("coachActivities", args.activityId);
     if (!activity) throw new ConvexError("Activity not found");
-    const { user } = await requireCoachAccess(ctx, activity.coachId);
+    const { user, isAdmin } = await requireCoachAccess(ctx, activity.coachId);
+    if (args.timeAdjustment && !isAdmin)
+      throw new ConvexError("Admin access required");
     if (!args.title.trim()) throw new ConvexError("Title is required");
     const place = await assertPlace(ctx, args.placeId, activity.programId);
+    const timeChanges = args.timeAdjustment
+      ? await recordActivityTimeAdjustment(
+          ctx,
+          activity,
+          args.timeAdjustment,
+          user._id,
+        )
+      : {};
     const changes = {
+      ...timeChanges,
       placeId: place._id,
       placeName: place.name,
       title: args.title.trim(),
@@ -419,6 +460,13 @@ export const remove = mutation({
       await ctx.storage.delete(activity.checkOutImageStorageId);
     }
     await ctx.db.delete(activity._id);
+    await ctx.scheduler.runAfter(
+      0,
+      internal.coachActivityAdjustments.removeForActivity,
+      {
+        activityId: activity._id,
+      },
+    );
     return null;
   },
 });

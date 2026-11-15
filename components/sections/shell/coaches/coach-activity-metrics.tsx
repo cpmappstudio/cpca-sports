@@ -6,6 +6,7 @@ import type { FunctionReturnType } from "convex/server";
 import type { CoachActivityPeriod } from "@/lib/coaches/types";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatActivityDuration } from "@/lib/coaches/activity-time";
 
 export function CoachActivityMetrics({
   summary,
@@ -37,10 +38,7 @@ export function CoachActivityMetrics({
       value:
         totalMinutes === undefined
           ? "—"
-          : t("durationValue", {
-              hours: Math.floor(totalMinutes / 60),
-              minutes: totalMinutes % 60,
-            }),
+          : formatActivityDuration(totalMinutes * 60000, t, true),
       color: "text-primary",
     },
   ];

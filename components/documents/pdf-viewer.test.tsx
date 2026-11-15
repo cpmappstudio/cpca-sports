@@ -7,6 +7,8 @@ const state = vi.hoisted(() => ({
   fieldChange: (() => {}) as () => void,
   commit: vi.fn(),
   export: vi.fn(),
+  print: vi.fn(),
+  printRequest: vi.fn(),
   stop: vi.fn(),
   shadow: null as ShadowRoot | null,
 }));
@@ -50,6 +52,10 @@ vi.mock("@embedpdf/react-pdf-viewer", () => ({
             },
             commit: () => ({ toPromise: state.commit }),
             saveAsCopy: () => ({ toPromise: state.export }),
+            print: (options: unknown) => {
+              state.printRequest(options);
+              return { toPromise: state.print };
+            },
           }),
         }),
       });
@@ -95,6 +101,41 @@ test("preview prevents changes to native fields as well as annotations", () => {
   });
   expect(state.config.annotations).toMatchObject({ locked: { type: "all" } });
   expect((state.shadow!.firstElementChild as HTMLElement).inert).toBe(true);
+  expect(state.config.disabledCategories).toEqual(
+    expect.arrayContaining(["document-export", "document-print"]),
+  );
+});
+
+test("printing waits for local edits and includes annotations without exporting or saving", async () => {
+  let finish!: () => void;
+  state.commit.mockReturnValueOnce(
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    }),
+  );
+  const viewer = createRef<PdfViewerHandle>();
+  render(
+    <PdfViewer
+      src="form.pdf"
+      name="form.pdf"
+      readOnly={false}
+      viewerRef={viewer}
+    />,
+  );
+  const printing = viewer.current!.printPdf();
+  expect(state.printRequest).not.toHaveBeenCalled();
+  finish();
+  await printing;
+  expect(state.printRequest).toHaveBeenCalledWith({ includeAnnotations: true });
+  expect(state.export).not.toHaveBeenCalled();
+  state.printRequest.mockClear();
+  state.commit.mockRejectedValueOnce(new Error("commit failed"));
+  await expect(viewer.current!.printPdf()).rejects.toThrow("commit failed");
+  expect(state.printRequest).not.toHaveBeenCalled();
+  state.print.mockRejectedValueOnce(new Error("print permission denied"));
+  await expect(viewer.current!.printPdf()).rejects.toThrow(
+    "print permission denied",
+  );
 });
 
 test("export waits for pending changes; a failed commit never exports an incomplete PDF", async () => {

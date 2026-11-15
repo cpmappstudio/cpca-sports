@@ -3,7 +3,11 @@
 import { LogOut, PanelRightOpen } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import type { CoachActivityListItem } from "@/lib/coaches/types";
-import { formatActivityTimestamp } from "@/lib/coaches/activity-time";
+import { isAwaitingActivityReconciliation } from "@/convex/lib/coachActivityClosure";
+import {
+  formatActivityTimestamp,
+  formatActivityDuration,
+} from "@/lib/coaches/activity-time";
 import { Button } from "@/components/ui/button";
 
 export function ActivityName({
@@ -32,6 +36,12 @@ export function ActivityTime({
   const t = useTranslations("Coaches.detail");
   const locale = useLocale();
   const timestamp = kind === "entry" ? activity.checkInAt : activity.checkOutAt;
+  if (kind === "exit" && isAwaitingActivityReconciliation(activity))
+    return (
+      <span className="text-sm text-muted-foreground">
+        {t("pendingReconciliation")}
+      </span>
+    );
   if (timestamp !== undefined) {
     return (
       <time dateTime={new Date(timestamp).toISOString()}>
@@ -54,21 +64,18 @@ export function ActivityTime({
 }
 
 export function ActivityDuration({
-  durationMs,
+  activity,
 }: {
-  durationMs: number | null;
+  activity: CoachActivityListItem;
 }) {
   const t = useTranslations("Coaches.detail");
-  const duration =
-    durationMs == null
-      ? t("durationUnavailable")
-      : durationMs < 60000
-        ? t("lessThanMinute")
-        : t("durationValue", {
-            hours: Math.floor(durationMs / 3600000),
-            minutes: Math.floor(durationMs / 60000) % 60,
-          });
-  return <span className="whitespace-nowrap tabular-nums">{duration}</span>;
+  return (
+    <span className="whitespace-nowrap tabular-nums">
+      {isAwaitingActivityReconciliation(activity)
+        ? t("durationUndetermined")
+        : formatActivityDuration(activity.durationMs, t)}
+    </span>
+  );
 }
 
 export function ActivityCheckout({ onCheckout }: { onCheckout: () => void }) {

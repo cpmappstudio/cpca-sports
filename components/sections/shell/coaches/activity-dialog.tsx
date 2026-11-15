@@ -7,9 +7,18 @@ import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, ArrowRight, Check, Clock, Loader2 } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
-import { COACH_ACTIVITY_TIME_ZONE } from "@/convex/lib/coachActivityTime";
-import type { CoachActivity } from "@/lib/coaches/types";
-import { formatActivityTimestamp } from "@/lib/coaches/activity-time";
+import {
+  activityLocalDateTime,
+  COACH_ACTIVITY_TIME_ZONE,
+} from "@/convex/lib/coachActivityTime";
+import type {
+  CoachActivity,
+  CoachActivityTimeAdjustment,
+} from "@/lib/coaches/types";
+import {
+  activityTimeAdjustmentPreview,
+  formatActivityTimestamp,
+} from "@/lib/coaches/activity-time";
 import { activityErrorKey } from "@/lib/coaches/activity-errors";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +47,9 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ActivityCameraCapture } from "./activity-camera";
+import { ActivityTimeFields } from "./activity-time-fields";
+import { ActivityTimeHistory } from "./activity-time-history";
+import { isAwaitingActivityReconciliation } from "@/convex/lib/coachActivityClosure";
 
 export type ActivityAction = "checkIn" | "checkOut" | "edit";
 
@@ -47,6 +59,7 @@ type DialogProps = {
   coachId: Id<"coaches">;
   action: ActivityAction;
   activityId?: Id<"coachActivities">;
+  isAdmin?: boolean;
 };
 
 export function ActivityDialog({
@@ -55,6 +68,7 @@ export function ActivityDialog({
   coachId,
   action,
   activityId,
+  isAdmin = false,
 }: DialogProps) {
   const t = useTranslations("Coaches.activityDialog");
   const [saving, setSaving] = useState(false);
@@ -73,7 +87,7 @@ export function ActivityDialog({
       }}
     >
       <DialogContent
-        className="max-h-[90dvh] overflow-y-auto"
+        className="max-h-[90dvh] min-w-0 overflow-y-auto"
         showCloseButton={!saving}
         onEscapeKeyDown={(event) => {
           if (saving) event.preventDefault();
@@ -84,7 +98,15 @@ export function ActivityDialog({
       >
         <DialogHeader>
           <DialogTitle>{t(`${action}Title`)}</DialogTitle>
-          <DialogDescription>{t(`${action}Description`)}</DialogDescription>
+          <DialogDescription
+            className={action === "edit" ? "sr-only" : undefined}
+          >
+            {t(
+              action === "edit" && isAdmin && activity?.checkInAt !== undefined
+                ? "editAdminDescription"
+                : `${action}Description`,
+            )}
+          </DialogDescription>
         </DialogHeader>
         {open && ready && !closed ? (
           <ActivityForm
@@ -92,6 +114,7 @@ export function ActivityDialog({
             coachId={coachId}
             action={action}
             activity={activity ?? undefined}
+            isAdmin={isAdmin}
             saving={saving}
             onSavingChange={setSaving}
             onClose={() => onOpenChange(false)}
@@ -132,6 +155,7 @@ function ActivityForm({
   coachId,
   action,
   activity,
+  isAdmin,
   saving,
   onSavingChange,
   onClose,
@@ -139,6 +163,7 @@ function ActivityForm({
   coachId: Id<"coaches">;
   action: ActivityAction;
   activity?: CoachActivity;
+  isAdmin: boolean;
   saving: boolean;
   onSavingChange: (saving: boolean) => void;
   onClose: () => void;
@@ -148,6 +173,26 @@ function ActivityForm({
   const [title, setTitle] = useState(activity?.title ?? "");
   const [description, setDescription] = useState(activity?.description ?? "");
   const [placeId, setPlaceId] = useState(activity?.placeId ?? "");
+  const [timeAdjustment, setTimeAdjustment] = useState<
+    CoachActivityTimeAdjustment | undefined
+  >(() =>
+    action === "edit" && isAdmin && activity?.checkInAt !== undefined
+      ? {
+          expectedCheckInAt: activity.checkInAt,
+          expectedCheckOutAt: activity.checkOutAt ?? null,
+          checkIn: { dateTime: activityLocalDateTime(activity.checkInAt) },
+          checkOut:
+            activity.checkOutAt === undefined
+              ? null
+              : { dateTime: activityLocalDateTime(activity.checkOutAt) },
+        }
+      : undefined,
+  );
+  const timePreview =
+    isAdmin && timeAdjustment
+      ? activityTimeAdjustmentPreview(timeAdjustment)
+      : undefined;
+  const invalidTimes = !!timePreview?.error;
   const [step, setStep] = useState<"details" | "photo">(
     action === "checkOut" ? "photo" : "details",
   );
@@ -178,7 +223,11 @@ function ActivityForm({
         description: description.trim() || undefined,
       };
       if (action === "edit") {
-        await update({ activityId: activity!._id, ...details });
+        await update({
+          activityId: activity!._id,
+          ...details,
+          ...(isAdmin && timePreview?.changed ? { timeAdjustment } : {}),
+        });
       } else {
         let storageId = uploaded;
         if (!storageId) {
@@ -227,14 +276,14 @@ function ActivityForm({
 
   const submitDetails = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!title.trim() || !placeId || saving) return;
+    if (!title.trim() || !placeId || saving || invalidTimes) return;
     if (action === "edit") void save();
     else setStep("photo");
   };
   const currentStep = action === "checkOut" ? 3 : step === "photo" ? 1 : 0;
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       {action !== "edit" ? (
         <ol className="grid grid-cols-4 gap-2" aria-label={t("progress")}>
           {["details", "entry", "activity", "exit"].map((name, index) => (
@@ -252,7 +301,7 @@ function ActivityForm({
         </ol>
       ) : null}
       {step === "details" ? (
-        <form className="space-y-4" onSubmit={submitDetails}>
+        <form className="min-w-0 space-y-4" onSubmit={submitDetails}>
           {action === "checkIn" ? (
             <Alert
               variant="primary"
@@ -341,10 +390,28 @@ function ActivityForm({
               </p>
             ) : null}
           </div>
-          {action === "edit" ? (
+          {action === "edit" && isAdmin && timeAdjustment ? (
+            <ActivityTimeFields
+              value={timeAdjustment}
+              disabled={saving}
+              canAddCheckout={
+                activity && isAwaitingActivityReconciliation(activity)
+              }
+              onChange={setTimeAdjustment}
+            />
+          ) : action === "edit" &&
+            !isAdmin &&
+            activity?.checkInAt !== undefined ? (
             <p className="text-xs text-muted-foreground">
-              {t("fixedEvidence")}
+              {t("timeAdjustmentPermission")}
             </p>
+          ) : null}
+          {action === "edit" && isAdmin && activity?.checkInAt !== undefined ? (
+            <ActivityTimeHistory
+              key={activity._id}
+              activityId={activity._id}
+              administrativeClosure={activity.administrativeClosure}
+            />
           ) : null}
           <DialogFooter>
             <Button
@@ -358,7 +425,13 @@ function ActivityForm({
             </Button>
             <Button
               type="submit"
-              disabled={saving || !title.trim() || !placeId || !places?.length}
+              disabled={
+                saving ||
+                !title.trim() ||
+                !placeId ||
+                !places?.length ||
+                invalidTimes
+              }
               className="min-h-11"
             >
               {saving ? <Loader2 className="size-4 animate-spin" /> : null}

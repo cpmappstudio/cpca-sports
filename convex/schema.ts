@@ -1,5 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { activityListingValidator } from "./lib/coachActivityListing";
+import { activityTimeAdjustmentFields } from "./lib/coachActivityAdjustments";
+import { administrativeClosureValidator } from "./lib/coachActivityClosure";
 import { v } from "convex/values";
 
 const orgMemberRole = v.union(
@@ -188,7 +190,14 @@ export default defineSchema({
     .index("byProgram", ["programId"])
     .index("byPosition", ["positionId"]),
 
+  coachActivityTimeAdjustments: defineTable({
+    ...activityTimeAdjustmentFields,
+    // Existing development adjustments may contain a reason; new writes omit it.
+    reason: v.optional(v.string()),
+  }).index("by_activityId", ["activityId"]),
+
   coachActivities: defineTable({
+    administrativeClosure: v.optional(administrativeClosureValidator),
     listing: v.optional(activityListingValidator),
     coachId: v.id("coaches"),
     programId: v.id("programs"),

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import {
   requireCoachAccess,
   requireCoachAdmin,
@@ -534,6 +535,13 @@ export const deleteLocal = mutation({
         await ctx.storage.delete(activity.checkOutImageStorageId);
       }
       await ctx.db.delete(activity._id);
+      await ctx.scheduler.runAfter(
+        0,
+        internal.coachActivityAdjustments.removeForActivity,
+        {
+          activityId: activity._id,
+        },
+      );
     }
     const hasMoreActivities = await ctx.db
       .query("coachActivities")

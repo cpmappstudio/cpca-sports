@@ -45,6 +45,7 @@ import { CoachDialog } from "./coach-dialog";
 import { CoachActivities } from "./coach-activities";
 import type { CoachActivityPeriodSelection } from "@/lib/coaches/types";
 import { CoachActivityMetrics } from "./coach-activity-metrics";
+import { ActivityReport } from "./activity-report";
 import { useTranslations } from "next-intl";
 
 export function CoachDetailView({
@@ -271,9 +272,21 @@ export function CoachDetailView({
           key={detail.coach._id}
           coachId={detail.coach._id}
           isArchived={detail.coach.isArchived}
+          isAdmin={detail.isAdmin}
           periodSelection={periodSelection}
           onPeriodChange={setPeriodSelection}
           periodResult={periodResult}
+          reportAction={
+            <ActivityReport
+              coach={{
+                name: `${detail.user.firstName} ${detail.user.lastName}`.trim(),
+                program: detail.program.name,
+                position: detail.position.name,
+              }}
+              range={periodSelection.range}
+              period={periodResult}
+            />
+          }
         />
       </div>
       <CoachDialog

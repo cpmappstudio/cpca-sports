@@ -1,3 +1,5 @@
+import { optimizePhoto } from "./optimize-photo";
+
 export const APPLICATION_PHOTO_ACCEPT = "image/jpeg,image/png,image/webp";
 export const APPLICATION_PHOTO_MAX_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -7,9 +9,7 @@ const APPLICATION_PHOTO_ALLOWED_TYPES = new Set([
   "image/webp",
 ]);
 const APPLICATION_PHOTO_MAX_DIMENSION = 512;
-const APPLICATION_PHOTO_QUALITY = 0.82;
 const APPLICATION_PHOTO_OUTPUT_TYPE = "image/webp";
-const APPLICATION_PHOTO_FALLBACK_TYPE = "image/jpeg";
 
 export type ApplicationPhotoErrorCode =
   "invalidType" | "maxSize" | "decodeFailed" | "optimizeFailed";
@@ -27,18 +27,11 @@ export async function prepareApplicationPhoto(
   validateApplicationPhoto(file, maxSizeBytes);
 
   const image = await loadImage(file);
-  const canvas = resizeImage(image);
-  const blob =
-    (await getTypedCanvasBlob(
-      canvas,
-      APPLICATION_PHOTO_OUTPUT_TYPE,
-      APPLICATION_PHOTO_QUALITY,
-    )) ??
-    (await getTypedCanvasBlob(
-      canvas,
-      APPLICATION_PHOTO_FALLBACK_TYPE,
-      APPLICATION_PHOTO_QUALITY,
-    ));
+  const blob = await optimizePhoto(image, {
+    width: image.naturalWidth || image.width,
+    height: image.naturalHeight || image.height,
+    maxDimension: APPLICATION_PHOTO_MAX_DIMENSION,
+  });
 
   if (!blob) {
     throw new ApplicationPhotoError("optimizeFailed");
@@ -75,58 +68,6 @@ function loadImage(file: File) {
     };
     image.src = url;
   });
-}
-
-function resizeImage(image: HTMLImageElement) {
-  const { width, height } = getImageSize(image);
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-
-  if (!context) {
-    throw new ApplicationPhotoError("optimizeFailed");
-  }
-
-  canvas.width = width;
-  canvas.height = height;
-  context.fillStyle = "#fff";
-  context.fillRect(0, 0, width, height);
-  context.drawImage(image, 0, 0, width, height);
-
-  return canvas;
-}
-
-function getImageSize(image: HTMLImageElement) {
-  const sourceWidth = image.naturalWidth || image.width;
-  const sourceHeight = image.naturalHeight || image.height;
-  const scale = Math.min(
-    APPLICATION_PHOTO_MAX_DIMENSION / sourceWidth,
-    APPLICATION_PHOTO_MAX_DIMENSION / sourceHeight,
-    1,
-  );
-
-  return {
-    width: Math.max(1, Math.round(sourceWidth * scale)),
-    height: Math.max(1, Math.round(sourceHeight * scale)),
-  };
-}
-
-function getCanvasBlob(
-  canvas: HTMLCanvasElement,
-  type: string,
-  quality: number,
-) {
-  return new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, type, quality);
-  });
-}
-
-async function getTypedCanvasBlob(
-  canvas: HTMLCanvasElement,
-  type: string,
-  quality: number,
-) {
-  const blob = await getCanvasBlob(canvas, type, quality);
-  return blob?.type === type ? blob : null;
 }
 
 function getOptimizedFileName(fileName: string, type: string) {

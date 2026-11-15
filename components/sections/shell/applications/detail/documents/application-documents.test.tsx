@@ -159,7 +159,7 @@ test("newest requirements appear first without moving older documents when edite
 });
 
 test.each([false, true])(
-  "cards show the attachment name and only expose applicant upload controls (admin: %s)",
+  "only admins have a separate school-file preview; PDF completion and upload remain available (admin: %s)",
   (isAdmin) => {
     role.isAdmin = isAdmin;
     const html = render([
@@ -174,8 +174,14 @@ test.each([false, true])(
         },
       },
     ]);
-    expect(html).toContain("blank-form.pdf");
-    expect(html).toContain('href="https://files.example.com/blank-form.pdf"');
+    expect(html.includes("blank-form.pdf")).toBe(isAdmin);
+    expect(
+      html.includes('href="https://files.example.com/blank-form.pdf"'),
+    ).toBe(isAdmin);
+    expect(html).toContain("pdf.complete");
+    expect(html).toContain(
+      isAdmin ? "submission.empty" : "submission.completeInstructions",
+    );
     expect(html).not.toContain("attachment.upload");
     expect(html).toContain("status.notUploaded");
     expect(html).toContain("actions.upload");

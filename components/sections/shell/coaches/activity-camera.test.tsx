@@ -80,10 +80,11 @@ beforeEach(() => {
     960,
   );
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    fillRect: vi.fn(),
     drawImage: vi.fn(),
   } as unknown as CanvasRenderingContext2D);
   vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(
-    (callback) => callback(new Blob(["photo"], { type: "image/jpeg" })),
+    (callback, type) => callback(new Blob(["photo"], { type })),
   );
   Object.defineProperty(URL, "createObjectURL", {
     configurable: true,
@@ -127,6 +128,7 @@ test("camera starts only on request, takes a photo and releases the device", asy
   );
   expect(streams[0].getTracks()[0].stop).toHaveBeenCalledOnce();
   expect(capture.mock.calls.at(-1)?.[0]).toBeInstanceOf(Blob);
+  expect(capture.mock.calls.at(-1)?.[0]?.type).toBe("image/webp");
   fireEvent.click(result.getByRole("button", { name: "Retake photo" }));
   await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(2));
   expect(capture.mock.calls.at(-1)?.[0]).toBeNull();

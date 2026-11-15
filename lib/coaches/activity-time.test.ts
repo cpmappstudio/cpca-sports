@@ -28,3 +28,23 @@ test("camera errors and UI message keys exist in both languages", () => {
     expect(en.camera.errors[code]).toBeTruthy();
   }
 });
+
+test("the table and report share duration formatting, including unavailable and sub-minute totals", async () => {
+  const { createTranslator } = await import("next-intl");
+  const { formatActivityDuration } = await import("./activity-time");
+  for (const [locale, messages] of [
+    ["es", es],
+    ["en", en],
+  ] as const) {
+    const t = createTranslator({ locale, messages: messages.detail });
+    expect(formatActivityDuration(null, t)).toBe(
+      messages.detail.durationUnavailable,
+    );
+    expect(formatActivityDuration(0, t)).toBe("<1 min");
+    expect(formatActivityDuration(59000, t)).toBe("<1 min");
+    expect(formatActivityDuration(185000, t)).toBe("3 min");
+    expect(formatActivityDuration(4500000, t)).toBe("1 h 15 min");
+    expect(formatActivityDuration(0, t, true)).toBe("0 min");
+    expect(formatActivityDuration(71800, t, true)).toBe("1 min");
+  }
+});

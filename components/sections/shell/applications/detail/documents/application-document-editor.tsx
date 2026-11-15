@@ -6,11 +6,13 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Download, Loader2, X } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useApplicationDocumentPdf } from "@/hooks/use-application-document-pdf";
 import { Button } from "@/components/ui/button";
+import { DocumentViewerHeader } from "@/components/documents/document-viewer-header";
+import { DocumentViewerActions } from "@/components/documents/document-viewer-actions";
 import {
   Dialog,
   DialogContent,
@@ -119,78 +121,55 @@ function Editor({
       <DialogContent
         showCloseButton={false}
         aria-describedby={undefined}
-        className="flex h-[95dvh] max-w-[calc(100%-1rem)] flex-col gap-3 p-3 sm:max-w-[95vw]"
+        className="flex h-[95dvh] max-w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[95vw]"
         onEscapeKeyDown={(event) => {
           if (confirmClose) event.preventDefault();
         }}
       >
-        <DialogHeader className="flex-row items-center justify-between gap-3 text-left">
-          <DialogTitle className="min-w-0 truncate">
-            {editor.document.name}
-          </DialogTitle>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={t("close")}
-            disabled={editor.saving}
-            onClick={close}
-          >
-            <X />
-          </Button>
-        </DialogHeader>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
-          <p className="text-sm text-muted-foreground">
-            {t(
-              editor.unsaved
-                ? "unsaved"
-                : isAdmin
-                  ? "editInstructions"
-                  : "instructions",
-            )}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!editor.ready || editor.saving || loadError}
-              onClick={() => {
-                void editor
-                  .download()
-                  .catch(() => toast.error(t("downloadError")));
+        <DocumentViewerHeader
+          title={editor.document.name}
+          description={t(
+            editor.unsaved
+              ? "unsaved"
+              : isAdmin
+                ? "editInstructions"
+                : "instructions",
+          )}
+          onClose={close}
+          closeDisabled={editor.saving}
+          actions={
+            <DocumentViewerActions
+              primary={{
+                label: t(
+                  editor.saving
+                    ? "saving"
+                    : editor.pending
+                      ? "retry"
+                      : isAdmin
+                        ? "saveChanges"
+                        : "submit",
+                ),
+                icon: Save,
+                disabled:
+                  !editor.ready ||
+                  editor.conflict ||
+                  loadError ||
+                  (!editor.dirty && !editor.pending),
+                pending: editor.saving,
+                onClick: () => void editor.save(),
               }}
-            >
-              <Download />
-              {t("download")}
-            </Button>
-            <Button
-              type="button"
-              disabled={
-                !editor.ready ||
-                editor.conflict ||
-                editor.saving ||
-                loadError ||
-                (!editor.dirty && !editor.pending)
-              }
-              onClick={() => void editor.save()}
-            >
-              {editor.saving ? <Loader2 className="animate-spin" /> : null}
-              {t(
-                editor.saving
-                  ? "saving"
-                  : editor.pending
-                    ? "retry"
-                    : isAdmin
-                      ? "saveChanges"
-                      : "submit",
-              )}
-            </Button>
-          </div>
-        </div>
+              onDownload={editor.download}
+              downloadLabel={t("download")}
+              downloadDisabled={!editor.ready || loadError}
+              onPrint={() => editor.viewer.current!.printPdf()}
+              printDisabled={!editor.ready || loadError}
+            />
+          }
+        />
         {editor.conflict ? (
           <p
             role="alert"
-            className="rounded-md border border-destructive p-3 text-sm"
+            className="m-3 rounded-md border border-destructive p-3 text-sm"
           >
             {t("conflict")}
           </p>
@@ -198,7 +177,7 @@ function Editor({
         {editor.error ? (
           <p
             role="alert"
-            className="rounded-md border border-destructive p-3 text-sm"
+            className="m-3 rounded-md border border-destructive p-3 text-sm"
           >
             {t(editor.error)}
           </p>

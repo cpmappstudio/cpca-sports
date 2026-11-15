@@ -24,6 +24,7 @@ const state = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
   fetch: vi.fn(),
+  queries: vi.fn(),
 }));
 vi.mock("convex/react", async () => {
   const { getFunctionName } = await import("convex/server");
@@ -31,12 +32,17 @@ vi.mock("convex/react", async () => {
     useQuery: (
       reference: Parameters<typeof getFunctionName>[0],
       args: unknown,
-    ) =>
-      args === "skip"
+    ) => {
+      const name = getFunctionName(reference);
+      state.queries(name, args);
+      return args === "skip"
         ? undefined
-        : getFunctionName(reference).endsWith("getById")
-          ? state.activity
-          : state.places,
+        : name === "coachActivityAdjustments:listByActivity"
+          ? { page: [], isDone: true, continueCursor: "" }
+          : name.endsWith("getById")
+            ? state.activity
+            : state.places;
+    },
     useMutation: (reference: Parameters<typeof getFunctionName>[0]) =>
       ({
         checkIn: state.checkIn,
@@ -64,7 +70,7 @@ vi.mock("./activity-camera", () => ({
         type="button"
         disabled={disabled}
         onClick={() =>
-          onCapture(new Blob(["captured"], { type: "image/jpeg" }))
+          onCapture(new Blob(["captured"], { type: "image/webp" }))
         }
       >
         Tomar foto de prueba
@@ -133,7 +139,11 @@ function activity(): CoachActivity {
     updatedAt: 1,
   };
 }
-function view(action: "checkIn" | "checkOut" | "edit", close = vi.fn()) {
+function view(
+  action: "checkIn" | "checkOut" | "edit",
+  close = vi.fn(),
+  isAdmin = false,
+) {
   return {
     close,
     ...render(
@@ -148,6 +158,7 @@ function view(action: "checkIn" | "checkOut" | "edit", close = vi.fn()) {
           coachId={coachId}
           action={action}
           activityId={action === "checkIn" ? undefined : activityId}
+          isAdmin={isAdmin}
         />
       </NextIntlClientProvider>,
     ),
@@ -224,7 +235,8 @@ test("check-in has a details step and requires a camera photo before confirming"
   );
   expect(state.fetch.mock.calls[0][1]).toMatchObject({
     method: "POST",
-    headers: { "Content-Type": "image/jpeg" },
+    headers: { "Content-Type": "image/webp" },
+    body: expect.any(Blob),
   });
   expect(result.close).toHaveBeenCalledWith(false);
 });
@@ -242,8 +254,37 @@ test("a failed save retries the same uploaded photo and preserves the captured p
   expect(state.checkIn).toHaveBeenCalledTimes(2);
   expect(state.checkIn.mock.calls[1][0].imageStorageId).toBe("uploaded");
 });
+
+test.each(["generateUploadUrl", "checkIn"] as const)(
+  "a competing check-in shows the rule clearly at %s and retains the photo",
+  async (stage) => {
+    state[stage].mockRejectedValueOnce(
+      new ConvexError("Coach already has an activity in progress"),
+    );
+    const result = view("checkIn");
+    enterDetails(result);
+    fireEvent.click(
+      result.getByRole("button", { name: "Tomar foto de prueba" }),
+    );
+    fireEvent.click(result.getByRole("button", { name: "Confirmar entrada" }));
+    await waitFor(() =>
+      expect(state.error).toHaveBeenCalledWith(
+        messages.activityDialog.errors.activityInProgress,
+      ),
+    );
+    expect(result.close).not.toHaveBeenCalled();
+    expect(result.getByText("Foto capturada")).toBeTruthy();
+    if (stage === "generateUploadUrl") {
+      expect(state.fetch).not.toHaveBeenCalled();
+      expect(state.checkIn).not.toHaveBeenCalled();
+    }
+  },
+);
 test("checkout takes a new photo for the selected activity without editable times or metadata", async () => {
   const result = view("checkOut");
+  expect(
+    result.getByText(messages.activityDialog.checkOutDescription),
+  ).toBeTruthy();
   expect(result.queryByText(messages.activityDialog.automaticTime)).toBeNull();
   expect(result.queryByLabelText(/Título/)).toBeNull();
   expect(result.queryByRole("button", { name: "Confirmar salida" })).toBeNull();
@@ -257,11 +298,18 @@ test("checkout takes a new photo for the selected activity without editable time
   );
   expect(state.checkIn).not.toHaveBeenCalled();
   expect(state.generateUploadUrl).toHaveBeenCalledWith({ coachId, activityId });
+  expect(state.fetch.mock.calls[0][1]).toMatchObject({
+    headers: { "Content-Type": "image/webp" },
+    body: expect.any(Blob),
+  });
 });
 test("editing saves only title, description and place and never requests camera uploads", async () => {
   const result = view("edit");
   expect(result.queryByText(messages.activityDialog.automaticTime)).toBeNull();
   expect(result.queryByText("Tomar foto de prueba")).toBeNull();
+  expect(
+    result.container.querySelector('input[type="datetime-local"]'),
+  ).toBeNull();
   fireEvent.change(result.getByLabelText(/Título/), {
     target: { value: "Nuevo título" },
   });
@@ -290,6 +338,255 @@ test("missing places explain the configuration issue and prevent progression", (
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
+});
+
+test("an administrator editing metadata keeps time precision without adding a time adjustment", async () => {
+  state.activity = { ...activity(), checkInAt: Date.now() + 60000 };
+  const result = view("edit", vi.fn(), true);
+  const entry = result.getByLabelText(messages.timeAdjustment.checkIn);
+  const zoneId = entry.getAttribute("aria-describedby")!;
+  expect(document.getElementById(zoneId)?.textContent).toBe(
+    "Zona horaria: America/New_York",
+  );
+  expect(result.getAllByText("Zona horaria: America/New_York")).toHaveLength(1);
+  expect(result.queryByLabelText(messages.timeAdjustment.checkOut)).toBeNull();
+  expect(
+    result.getByText(messages.timeAdjustment.pendingCheckoutShort),
+  ).toBeTruthy();
+  fireEvent.change(result.getByLabelText(/Título/), {
+    target: { value: "Revisado" },
+  });
+  fireEvent.click(result.getByRole("button", { name: "Guardar cambios" }));
+  await waitFor(() =>
+    expect(state.update).toHaveBeenCalledWith({
+      activityId,
+      placeId: "place",
+      title: "Revisado",
+      description: undefined,
+    }),
+  );
+  expect(state.fetch).not.toHaveBeenCalled();
+  expect(
+    state.queries.mock.calls.filter(
+      ([name, args]) =>
+        name === "coachActivityAdjustments:listByActivity" && args !== "skip",
+    ),
+  ).toEqual([]);
+});
+
+test("an administrator saves metadata and corrected completed times together without requiring a reason", async () => {
+  state.activity = {
+    ...activity(),
+    status: "completed",
+    completed: true,
+    checkOutAt: activity().checkInAt! + 4 * 3600000,
+  };
+  const result = view("edit", vi.fn(), true);
+  fireEvent.change(result.getByLabelText(messages.timeAdjustment.checkOut), {
+    target: { value: "2026-11-06T11:30" },
+  });
+  expect(result.getByRole("status").textContent).toBe("Duración: 1 h 30 min");
+  const save = result.getByRole("button", { name: "Guardar cambios" });
+  expect(save.hasAttribute("disabled")).toBe(false);
+  expect(
+    result.container.querySelector("#activity-adjustment-reason"),
+  ).toBeNull();
+  fireEvent.change(result.getByLabelText(/Título/), {
+    target: { value: "Revisado" },
+  });
+  fireEvent.click(save);
+  await waitFor(() =>
+    expect(state.update).toHaveBeenCalledWith({
+      activityId,
+      placeId: "place",
+      title: "Revisado",
+      description: undefined,
+      timeAdjustment: {
+        expectedCheckInAt: activity().checkInAt,
+        expectedCheckOutAt: state.activity!.checkOutAt,
+        checkIn: { dateTime: "2026-11-06T10:00" },
+        checkOut: { dateTime: "2026-11-06T11:30" },
+      },
+    }),
+  );
+  expect(state.generateUploadUrl).not.toHaveBeenCalled();
+  expect(state.checkOut).not.toHaveBeenCalled();
+  expect(state.fetch).not.toHaveBeenCalled();
+});
+
+test("invalid administrative times show an inline error and block saving", () => {
+  state.activity = {
+    ...activity(),
+    status: "completed",
+    completed: true,
+    checkOutAt: activity().checkInAt! + 3600000,
+  };
+  const result = view("edit", vi.fn(), true);
+  fireEvent.change(result.getByLabelText(messages.timeAdjustment.checkOut), {
+    target: { value: "2026-11-06T09:00" },
+  });
+  expect(result.getByRole("alert").textContent).toBe(
+    messages.activityDialog.errors.checkoutBeforeCheckin,
+  );
+  const exit = result.getByLabelText(messages.timeAdjustment.checkOut);
+  expect(exit.getAttribute("aria-invalid")).toBe("true");
+  expect(exit.getAttribute("aria-describedby")).toContain(
+    result.getByRole("alert").id,
+  );
+  fireEvent.click(result.getByRole("button", { name: "Guardar cambios" }));
+  expect(state.update).not.toHaveBeenCalled();
+  fireEvent.change(result.getByLabelText(messages.timeAdjustment.checkOut), {
+    target: { value: "2099-11-06T12:00" },
+  });
+  expect(result.getByRole("alert").textContent).toBe(
+    messages.activityDialog.errors.futureTime,
+  );
+});
+
+test("administrative closure can be reconciled from the same editor without a photo or required reason", async () => {
+  state.activity = {
+    ...activity(),
+    status: "completed",
+    completed: true,
+    administrativeClosure: {
+      migrationId: "test",
+      closedAt: Date.now(),
+      operator: "operator@example.com",
+    },
+  };
+  const result = view("edit", vi.fn(), true);
+  expect(
+    result.getByText(messages.timeAdjustment.reconciliationHelp),
+  ).toBeTruthy();
+  const checkout = result.getByLabelText(
+    messages.timeAdjustment.checkOut,
+  ) as HTMLInputElement;
+  expect(checkout.value).toBe("");
+  expect(checkout.required).toBe(false);
+  fireEvent.change(checkout, { target: { value: "2026-11-06T11:30" } });
+  fireEvent.click(result.getByRole("button", { name: "Guardar cambios" }));
+  await waitFor(() =>
+    expect(state.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        timeAdjustment: expect.objectContaining({
+          expectedCheckOutAt: null,
+          checkOut: { dateTime: "2026-11-06T11:30" },
+        }),
+      }),
+    ),
+  );
+  expect(state.generateUploadUrl).not.toHaveBeenCalled();
+  expect(state.checkOut).not.toHaveBeenCalled();
+});
+
+test("clearing an existing checkout leaves the field available and prevents saving until corrected", () => {
+  state.activity = {
+    ...activity(),
+    status: "completed",
+    completed: true,
+    checkOutAt: activity().checkInAt! + 3600000,
+  };
+  const result = view("edit", vi.fn(), true);
+  const checkout = result.getByLabelText(
+    messages.timeAdjustment.checkOut,
+  ) as HTMLInputElement;
+  fireEvent.change(checkout, { target: { value: "" } });
+  expect(result.getByLabelText(messages.timeAdjustment.checkOut)).toBe(
+    checkout,
+  );
+  expect(result.getByRole("alert").textContent).toBe(
+    messages.activityDialog.errors.invalidTime,
+  );
+  fireEvent.click(result.getByRole("button", { name: "Guardar cambios" }));
+  expect(state.update).not.toHaveBeenCalled();
+  fireEvent.change(checkout, { target: { value: "2026-11-06T11:30" } });
+  expect(result.queryByRole("alert")).toBeNull();
+});
+
+test("metadata edits do not force reconciliation, and coaches never receive the time editor", async () => {
+  state.activity = {
+    ...activity(),
+    status: "completed",
+    completed: true,
+    administrativeClosure: {
+      migrationId: "test",
+      closedAt: Date.now(),
+      operator: "operator@example.com",
+    },
+  };
+  const admin = view("edit", vi.fn(), true);
+  fireEvent.change(admin.getByLabelText(/Título/), {
+    target: { value: "Cambio de datos" },
+  });
+  fireEvent.click(admin.getByRole("button", { name: "Guardar cambios" }));
+  await waitFor(() => expect(state.update).toHaveBeenCalled());
+  expect(state.update.mock.calls[0][0]).not.toHaveProperty("timeAdjustment");
+  admin.unmount();
+  const owner = view("edit");
+  expect(owner.queryByLabelText(messages.timeAdjustment.checkOut)).toBeNull();
+  expect(
+    owner.queryByText(messages.timeAdjustment.reconciliationHelp),
+  ).toBeNull();
+});
+
+test("a stale administrative edit keeps the draft and explains how to reload current times", async () => {
+  state.update.mockRejectedValueOnce(
+    new ConvexError("Activity times have changed"),
+  );
+  const result = view("edit", vi.fn(), true);
+  fireEvent.change(result.getByLabelText(messages.timeAdjustment.checkIn), {
+    target: { value: "2026-11-06T09:00" },
+  });
+  fireEvent.click(result.getByRole("button", { name: "Guardar cambios" }));
+  await waitFor(() =>
+    expect(state.error).toHaveBeenCalledWith(
+      messages.activityDialog.errors.timesChanged,
+    ),
+  );
+  expect(result.close).not.toHaveBeenCalled();
+  expect(
+    (result.getByLabelText(messages.timeAdjustment.checkIn) as HTMLInputElement)
+      .value,
+  ).toBe("2026-11-06T09:00");
+});
+
+test("ambiguous clock-change times require choosing an occurrence before saving", () => {
+  const result = view("edit", vi.fn(), true);
+  fireEvent.change(result.getByLabelText(messages.timeAdjustment.checkIn), {
+    target: { value: "2026-11-01T01:30" },
+  });
+  expect(result.getByRole("alert").textContent).toBe(
+    messages.activityDialog.errors.ambiguousTime,
+  );
+  expect(result.getByText(messages.timeAdjustment.repeatedTime)).toBeTruthy();
+  fireEvent.change(result.getAllByRole("combobox")[1], {
+    target: { value: "-300" },
+  });
+  expect(result.queryByRole("alert")).toBeNull();
+});
+
+test("administrative history loads only when expanded; earlier manual records have no time editor", async () => {
+  const result = view("edit", vi.fn(), true);
+  const history = result
+    .getByText(messages.timeAdjustment.history)
+    .closest("details")!;
+  await act(async () => {
+    history.open = true;
+    fireEvent(history, new Event("toggle"));
+  });
+  await waitFor(() =>
+    expect(state.queries).toHaveBeenCalledWith(
+      "coachActivityAdjustments:listByActivity",
+      { activityId, paginationOpts: { numItems: 5, cursor: null } },
+    ),
+  );
+  expect(result.getByText(messages.timeAdjustment.emptyHistory)).toBeTruthy();
+  cleanup();
+  state.activity = { ...activity(), checkInAt: undefined, status: undefined };
+  const legacy = view("edit", vi.fn(), true);
+  expect(
+    legacy.container.querySelector('input[type="datetime-local"]'),
+  ).toBeNull();
 });
 test("an activity closed from another device cannot start another checkout", () => {
   state.activity = {
