@@ -61,8 +61,9 @@ export function ActivityReport({
             <DialogTrigger asChild>
               <Button
                 type="button"
-                variant="outline"
-                className="h-auto min-h-11 w-full whitespace-normal aria-disabled:cursor-not-allowed aria-disabled:opacity-50 sm:w-auto"
+                variant="ghost"
+                size="sm"
+                className="h-auto min-h-11 whitespace-normal aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
                 disabled={!!range && period?.status !== "ready"}
                 aria-disabled={!range || period?.status !== "ready"}
                 aria-describedby={!range ? hintId : undefined}

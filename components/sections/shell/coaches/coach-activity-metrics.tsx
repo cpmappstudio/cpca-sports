@@ -47,19 +47,19 @@ export function CoachActivityMetrics({
       {metrics.map(({ label, Icon, value, color }) => (
         <Card
           key={label}
-          className="h-full min-w-0 justify-center gap-0 border-primary/20 bg-primary/[0.06] py-2 sm:py-4"
+          className="h-full min-w-0 justify-center gap-0 border-primary/20 bg-primary/[0.06] py-3 sm:py-4"
         >
-          <CardContent className="flex flex-col items-start gap-2 px-2 sm:min-h-16 sm:flex-row sm:items-center sm:px-3">
+          <CardContent className="grid flex-1 grid-cols-[1.125rem_minmax(0,1fr)] grid-rows-[1fr_auto] items-start gap-x-1.5 gap-y-1 px-3 sm:flex sm:min-h-16 sm:flex-none sm:items-center sm:gap-2">
             <div
               className={`flex size-4.5 shrink-0 items-center justify-center sm:size-9 ${color}`}
             >
               <Icon aria-hidden="true" className="size-4.5 sm:size-9" />
             </div>
-            <div className="w-full min-w-0 sm:w-auto">
-              <p className="min-h-8 text-[11px] leading-4 text-muted-foreground sm:min-h-0 sm:text-xs">
+            <div className="contents sm:block sm:min-w-0">
+              <p className="text-xs leading-4 text-muted-foreground">
                 {t(label)}
               </p>
-              <p className="break-words text-sm leading-5 font-semibold tabular-nums sm:whitespace-nowrap sm:text-xl sm:leading-7">
+              <p className="col-span-2 break-words text-sm leading-5 font-semibold tabular-nums sm:whitespace-nowrap sm:text-xl sm:leading-7">
                 {value}
               </p>
             </div>

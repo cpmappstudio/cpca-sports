@@ -57,7 +57,6 @@ function html(record: CoachActivityListItem) {
         onView={() => {}}
         onEdit={() => {}}
         onDelete={() => {}}
-        onCheckout={() => {}}
       />
     </NextIntlClientProvider>,
   );
@@ -67,7 +66,7 @@ test("compact rows show title, place and fixed check-in without loading photos o
   expect(result).toContain("Entrenamiento");
   expect(result).toContain("Campo");
   expect(result).toContain('dateTime="2026-11-06T18:20:00.000Z"');
-  expect(result).toContain("Registrar salida");
+  expect(result).not.toContain("Registrar salida");
   expect(result).not.toContain("<img");
   expect(result).not.toContain(activity.description);
   expect(result).not.toContain('data-slot="card"');
@@ -157,7 +156,6 @@ test("clicking the row opens the detail, while hovering does not", () => {
         onView={onView}
         onEdit={() => {}}
         onDelete={() => {}}
-        onCheckout={() => {}}
       />
     </NextIntlClientProvider>,
   );

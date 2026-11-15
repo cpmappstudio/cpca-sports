@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, PanelRightOpen } from "lucide-react";
+import { PanelRightOpen } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import type { CoachActivityListItem } from "@/lib/coaches/types";
 import { isAwaitingActivityReconciliation } from "@/convex/lib/coachActivityClosure";
@@ -8,7 +8,6 @@ import {
   formatActivityTimestamp,
   formatActivityDuration,
 } from "@/lib/coaches/activity-time";
-import { Button } from "@/components/ui/button";
 
 export function ActivityName({
   activity,
@@ -75,21 +74,5 @@ export function ActivityDuration({
         ? t("durationUndetermined")
         : formatActivityDuration(activity.durationMs, t)}
     </span>
-  );
-}
-
-export function ActivityCheckout({ onCheckout }: { onCheckout: () => void }) {
-  const t = useTranslations("Coaches.detail");
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      onClick={onCheckout}
-      title={t("checkout")}
-      className="min-h-11 min-w-11 w-full border-primary/40 text-primary shadow-none hover:bg-primary/5 hover:text-primary md:w-auto dark:border-primary/40 dark:hover:bg-primary/10"
-    >
-      <LogOut />
-      <span className="sr-only md:not-sr-only">{t("checkout")}</span>
-    </Button>
   );
 }

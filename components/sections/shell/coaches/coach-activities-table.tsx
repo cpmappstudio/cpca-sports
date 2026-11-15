@@ -19,7 +19,6 @@ import type { CursorPagination } from "@/lib/table/types";
 import type { CoachActivityListItem } from "@/lib/coaches/types";
 import { ActivityActions } from "./activity-actions";
 import {
-  ActivityCheckout,
   ActivityDuration,
   ActivityName,
   ActivityTime,
@@ -38,7 +37,6 @@ export function CoachActivitiesTable({
   onView,
   onEdit,
   onDelete,
-  onCheckout,
 }: {
   data: CoachActivityListItem[];
   isLoading: boolean;
@@ -50,7 +48,6 @@ export function CoachActivitiesTable({
   onView: ActivityHandler;
   onEdit: ActivityHandler;
   onDelete: ActivityHandler;
-  onCheckout: ActivityHandler;
 }) {
   const t = useTranslations("Coaches.detail");
   const columns = useMemo<ColumnDef<CoachActivityListItem, unknown>[]>(() => {
@@ -163,25 +160,16 @@ export function CoachActivitiesTable({
           headerClassName: "py-3 text-right text-xs",
         },
         cell: ({ row }) => (
-          <div className="flex flex-col items-end justify-end gap-2 md:flex-row md:items-center md:gap-1">
-            {row.original.status === "in_progress" ? (
-              <div className="order-2 md:order-1">
-                <ActivityCheckout
-                  onCheckout={() => onCheckout(row.original._id)}
-                />
-              </div>
-            ) : null}
-            <div className="order-1 md:order-2">
-              <ActivityActions
-                onEdit={() => onEdit(row.original._id)}
-                onDelete={() => onDelete(row.original._id)}
-              />
-            </div>
+          <div className="flex justify-end">
+            <ActivityActions
+              onEdit={() => onEdit(row.original._id)}
+              onDelete={() => onDelete(row.original._id)}
+            />
           </div>
         ),
       },
     ];
-  }, [completed, onCheckout, onDelete, onEdit, t]);
+  }, [completed, onDelete, onEdit, t]);
 
   return (
     <DataTable

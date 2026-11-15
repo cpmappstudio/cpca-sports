@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -126,6 +127,7 @@ function record(id: string): ActivityRecord {
     updatedAt: 1,
   };
 }
+const coach = { name: "Alvin Cruz", program: "Basketball", position: "Coach" };
 function view(isArchived = false) {
   return render(
     <NextIntlClientProvider
@@ -134,6 +136,7 @@ function view(isArchived = false) {
       messages={{ Coaches: messages, Common: common }}
     >
       <CoachActivities
+        coach={coach}
         coachId={"coach" as Id<"coaches">}
         isArchived={isArchived}
         periodSelection={{ preset: "all", range: null }}
@@ -162,6 +165,14 @@ afterEach(() => {
 test("existing open activities replace check-in with checkout of the pending activity", () => {
   const result = view();
   expect(within(result.getByRole("table")).getAllByRole("row")).toHaveLength(3);
+  expect(
+    result.getAllByRole("button", { name: "Registrar salida" }),
+  ).toHaveLength(1);
+  expect(
+    within(result.getByRole("table")).queryByRole("button", {
+      name: "Registrar salida",
+    }),
+  ).toBeNull();
   expect(
     result.queryByRole("button", { name: "Registrar entrada" }),
   ).toBeNull();
@@ -201,6 +212,7 @@ test("checkout on another device restores the check-in action reactively", () =>
       messages={{ Coaches: messages, Common: common }}
     >
       <CoachActivities
+        coach={coach}
         coachId={"coach" as Id<"coaches">}
         isArchived={false}
         periodSelection={{ preset: "all", range: null }}
@@ -214,22 +226,13 @@ test("checkout on another device restores the check-in action reactively", () =>
     result.queryByText(messages.activityDialog.errors.activityInProgress),
   ).toBeNull();
 });
-test("each checkout targets its own activity", () => {
-  const result = view();
-  fireEvent.click(
-    activityRow(result, "Segunda").getByRole("button", {
-      name: "Registrar salida",
-    }),
-  );
-  expect(result.getByRole("status").textContent).toBe("checkOut:Segunda");
-});
 test("archiving prevents a new check-in while preserving checkout", () => {
   const result = view(true);
   expect(
     result.queryByRole("button", { name: "Registrar entrada" }),
   ).toBeNull();
   fireEvent.click(
-    activityRow(result, "Primera").getByRole("button", {
+    result.getByRole("button", {
       name: "Registrar salida",
     }),
   );
@@ -310,8 +313,10 @@ test("selecting an activity loads its details on demand and retains photo eviden
   expect(result.queryByText("Trabajo de coordinación")).toBeNull();
   expect(result.container.querySelector("img")).toBeNull();
   fireEvent.click(activityElement(result, "Primera"));
-  expect(result.getByRole("dialog")).toBeTruthy();
-  expect(result.getByText("Trabajo de coordinación")).toBeTruthy();
+  const sheet = within(result.getByRole("dialog"));
+  expect(sheet.getByText(coach.name)).toBeTruthy();
+  expect(sheet.getByText(`${coach.program} · ${coach.position}`)).toBeTruthy();
+  expect(sheet.getByText("Trabajo de coordinación")).toBeTruthy();
   expect(
     result.getByRole("button", { name: "Foto de entrada: Primera" }),
   ).toBeTruthy();
@@ -348,6 +353,7 @@ test("an emptied later page returns to the previous page after a remote checkout
       messages={{ Coaches: messages, Common: common }}
     >
       <CoachActivities
+        coach={coach}
         coachId={"coach" as Id<"coaches">}
         isArchived={false}
         periodSelection={{ preset: "all", range: null }}
@@ -429,10 +435,10 @@ test("mobile keeps all information in one table cell and actions in a separate c
   expect(within(summary).queryByRole("button")).toBeNull();
   fireEvent.click(
     within(cells[cells.length - 1]).getByRole("button", {
-      name: "Registrar salida",
+      name: "Editar",
     }),
   );
-  expect(result.getByRole("status").textContent).toBe("checkOut:Segunda");
+  expect(result.getByRole("status").textContent).toBe("edit:Segunda");
   expect(result.queryByRole("dialog")).toBeNull();
 });
 
@@ -464,11 +470,15 @@ const rangeSelection: CoachActivityPeriodSelection = {
   preset: "custom",
   range: { from: "2026-11-01", to: "2026-11-30" },
 };
-function periodView(result: CoachActivityPeriod | undefined) {
+function periodView(
+  result: CoachActivityPeriod | undefined,
+  initialSelection = rangeSelection,
+) {
   function Harness() {
-    const [selection, setSelection] = useState(rangeSelection);
+    const [selection, setSelection] = useState(initialSelection);
     return (
       <CoachActivities
+        coach={coach}
         coachId={"coach" as Id<"coaches">}
         isArchived={false}
         periodSelection={selection}
@@ -584,9 +594,10 @@ test("period tabs keep pending and completed activities separate", () => {
   expect(
     within(result.getByRole("table")).queryAllByText("Completada"),
   ).toHaveLength(0);
-  expect(result.getByRole("status").textContent).toContain(
-    "1 actividad pendiente de salida",
-  );
+  expect(result.queryByRole("status")).toBeNull();
+  expect(
+    result.getByRole("note", { name: messages.detail.openActivityTitle }),
+  ).toBeTruthy();
   fireEvent.mouseDown(result.getByRole("tab", { name: "Completadas" }), {
     button: 0,
     ctrlKey: false,
@@ -625,6 +636,45 @@ test("custom drafts do not change the applied range until both dates are valid a
   expect(result.queryByLabelText("Desde")).toBeNull();
   expect(result.getByRole("button", { name: /1 dic 2026/ })).toBeTruthy();
 });
+
+test.each(["click", "keyboard"] as const)(
+  "preset periods show their dates as text and custom dates remain available without changing the applied range (%s)",
+  async (input) => {
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      value: vi.fn(),
+    });
+    const result = periodView(readyPeriod([record("En rango")]), {
+      preset: "thisMonth",
+      range: rangeSelection.range,
+    });
+    const preset = result.getByRole("combobox", {
+      name: messages.period.label,
+    });
+    expect(result.getByText(/1 nov 2026.*30 nov 2026/)).toBeTruthy();
+    expect(result.queryByRole("button", { name: /1 nov 2026/ })).toBeNull();
+    fireEvent.keyDown(preset, { key: "Enter" });
+    const custom = await result.findByRole("option", {
+      name: messages.period.custom,
+    });
+    if (input === "keyboard") {
+      expect(fireEvent.keyDown(custom, { key: "Enter" })).toBe(false);
+    } else fireEvent.click(custom);
+    const from = result.getByLabelText(messages.period.from);
+    // Wait for Select's scheduled focus restoration before checking the form.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await waitFor(() => expect(document.activeElement).toBe(from));
+    expect((from as HTMLInputElement).value).toBe("2026-11-01");
+    fireEvent.change(from, { target: { value: "2026-11-02" } });
+    fireEvent.keyDown(from, { key: "Escape" });
+    await waitFor(() => expect(document.activeElement).toBe(preset));
+    expect(result.queryByLabelText(messages.period.from)).toBeNull();
+    expect(result.getByText(/1 nov 2026.*30 nov 2026/)).toBeTruthy();
+    expect(preset.textContent).toBe(messages.period.thisMonth);
+  },
+);
 
 test("clearing the period restores native Convex pagination", async () => {
   Object.defineProperty(Element.prototype, "scrollIntoView", {
@@ -727,7 +777,7 @@ test("empty period messages describe the active tab and the selected range", () 
   expect(result.getByRole("status").textContent).toBe(
     messages.detail.emptyPeriodOpenActivities,
   );
-  expect(result.container.textContent).toContain(
+  expect(result.container.textContent).not.toContain(
     "Zona horaria: America/New_York",
   );
   expect(result.container.textContent).not.toContain("Poinciana");

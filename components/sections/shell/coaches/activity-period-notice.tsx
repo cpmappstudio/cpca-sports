@@ -19,16 +19,11 @@ export function ActivityPeriodNotice({
         {t("limitExceeded")}
       </p>
     );
-  const { pendingCount, unknownDurationCount } = result.summary;
-  if (!pendingCount && !unknownDurationCount) return null;
+  const { unknownDurationCount } = result.summary;
+  if (!unknownDurationCount) return null;
   return (
-    <div role="status" className="space-y-1 text-xs text-muted-foreground">
-      {pendingCount > 0 ? (
-        <p>{t("pendingExcluded", { count: pendingCount })}</p>
-      ) : null}
-      {unknownDurationCount > 0 ? (
-        <p>{t("unknownExcluded", { count: unknownDurationCount })}</p>
-      ) : null}
-    </div>
+    <p role="status" className="text-xs text-muted-foreground">
+      {t("unknownExcluded", { count: unknownDurationCount })}
+    </p>
   );
 }
