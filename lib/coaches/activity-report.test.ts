@@ -104,7 +104,6 @@ test.each(["es", "en"])(
     expect(detailTable(data).table.body[1]).toMatchObject({
       3: t("detail.pendingReconciliation"),
       4: { text: t("detail.durationUndetermined") },
-      5: t("detail.pendingReconciliation"),
     });
     const reconciled = {
       ...closed,
@@ -133,21 +132,71 @@ test("the report uses the entire period, sorts a copy, and preserves backend dur
   const definition = buildActivityReport(data, translate("es"), demoLogo);
   const body = detailTable(data).table.body;
   expect(body).toHaveLength(28);
+  expect(body.every((row) => row.length === 5)).toBe(true);
   expect(body[1][0]).toEqual({ text: "Práctica 0", bold: true });
+  expect(body[27][3]).toBe("Pendiente");
   expect(body[27][4]).toMatchObject({ text: "Pendiente" });
-  expect(body[26][5]).toBe("Horario incompleto");
+  expect(body[26][4]).toMatchObject({ text: "No disponible" });
   expect(rows[0].title).toBe("Práctica 26");
-  expect(JSON.stringify(definition.content)).toContain(
-    "Suma de 25 de las 27 actividades",
-  );
+  expect(definition.content).toHaveLength(2);
   expect(JSON.stringify(definition.content)).toContain("3 min");
   expect(JSON.stringify(definition.content)).not.toMatch(
     /No realizada|pago|descontado|superpone/,
   );
-  expect(definition.header).toMatchObject({
-    columns: [{ image: "cpcaLogo", alignment: "left" }],
-  });
 });
+
+test.each(["es", "en"])(
+  "the document header groups identity and reporting period without duplicating them in the body (%s)",
+  (locale) => {
+    const data = snapshot([activity(0)], locale);
+    const definition = buildActivityReport(data, translate(locale), demoLogo);
+    const [header, ...body] =
+      definition.content as import("pdfmake/interfaces").Content[];
+    expect(header).toMatchObject({
+      table: {
+        body: [
+          [
+            { image: "cpcaLogo", width: 56, verticalAlignment: "middle" },
+            {
+              verticalAlignment: "middle",
+              stack: [
+                { text: data.coach.name },
+                { text: `${data.coach.program} · ${data.coach.position}` },
+              ],
+            },
+            {
+              verticalAlignment: "middle",
+              stack: [
+                { bold: true },
+                {
+                  text: [
+                    { text: `${translate(locale)("report.recordedTime")}: ` },
+                    { bold: true },
+                  ],
+                },
+                {
+                  text: [
+                    {
+                      text: `${translate(locale)("detail.periodActivities")}: `,
+                    },
+                    { text: "1", bold: true },
+                  ],
+                },
+              ],
+            },
+          ],
+        ],
+      },
+    });
+    const json = JSON.stringify(body);
+    expect(json).not.toContain(data.coach.name);
+    expect(json).not.toContain(data.coach.position);
+    expect(JSON.stringify(definition.content)).not.toContain(
+      "America/New_York",
+    );
+    expect(definition.footer).toBeTypeOf("function");
+  },
+);
 
 test.each(["es", "en"])(
   "all report text, counts, empty and missing-time states are localized (%s)",
@@ -155,9 +204,6 @@ test.each(["es", "en"])(
     const t = translate(locale);
     const empty = buildActivityReport(snapshot([], locale), t, demoLogo);
     expect(JSON.stringify(empty.content)).toContain(t("report.empty"));
-    expect(JSON.stringify(empty.content)).not.toContain(
-      t("report.excludedTitle"),
-    );
     expect(JSON.stringify(empty.content)).toContain("0 min");
     const unknown = snapshot(
       [{ ...activity(0), checkOutOrder: null, durationMs: null }],
@@ -168,13 +214,26 @@ test.each(["es", "en"])(
     );
     expect(json).toContain(t("detail.durationUnavailable"));
     expect(json).not.toContain('"0 min"');
-    expect(json).toContain(t("report.unknownExcluded", { count: 1 }));
-    expect(t("report.pendingExcluded", { count: 2 })).toContain("2");
+    expect(buildActivityReport(unknown, t, demoLogo).content).toHaveLength(2);
     expect(
       detailTable(snapshot([activity(0)], locale)).table.body[0].every(
         (cell) => !JSON.stringify(cell).includes("detail."),
       ),
     ).toBe(true);
+  },
+);
+
+test.each(["es", "en"])(
+  "a fully recorded period keeps totals without redundant inclusion or exclusion notes (%s)",
+  (locale) => {
+    const data = snapshot(
+      Array.from({ length: 6 }, (_, i) => activity(i)),
+      locale,
+    );
+    const t = translate(locale);
+    const json = JSON.stringify(buildActivityReport(data, t, demoLogo).content);
+    expect(json).toContain("4 h 30 min");
+    expect(json).not.toMatch(/Sum of|Suma de/);
   },
 );
 
@@ -187,9 +246,8 @@ test("legacy display uses the canonical listing timestamps and supplied duration
     durationMs: 4500000,
   };
   const body = detailTable(snapshot([legacy])).table.body;
-  expect(body[1][2]).toContain("2026");
+  expect(JSON.stringify(body[1][2])).toContain("2026");
   expect(body[1][4]).toMatchObject({ text: "1 h 15 min" });
-  expect(body[1][5]).toBe("Completada");
 });
 
 function configurePdfMake() {
@@ -226,6 +284,18 @@ test("real PDFs render with embedded fonts and logo in both languages, including
   const cases = [
     ["es", rows, "report-es"],
     ["en", rows, "report-en"],
+    ["es", rows.slice(0, 6), "report-six-es"],
+    ["en", rows.slice(0, 6), "report-six-en"],
+    [
+      "es",
+      Array.from({ length: 6 }, (_, i) => activity(i)),
+      "report-complete-six-es",
+    ],
+    [
+      "en",
+      Array.from({ length: 6 }, (_, i) => activity(i)),
+      "report-complete-six-en",
+    ],
     ["es", [], "report-empty"],
     ["en", Array.from({ length: 1000 }, (_, i) => activity(i)), "report-1000"],
   ] as const;
@@ -238,6 +308,11 @@ test("real PDFs render with embedded fonts and logo in both languages, including
     const buffer = await pdfMake.createPdf(definition).getBuffer();
     expect(Buffer.from(buffer).subarray(0, 5).toString()).toBe("%PDF-");
     expect(buffer.byteLength).toBeGreaterThan(20000);
+    const pageCount = Buffer.from(buffer)
+      .toString("latin1")
+      .match(/\/Type\s*\/Page\b/g)?.length;
+    if (activities.length === 6) expect(pageCount).toBe(1);
+    if (activities.length === 27) expect(pageCount).toBeLessThanOrEqual(3);
     if (process.env.REPORT_QA_OUTPUT_DIR) {
       await mkdir(process.env.REPORT_QA_OUTPUT_DIR, { recursive: true });
       await writeFile(

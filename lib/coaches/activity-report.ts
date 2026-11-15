@@ -1,8 +1,4 @@
-import type {
-  Content,
-  TableCell,
-  TDocumentDefinitions,
-} from "pdfmake/interfaces";
+import type { TableCell, TDocumentDefinitions } from "pdfmake/interfaces";
 import { COACH_ACTIVITY_TIME_ZONE } from "@/convex/lib/coachActivityTime";
 import { isAwaitingActivityReconciliation } from "@/convex/lib/coachActivityClosure";
 import { formatActivityDate } from "./activity-period";
@@ -30,6 +26,27 @@ export function buildActivityReport(
       (key, values) => t(`detail.${key}`, values),
       total,
     );
+  const dateFormatter = new Intl.DateTimeFormat(locale, {
+    timeZone: COACH_ACTIVITY_TIME_ZONE,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+  const timeFormatter = new Intl.DateTimeFormat(locale, {
+    timeZone: COACH_ACTIVITY_TIME_ZONE,
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  const timestampCell = (timestamp: number | null): TableCell =>
+    timestamp === null
+      ? t("report.notRecorded")
+      : {
+          stack: [
+            dateFormatter.format(timestamp),
+            timeFormatter.format(timestamp),
+          ],
+        };
   const tableBody: TableCell[][] = [
     (
       [
@@ -38,13 +55,13 @@ export function buildActivityReport(
         "detail.entry",
         "detail.exit",
         "detail.duration",
-        "report.status",
       ] as const
     ).map((key) => ({
       text: t(key),
       bold: true,
       color: "#ffffff",
       fillColor: "#08469d",
+      alignment: key === "detail.duration" ? "right" : "left",
     })),
   ];
   const activities = [...period.activities].sort(
@@ -59,14 +76,12 @@ export function buildActivityReport(
     tableBody.push([
       { text: activity.title, bold: true },
       activity.placeName,
-      activity.checkInOrder === null
-        ? t("report.notRecorded")
-        : formatActivityTimestamp(activity.checkInOrder, locale),
+      timestampCell(activity.checkInOrder),
       awaitingReconciliation
         ? t("detail.pendingReconciliation")
-        : activity.checkOutOrder === null
-          ? t("report.notRecorded")
-          : formatActivityTimestamp(activity.checkOutOrder, locale),
+        : open && activity.checkOutOrder === null
+          ? t("report.pending")
+          : timestampCell(activity.checkOutOrder),
       {
         text: open
           ? t("report.pending")
@@ -75,22 +90,13 @@ export function buildActivityReport(
             : duration(activity.durationMs),
         alignment: "right",
       },
-      t(
-        open
-          ? "detail.inProgress"
-          : awaitingReconciliation
-            ? "detail.pendingReconciliation"
-            : activity.durationMs === null
-              ? "report.incomplete"
-              : "report.completed",
-      ),
     ]);
   }
   if (!activities.length)
     tableBody.push([
       {
         text: t("report.empty"),
-        colSpan: 6,
+        colSpan: 5,
         alignment: "center",
         margin: [0, 18, 0, 18],
       },
@@ -98,25 +104,11 @@ export function buildActivityReport(
       {},
       {},
       {},
-      {},
     ]);
-  const exclusions: Content[] = [];
-  if (summary.pendingCount)
-    exclusions.push({
-      text: t("report.pendingExcluded", { count: summary.pendingCount }),
-      margin: [0, 3, 0, 0],
-    });
-  if (summary.unknownDurationCount)
-    exclusions.push({
-      text: t("report.unknownExcluded", {
-        count: summary.unknownDurationCount,
-      }),
-      margin: [0, 3, 0, 0],
-    });
   return {
     pageSize: "LETTER",
     pageOrientation: "landscape",
-    pageMargins: [32, 88, 32, 55],
+    pageMargins: [32, 24, 32, 55],
     images: { cpcaLogo: logo },
     info: {
       title: `${t("report.title")} - ${coach.name}`,
@@ -128,12 +120,6 @@ export function buildActivityReport(
       fontSize: 10,
       color: "#172b46",
       lineHeight: 1.2,
-    },
-    header: {
-      columns: [
-        { image: "cpcaLogo", fit: [56, 56], width: 56, alignment: "left" },
-      ],
-      margin: [32, 16, 32, 0],
     },
     footer: (page, pages) => ({
       columns: [
@@ -155,154 +141,94 @@ export function buildActivityReport(
     }),
     content: [
       {
-        text: t("report.title"),
-        fontSize: 23,
-        bold: true,
-        margin: [0, 0, 0, 12],
-      },
-      {
-        columns: [
-          {
-            width: "55%",
-            stack: [
-              { text: coach.name, fontSize: 14, bold: true },
-              {
-                text: `${coach.program} · ${coach.position}`,
-                margin: [0, 4, 0, 0],
-                color: "#596b83",
-              },
-            ],
-          },
-          {
-            width: "45%",
-            stack: [
-              {
-                text: `${formatActivityDate(range.from, locale)} - ${formatActivityDate(range.to, locale)}`,
-                bold: true,
-              },
-              {
-                text: t("detail.timeZoneNotice", {
-                  timeZone: COACH_ACTIVITY_TIME_ZONE,
-                }),
-                margin: [0, 4, 0, 0],
-                color: "#596b83",
-              },
-            ],
-          },
-        ],
-        columnGap: 20,
-        margin: [0, 0, 0, 12],
-      },
-      {
-        unbreakable: true,
         table: {
-          widths: ["*", 218],
+          widths: [56, 402, 238],
           body: [
             [
               {
-                stack: [
-                  {
-                    text: t("report.recordedTime"),
-                    fontSize: 9,
-                    color: "#596b83",
-                  },
-                  {
-                    text:
-                      includedCount || !summary.activityCount
-                        ? duration(summary.totalDurationMs, true)
-                        : t("detail.durationUnavailable"),
-                    fontSize: 24,
-                    bold: true,
-                    margin: [0, 4, 0, 6],
-                  },
-                  {
-                    text: t("report.includedCount", {
-                      included: includedCount,
-                      total: summary.activityCount,
-                    }),
-                    fontSize: 9,
-                    color: "#596b83",
-                  },
-                ],
-                fillColor: "#edf3fc",
+                image: "cpcaLogo",
+                fit: [56, 56],
+                width: 56,
+                alignment: "left",
+                verticalAlignment: "middle",
               },
               {
+                verticalAlignment: "middle",
                 stack: [
+                  { text: coach.name, fontSize: 14, bold: true },
                   {
-                    text: t("detail.periodActivities"),
-                    fontSize: 9,
+                    text: `${coach.program} · ${coach.position}`,
+                    margin: [0, 4, 0, 0],
                     color: "#596b83",
                   },
+                ],
+              },
+              {
+                verticalAlignment: "middle",
+                alignment: "right",
+                stack: [
                   {
-                    text: new Intl.NumberFormat(locale).format(
-                      summary.activityCount,
-                    ),
-                    fontSize: 20,
+                    text: `${formatActivityDate(range.from, locale)} - ${formatActivityDate(range.to, locale)}`,
                     bold: true,
-                    margin: [0, 4, 0, 0],
+                  },
+                  {
+                    text: [
+                      { text: `${t("report.recordedTime")}: ` },
+                      {
+                        text:
+                          includedCount || !summary.activityCount
+                            ? duration(summary.totalDurationMs, true)
+                            : t("detail.durationUnavailable"),
+                        bold: true,
+                      },
+                    ],
+                    margin: [0, 5, 0, 0],
+                  },
+                  {
+                    text: [
+                      { text: `${t("detail.periodActivities")}: ` },
+                      {
+                        text: new Intl.NumberFormat(locale).format(
+                          summary.activityCount,
+                        ),
+                        bold: true,
+                      },
+                    ],
+                    margin: [0, 3, 0, 0],
                   },
                 ],
-                fillColor: "#edf3fc",
               },
             ],
-            ...(exclusions.length
-              ? [
-                  [
-                    {
-                      colSpan: 2,
-                      stack: [
-                        {
-                          text: t("report.excludedTitle"),
-                          bold: true,
-                          color: "#172b46",
-                        },
-                        ...exclusions,
-                      ],
-                      fontSize: 9,
-                      color: "#596b83",
-                      fillColor: "#ffffff",
-                    },
-                    {},
-                  ],
-                ]
-              : []),
           ],
         },
         layout: {
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
-          hLineColor: () => "#dce3ec",
-          vLineColor: () => "#dce3ec",
-          paddingTop: () => 10,
-          paddingBottom: () => 10,
-          paddingLeft: () => 12,
-          paddingRight: () => 12,
+          hLineWidth: () => 0,
+          vLineWidth: () => 0,
+          paddingTop: () => 0,
+          paddingBottom: () => 0,
+          paddingLeft: (index) => (index === 0 ? 0 : 16),
+          paddingRight: () => 0,
         },
-        margin: [0, 0, 0, 10],
-      },
-      {
-        text: t("report.activities"),
-        fontSize: 12,
-        bold: true,
-        margin: [0, 12, 0, 8],
+        margin: [0, 0, 0, 18],
       },
       {
         table: {
           headerRows: 1,
-          widths: ["32%", "13%", "16%", "16%", "10%", "13%"],
+          widths: ["36%", "14%", "19%", "19%", "12%"],
           body: tableBody,
         },
         layout: {
           hLineWidth: () => 0.5,
           vLineWidth: () => 0,
-          hLineColor: () => "#dce3ec",
+          hLineColor: () => "#004299",
           fillColor: (i) => (i > 0 && i % 2 === 0 ? "#f5f7fb" : null),
-          paddingTop: () => 9,
-          paddingBottom: () => 9,
-          paddingLeft: () => 7,
-          paddingRight: () => 7,
+          paddingTop: () => 4,
+          paddingBottom: () => 4,
+          paddingLeft: () => 5,
+          paddingRight: () => 5,
         },
         fontSize: 9,
+        lineHeight: 1.1,
       },
     ],
   };
