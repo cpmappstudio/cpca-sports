@@ -98,7 +98,7 @@ export function buildActivityReport(
         text: t("report.empty"),
         colSpan: 5,
         alignment: "center",
-        margin: [0, 18, 0, 18],
+        margin: [0, 10, 0, 10],
       },
       {},
       {},
@@ -107,8 +107,8 @@ export function buildActivityReport(
     ]);
   return {
     pageSize: "LETTER",
-    pageOrientation: "landscape",
-    pageMargins: [32, 24, 32, 55],
+    pageOrientation: "portrait",
+    pageMargins: [28, 20, 28, 40],
     images: { cpcaLogo: logo },
     info: {
       title: `${t("report.title")} - ${coach.name}`,
@@ -137,12 +137,12 @@ export function buildActivityReport(
       ],
       color: "#596b83",
       fontSize: 8,
-      margin: [32, 20, 32, 0],
+      margin: [28, 12, 28, 0],
     }),
     content: [
       {
         table: {
-          widths: [56, 402, 238],
+          widths: [56, 238, 238],
           body: [
             [
               {
@@ -158,7 +158,7 @@ export function buildActivityReport(
                   { text: coach.name, fontSize: 14, bold: true },
                   {
                     text: `${coach.program} · ${coach.position}`,
-                    margin: [0, 4, 0, 0],
+                    margin: [0, 3, 0, 0],
                     color: "#596b83",
                   },
                 ],
@@ -182,7 +182,7 @@ export function buildActivityReport(
                         bold: true,
                       },
                     ],
-                    margin: [0, 5, 0, 0],
+                    margin: [0, 3, 0, 0],
                   },
                   {
                     text: [
@@ -194,7 +194,7 @@ export function buildActivityReport(
                         bold: true,
                       },
                     ],
-                    margin: [0, 3, 0, 0],
+                    margin: [0, 2, 0, 0],
                   },
                 ],
               },
@@ -206,10 +206,10 @@ export function buildActivityReport(
           vLineWidth: () => 0,
           paddingTop: () => 0,
           paddingBottom: () => 0,
-          paddingLeft: (index) => (index === 0 ? 0 : 16),
+          paddingLeft: (index) => (index === 0 ? 0 : 12),
           paddingRight: () => 0,
         },
-        margin: [0, 0, 0, 18],
+        margin: [0, 0, 0, 10],
       },
       {
         table: {
@@ -222,10 +222,10 @@ export function buildActivityReport(
           vLineWidth: () => 0,
           hLineColor: () => "#004299",
           fillColor: (i) => (i > 0 && i % 2 === 0 ? "#f5f7fb" : null),
-          paddingTop: () => 4,
-          paddingBottom: () => 4,
-          paddingLeft: () => 5,
-          paddingRight: () => 5,
+          paddingTop: () => 3,
+          paddingBottom: () => 3,
+          paddingLeft: () => 4,
+          paddingRight: () => 4,
         },
         fontSize: 9,
         lineHeight: 1.1,

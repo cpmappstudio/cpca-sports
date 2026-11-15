@@ -130,6 +130,8 @@ test("the report uses the entire period, sorts a copy, and preserves backend dur
   rows[2] = { ...rows[2], durationMs: 185000 };
   const data = snapshot(rows);
   const definition = buildActivityReport(data, translate("es"), demoLogo);
+  expect(definition.pageSize).toBe("LETTER");
+  expect(definition.pageOrientation).toBe("portrait");
   const body = detailTable(data).table.body;
   expect(body).toHaveLength(28);
   expect(body.every((row) => row.length === 5)).toBe(true);
@@ -347,6 +349,8 @@ test.each(["es", "en"])(
       y: number;
       width: number;
       height: number;
+      pageWidth: number;
+      pageHeight: number;
     }[] = [];
     const spy = vi
       .spyOn(PDFDocument.prototype, "text")
@@ -365,6 +369,8 @@ test.each(["es", "en"])(
             y,
             width: this.widthOfString(text, options),
             height: this.currentLineHeight(),
+            pageWidth: this.page.width,
+            pageHeight: this.page.height,
           });
         }
         return drawText.call(this, text, x, y, options);
@@ -437,10 +443,16 @@ test.each(["es", "en"])(
         expect(text, marker).toContain(marker);
       }
       for (const [index, span] of drawn.entries()) {
-        expect(span.x, span.text).toBeGreaterThanOrEqual(31);
-        expect(span.x + span.width, span.text).toBeLessThanOrEqual(761);
-        expect(span.y, span.text).toBeGreaterThanOrEqual(15);
-        expect(span.y + span.height, span.text).toBeLessThanOrEqual(598);
+        expect(span.pageWidth).toBe(612);
+        expect(span.pageHeight).toBe(792);
+        expect(span.x, span.text).toBeGreaterThanOrEqual(27);
+        expect(span.x + span.width, span.text).toBeLessThanOrEqual(
+          span.pageWidth - 27,
+        );
+        expect(span.y, span.text).toBeGreaterThanOrEqual(19);
+        expect(span.y + span.height, span.text).toBeLessThanOrEqual(
+          span.pageHeight - 14,
+        );
         const overlapping = drawn
           .slice(index + 1)
           .find(
