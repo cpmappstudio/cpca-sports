@@ -82,6 +82,11 @@ export function CoachDetailView({
   const setArchived = useMutation(api.coaches.setArchived);
   const t = useTranslations("Coaches.detail");
   if (!detail) return null;
+  const coachIdentity = {
+    name: `${detail.user.firstName} ${detail.user.lastName}`.trim(),
+    program: detail.program.name,
+    position: detail.position.name,
+  };
   const coachesListHref = `${ROUTES.org.coaches.list(tenant)}?tab=${
     detail.coach.isArchived ? "archived" : "active"
   }`;
@@ -138,9 +143,9 @@ export function CoachDetailView({
           href={coachesListHref}
           label={t("backToList")}
         />
-        <header className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] xl:items-center">
-          <div className="min-w-0 space-y-3">
-            <div className="flex items-start gap-4">
+        <header className="grid min-w-0 gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] xl:items-center">
+          <div className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 sm:gap-y-0">
+            <div className="row-span-3 sm:row-span-2">
               {detail.user.imageUrl ? (
                 <Image
                   src={detail.user.imageUrl}
@@ -156,80 +161,24 @@ export function CoachDetailView({
                   {detail.user.lastName[0]}
                 </div>
               )}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <h1 className="min-w-0 break-words text-xl font-semibold tracking-tight md:text-2xl">
-                    {detail.user.firstName} {detail.user.lastName}
-                  </h1>
-                  {detail.coach.isArchived ? (
-                    <Badge variant="outline" className="shrink-0">
-                      {t("archived")}
-                    </Badge>
-                  ) : null}
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  {detail.isAdmin ? (
-                    <Select
-                      value={detail.user.isActive ? "active" : "inactive"}
-                      onValueChange={(value) => void updateStatus(value)}
-                    >
-                      <SelectTrigger size="sm" className="w-28">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">{t("active")}</SelectItem>
-                        <SelectItem value="inactive">
-                          {t("inactive")}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge
-                      variant={detail.user.isActive ? "default" : "secondary"}
-                    >
-                      {detail.user.isActive ? t("active") : t("inactive")}
-                    </Badge>
-                  )}
-                  {detail.isAdmin ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon">
-                          <MoreVertical className="size-4" />
-                          <span className="sr-only">{t("coachActions")}</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setCoachDialog(true)}>
-                          <Edit />
-                          {t("edit")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => void toggleArchive()}>
-                          {detail.coach.isArchived ? (
-                            <ArchiveRestore />
-                          ) : (
-                            <Archive />
-                          )}
-                          {detail.coach.isArchived
-                            ? t("restore")
-                            : t("archive")}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => setDeleteCoachOpen(true)}
-                        >
-                          <Trash2 />
-                          {t("delete")}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : null}
-                </div>
-              </div>
             </div>
-            <dl className="space-y-2.5 text-sm">
+            <div className="col-start-2 flex items-start justify-between gap-2">
+              <h1 className="min-w-0 break-words text-xl font-semibold tracking-tight md:text-2xl">
+                {detail.user.firstName} {detail.user.lastName}
+              </h1>
+              {detail.coach.isArchived ? (
+                <Badge variant="outline" className="shrink-0">
+                  {t("archived")}
+                </Badge>
+              ) : null}
+            </div>
+            <p className="col-start-2 row-start-2 mt-0.5 text-sm text-muted-foreground [overflow-wrap:anywhere] sm:hidden">
+              {detail.position.name} · {detail.program.name}
+            </p>
+
+            <dl className="col-start-2 row-start-3 min-w-0 text-sm sm:col-span-2 sm:col-start-1 sm:mt-3">
               <div className="flex items-start gap-2">
-                <dt className="flex shrink-0 items-center gap-2 font-medium">
+                <dt className="sr-only font-medium sm:not-sr-only sm:flex sm:shrink-0 sm:items-center sm:gap-2">
                   <Mail aria-hidden="true" className="size-4 text-primary" />
                   {t("email")}:
                 </dt>
@@ -237,6 +186,60 @@ export function CoachDetailView({
                   {detail.user.email}
                 </dd>
               </div>
+            </dl>
+            <div className="col-start-2 row-start-4 mt-2 flex items-center gap-2 sm:row-start-2">
+              {detail.isAdmin ? (
+                <Select
+                  value={detail.user.isActive ? "active" : "inactive"}
+                  onValueChange={(value) => void updateStatus(value)}
+                >
+                  <SelectTrigger size="sm" className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">{t("active")}</SelectItem>
+                    <SelectItem value="inactive">{t("inactive")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Badge variant={detail.user.isActive ? "default" : "secondary"}>
+                  {detail.user.isActive ? t("active") : t("inactive")}
+                </Badge>
+              )}
+              {detail.isAdmin ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <MoreVertical className="size-4" />
+                      <span className="sr-only">{t("coachActions")}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setCoachDialog(true)}>
+                      <Edit />
+                      {t("edit")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void toggleArchive()}>
+                      {detail.coach.isArchived ? (
+                        <ArchiveRestore />
+                      ) : (
+                        <Archive />
+                      )}
+                      {detail.coach.isArchived ? t("restore") : t("archive")}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setDeleteCoachOpen(true)}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+            </div>
+            <dl className="col-span-2 mt-2.5 hidden space-y-2.5 text-sm sm:row-start-4 sm:block">
               <div className="flex items-start gap-2">
                 <dt className="flex shrink-0 items-center gap-2 font-medium">
                   <UserRoundCog
@@ -270,6 +273,7 @@ export function CoachDetailView({
         </header>
         <CoachActivities
           key={detail.coach._id}
+          coach={coachIdentity}
           coachId={detail.coach._id}
           isArchived={detail.coach.isArchived}
           isAdmin={detail.isAdmin}
@@ -278,11 +282,7 @@ export function CoachDetailView({
           periodResult={periodResult}
           reportAction={
             <ActivityReport
-              coach={{
-                name: `${detail.user.firstName} ${detail.user.lastName}`.trim(),
-                program: detail.program.name,
-                position: detail.position.name,
-              }}
+              coach={coachIdentity}
               range={periodSelection.range}
               period={periodResult}
             />

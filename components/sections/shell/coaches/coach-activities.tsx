@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
 import type { SortingState } from "@tanstack/react-table";
 import type {
+  CoachIdentity,
   CoachActivitySort,
   CoachActivityPeriod,
   CoachActivityPeriodSelection,
@@ -12,7 +13,6 @@ import type {
 import { Info, LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
-import { COACH_ACTIVITY_TIME_ZONE } from "@/convex/lib/coachActivityTime";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +40,7 @@ import { CoachActivitiesTable } from "./coach-activities-table";
 type ActivityTab = "open" | "history";
 
 export function CoachActivities({
+  coach,
   coachId,
   isArchived,
   isAdmin = false,
@@ -48,6 +49,7 @@ export function CoachActivities({
   periodResult,
   reportAction,
 }: {
+  coach: CoachIdentity;
   coachId: Id<"coaches">;
   isArchived: boolean;
   isAdmin?: boolean;
@@ -202,23 +204,20 @@ export function CoachActivities({
       className="min-w-0 space-y-5 rounded-xl bg-card px-3 py-4 text-card-foreground sm:px-5 sm:py-5"
       aria-labelledby="coach-activities-heading"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2
-            id="coach-activities-heading"
-            ref={heading}
-            tabIndex={-1}
-            className="scroll-mt-6 text-xl font-semibold outline-none sm:py-2"
-          >
-            {t("activities")}
-          </h2>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2
+          id="coach-activities-heading"
+          ref={heading}
+          tabIndex={-1}
+          className="scroll-mt-6 text-xl font-semibold outline-none sm:py-2"
+        >
+          {t("activities")}
+        </h2>
         <div
           role="group"
           aria-label={t("activityActions")}
-          className="grid auto-cols-fr grid-flow-col items-start gap-2 sm:flex sm:gap-3"
+          className="flex items-center"
         >
-          {reportAction}
           {openActivityId || !isArchived ? (
             <Button
               type="button"
@@ -271,10 +270,8 @@ export function CoachActivities({
       <ActivityPeriodFilter
         selection={periodSelection}
         onChange={changePeriod}
+        reportAction={reportAction}
       />
-      <p className="text-xs text-muted-foreground">
-        {t("timeZoneNotice", { timeZone: COACH_ACTIVITY_TIME_ZONE })}
-      </p>
       {range ? <ActivityPeriodNotice result={periodResult} /> : null}
       <Tabs value={activeTab} onValueChange={switchTab}>
         <TabsList aria-label={t("activities")} className="mb-0 justify-start">
@@ -321,7 +318,6 @@ export function CoachActivities({
               onView={view}
               onEdit={edit}
               onDelete={askDelete}
-              onCheckout={checkout}
             />
           ) : null}
         </TabsContent>
@@ -343,8 +339,13 @@ export function CoachActivities({
         >
           <SheetHeader className="border-b px-6 py-5 pr-12">
             <SheetTitle>{t("activityDetails")}</SheetTitle>
-            <SheetDescription>
-              {t("timeZoneNotice", { timeZone: COACH_ACTIVITY_TIME_ZONE })}
+            <SheetDescription asChild>
+              <div className="min-w-0 space-y-1 [overflow-wrap:anywhere]">
+                <p>{coach.name}</p>
+                <p>
+                  {coach.program} · {coach.position}
+                </p>
+              </div>
             </SheetDescription>
           </SheetHeader>
           <div className="px-6 pb-6">

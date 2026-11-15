@@ -251,11 +251,9 @@
     "custom": "Custom range",
     "from": "From",
     "to": "To",
-    "inclusiveDates": "Both dates are included. Weeks run Monday through Sunday.",
     "apply": "Apply range",
     "basis": "Activities are included by check-in date. Time zone: {timeZone}.",
     "limitExceeded": "This period could not be displayed in full. You can select a shorter range. No partial total is shown.",
-    "pendingExcluded": "{count, plural, one {# activity awaiting checkout. Its duration is not yet included in the total.} other {# activities awaiting checkout. Their durations are not yet included in the total.}}",
     "unknownExcluded": "{count, plural, one {# activity has no duration available from the recorded data. It is not included in the time total.} other {# activities have no duration available from the recorded data. They are not included in the time total.}}"
   },
   "report": {

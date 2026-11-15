@@ -251,11 +251,9 @@
     "custom": "Rango personalizado",
     "from": "Desde",
     "to": "Hasta",
-    "inclusiveDates": "Se incluyen ambas fechas. Las semanas van de lunes a domingo.",
     "apply": "Aplicar rango",
     "basis": "El período incluye actividades según su fecha de entrada. Zona horaria: {timeZone}.",
     "limitExceeded": "No se pudo mostrar este período completo. Puedes seleccionar un rango más corto. No se muestra un total parcial.",
-    "pendingExcluded": "{count, plural, one {# actividad pendiente de salida. Su duración aún no está incluida en el total.} other {# actividades pendientes de salida. Sus duraciones aún no están incluidas en el total.}}",
     "unknownExcluded": "{count, plural, one {# actividad sin duración disponible con los datos registrados. No está incluida en el tiempo total.} other {# actividades sin duración disponible con los datos registrados. No están incluidas en el tiempo total.}}"
   },
   "report": {

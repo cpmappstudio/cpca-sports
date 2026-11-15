@@ -7,6 +7,11 @@ export type CoachListItem = FunctionReturnType<
 export type CoachDetail = NonNullable<
   FunctionReturnType<typeof api.coaches.getById>
 >;
+export type CoachIdentity = {
+  name: string;
+  program: string;
+  position: string;
+};
 export type CoachActivity = NonNullable<
   FunctionReturnType<typeof api.coachActivities.getById>
 >;
@@ -37,7 +42,7 @@ export type CoachActivityPeriodSelection = {
 };
 
 export type CoachActivityReportSnapshot = {
-  coach: { name: string; program: string; position: string };
+  coach: CoachIdentity;
   range: CoachActivityDateRange;
   period: Extract<CoachActivityPeriod, { status: "ready" }>;
   locale: string;
