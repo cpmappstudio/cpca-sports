@@ -8,6 +8,7 @@ import type { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireCoachAccess } from "./lib/coachAccess";
 import { internal } from "./_generated/api";
+import { administrativeClosureValidator } from "./lib/coachActivityClosure";
 import {
   activityTimeAdjustmentValidator,
   recordActivityTimeAdjustment,
@@ -33,6 +34,7 @@ import {
 } from "./lib/coachActivityPeriod";
 
 const activityFields = {
+  administrativeClosure: v.optional(administrativeClosureValidator),
   _id: v.id("coachActivities"),
   _creationTime: v.number(),
   coachId: v.id("coaches"),

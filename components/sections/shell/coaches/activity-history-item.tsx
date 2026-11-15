@@ -4,6 +4,7 @@ import Image from "next/image";
 import { LogOut, MapPin } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import type { CoachActivity } from "@/lib/coaches/types";
+import { isAwaitingActivityReconciliation } from "@/convex/lib/coachActivityClosure";
 import { formatActivityTimestamp } from "@/lib/coaches/activity-time";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -94,13 +95,16 @@ export function ActivityHistoryItem({
   const locale = useLocale();
   const isOpen = activity.status === "in_progress";
   const isNew = activity.checkInAt !== undefined;
+  const awaitingReconciliation = isAwaitingActivityReconciliation(activity);
   const state = isOpen
     ? "inProgress"
-    : isNew
-      ? "finished"
-      : activity.completed
-        ? "completed"
-        : "notCompleted";
+    : awaitingReconciliation
+      ? "pendingReconciliation"
+      : isNew
+        ? "finished"
+        : activity.completed
+          ? "completed"
+          : "notCompleted";
   return (
     <Item className="flex-col items-stretch gap-4 p-0">
       <ItemHeader className="items-start">
@@ -138,13 +142,19 @@ export function ActivityHistoryItem({
                 </time>
               </dd>
             </div>
-            {activity.checkOutAt !== undefined ? (
+            {activity.checkOutAt !== undefined || awaitingReconciliation ? (
               <div className="space-y-1">
                 <dt className="text-xs text-muted-foreground">{t("exit")}</dt>
                 <dd>
-                  <time dateTime={new Date(activity.checkOutAt).toISOString()}>
-                    {formatActivityTimestamp(activity.checkOutAt, locale)}
-                  </time>
+                  {activity.checkOutAt !== undefined ? (
+                    <time
+                      dateTime={new Date(activity.checkOutAt).toISOString()}
+                    >
+                      {formatActivityTimestamp(activity.checkOutAt, locale)}
+                    </time>
+                  ) : (
+                    t("pendingReconciliation")
+                  )}
                 </dd>
               </div>
             ) : null}
@@ -178,7 +188,11 @@ export function ActivityHistoryItem({
         </div>
       </ItemContent>
       {isAdmin && isNew ? (
-        <ActivityTimeHistory key={activity._id} activityId={activity._id} />
+        <ActivityTimeHistory
+          key={activity._id}
+          activityId={activity._id}
+          administrativeClosure={activity.administrativeClosure}
+        />
       ) : null}
       {isOpen && onCheckout ? (
         <ItemFooter className="pt-1">

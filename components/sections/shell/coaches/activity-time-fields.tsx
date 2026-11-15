@@ -32,7 +32,7 @@ function TimeField({
 }: {
   kind: "checkIn" | "checkOut";
   value: CoachActivityTimeAdjustment["checkIn"];
-  original: number;
+  original?: number;
   disabled: boolean;
   error?: string;
   onChange: (value: CoachActivityTimeAdjustment["checkIn"]) => void;
@@ -42,7 +42,7 @@ function TimeField({
   const [date, time] = value.dateTime.split("T");
   const candidates = activityTimeCandidates(date, time);
   const originalOffset =
-    value.dateTime === activityLocalDateTime(original)
+    original !== undefined && value.dateTime === activityLocalDateTime(original)
       ? candidates.find(
           (item) =>
             Math.floor(item.timestamp / 60000) === Math.floor(original / 60000),
@@ -58,7 +58,7 @@ function TimeField({
         type="datetime-local"
         value={value.dateTime}
         onChange={(event) => onChange({ dateTime: event.target.value })}
-        required
+        required={original !== undefined}
         disabled={disabled}
         aria-invalid={!!error}
         aria-describedby={`activity-adjustment-zone${error ? ` ${id}-error` : ""}`}
@@ -102,10 +102,12 @@ function TimeField({
 export function ActivityTimeFields({
   value,
   disabled,
+  canAddCheckout = false,
   onChange,
 }: {
   value: CoachActivityTimeAdjustment;
   disabled: boolean;
+  canAddCheckout?: boolean;
   onChange: (value: CoachActivityTimeAdjustment) => void;
 }) {
   const t = useTranslations("Coaches.timeAdjustment");
@@ -126,6 +128,11 @@ export function ActivityTimeFields({
       >
         {detail("timeZoneNotice", { timeZone: COACH_ACTIVITY_TIME_ZONE })}
       </p>
+      {canAddCheckout ? (
+        <p className="text-sm text-muted-foreground">
+          {t("reconciliationHelp")}
+        </p>
+      ) : null}
       <div className="grid min-w-0 gap-4 sm:grid-cols-2">
         <TimeField
           kind="checkIn"
@@ -139,18 +146,26 @@ export function ActivityTimeFields({
           }
           onChange={(checkIn) => onChange({ ...value, checkIn })}
         />
-        {value.checkOut && value.expectedCheckOutAt !== null ? (
+        {value.expectedCheckOutAt !== null || canAddCheckout ? (
           <TimeField
             kind="checkOut"
-            value={value.checkOut}
-            original={value.expectedCheckOutAt}
+            value={value.checkOut ?? { dateTime: "" }}
+            original={value.expectedCheckOutAt ?? undefined}
             disabled={disabled}
             error={
               preview.errorField === "checkOut" && preview.error
                 ? errors(preview.error)
                 : undefined
             }
-            onChange={(checkOut) => onChange({ ...value, checkOut })}
+            onChange={(checkOut) =>
+              onChange({
+                ...value,
+                checkOut:
+                  checkOut.dateTime || value.expectedCheckOutAt !== null
+                    ? checkOut
+                    : null,
+              })
+            }
           />
         ) : (
           <div className="space-y-2">

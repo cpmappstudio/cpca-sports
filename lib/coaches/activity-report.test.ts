@@ -79,6 +79,45 @@ const detailTable = (data: CoachActivityReportSnapshot) => {
   )!;
 };
 
+test.each(["es", "en"])(
+  "administrative closures are pending reconciliation and excluded from recorded time (%s)",
+  (locale) => {
+    const closed: CoachActivityListItem = {
+      ...activity(0),
+      checkOutAt: undefined,
+      checkOutOrder: null,
+      endTime: undefined,
+      durationMs: null,
+      administrativeClosure: {
+        migrationId: "test",
+        closedAt: 1,
+        operator: "operator@example.com",
+      },
+    };
+    const data = snapshot([closed, activity(1)], locale);
+    const t = translate(locale);
+    expect(data.period.summary).toMatchObject({
+      totalDurationMs: 2700000,
+      unknownDurationCount: 1,
+      pendingCount: 0,
+    });
+    expect(detailTable(data).table.body[1]).toMatchObject({
+      3: t("detail.pendingReconciliation"),
+      4: { text: t("detail.durationUndetermined") },
+      5: t("detail.pendingReconciliation"),
+    });
+    const reconciled = {
+      ...closed,
+      checkOutAt: closed.checkInAt! + 3600000,
+      checkOutOrder: closed.checkInAt! + 3600000,
+      durationMs: 3600000,
+    };
+    expect(
+      JSON.stringify(detailTable(snapshot([reconciled], locale))),
+    ).not.toContain(t("detail.pendingReconciliation"));
+  },
+);
+
 test("the report uses the entire period, sorts a copy, and preserves backend durations and totals", () => {
   const rows = Array.from({ length: 27 }, (_, i) => activity(i)).reverse();
   rows[0] = {
@@ -276,7 +315,19 @@ test.each(["es", "en"])(
               "Cancha de preparación física.\n".repeat(100) +
               " LONGPLACEEND",
           },
-          { ...activity(2), title: "FOLLOWINGACTIVITY" },
+          {
+            ...activity(2),
+            title: "FOLLOWINGACTIVITY",
+            checkOutAt: undefined,
+            checkOutOrder: null,
+            endTime: undefined,
+            durationMs: null,
+            administrativeClosure: {
+              migrationId: "test",
+              closedAt: 1,
+              operator: "operator@example.com",
+            },
+          },
         ],
         locale,
       );

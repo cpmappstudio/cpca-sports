@@ -76,9 +76,10 @@ export function activityLocalDateTime(timestamp: number) {
 
 export function resolveActivityTimeInput(
   input: { dateTime: string; offsetMinutes?: number },
-  original: number,
+  original: number | undefined,
 ): number | "invalid" | "ambiguous" {
   if (
+    original !== undefined &&
     input.dateTime === activityLocalDateTime(original) &&
     input.offsetMinutes === undefined
   )

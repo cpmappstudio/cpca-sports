@@ -49,6 +49,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ActivityCameraCapture } from "./activity-camera";
 import { ActivityTimeFields } from "./activity-time-fields";
 import { ActivityTimeHistory } from "./activity-time-history";
+import { isAwaitingActivityReconciliation } from "@/convex/lib/coachActivityClosure";
 
 export type ActivityAction = "checkIn" | "checkOut" | "edit";
 
@@ -393,6 +394,9 @@ function ActivityForm({
             <ActivityTimeFields
               value={timeAdjustment}
               disabled={saving}
+              canAddCheckout={
+                activity && isAwaitingActivityReconciliation(activity)
+              }
               onChange={setTimeAdjustment}
             />
           ) : action === "edit" &&
@@ -403,7 +407,11 @@ function ActivityForm({
             </p>
           ) : null}
           {action === "edit" && isAdmin && activity?.checkInAt !== undefined ? (
-            <ActivityTimeHistory key={activity._id} activityId={activity._id} />
+            <ActivityTimeHistory
+              key={activity._id}
+              activityId={activity._id}
+              administrativeClosure={activity.administrativeClosure}
+            />
           ) : null}
           <DialogFooter>
             <Button

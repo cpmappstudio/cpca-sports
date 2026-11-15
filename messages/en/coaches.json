@@ -125,7 +125,9 @@
     "periodActivityTime": "Time in period",
     "durationUnavailable": "Unavailable",
     "emptyPeriodHistory": "No completed activities or earlier records in the selected period.",
-    "emptyPeriodOpenActivities": "No activities in progress in the selected period."
+    "emptyPeriodOpenActivities": "No activities in progress in the selected period.",
+    "pendingReconciliation": "Pending reconciliation",
+    "durationUndetermined": "Undetermined"
   },
   "activityDialog": {
     "checkInTitle": "Check in",
@@ -300,6 +302,8 @@
     "exitTime": "Checkout: {time}",
     "pendingCheckoutShort": "Awaiting checkout",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "reconciliationHelp": "This administrative closure is pending reconciliation. Enter the actual checkout date and time to determine its duration.",
+    "administrativeClosure": "Activity closed administratively."
   }
 }

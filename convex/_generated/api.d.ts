@@ -34,6 +34,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_auth_types from "../lib/auth_types.js";
 import type * as lib_coachAccess from "../lib/coachAccess.js";
 import type * as lib_coachActivityAdjustments from "../lib/coachActivityAdjustments.js";
+import type * as lib_coachActivityClosure from "../lib/coachActivityClosure.js";
 import type * as lib_coachActivityListing from "../lib/coachActivityListing.js";
 import type * as lib_coachActivityPeriod from "../lib/coachActivityPeriod.js";
 import type * as lib_coachActivityTime from "../lib/coachActivityTime.js";
@@ -98,6 +99,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auth_types": typeof lib_auth_types;
   "lib/coachAccess": typeof lib_coachAccess;
   "lib/coachActivityAdjustments": typeof lib_coachActivityAdjustments;
+  "lib/coachActivityClosure": typeof lib_coachActivityClosure;
   "lib/coachActivityListing": typeof lib_coachActivityListing;
   "lib/coachActivityPeriod": typeof lib_coachActivityPeriod;
   "lib/coachActivityTime": typeof lib_coachActivityTime;

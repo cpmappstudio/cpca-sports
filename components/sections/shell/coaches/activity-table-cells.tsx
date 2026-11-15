@@ -3,6 +3,7 @@
 import { LogOut, PanelRightOpen } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import type { CoachActivityListItem } from "@/lib/coaches/types";
+import { isAwaitingActivityReconciliation } from "@/convex/lib/coachActivityClosure";
 import {
   formatActivityTimestamp,
   formatActivityDuration,
@@ -35,6 +36,12 @@ export function ActivityTime({
   const t = useTranslations("Coaches.detail");
   const locale = useLocale();
   const timestamp = kind === "entry" ? activity.checkInAt : activity.checkOutAt;
+  if (kind === "exit" && isAwaitingActivityReconciliation(activity))
+    return (
+      <span className="text-sm text-muted-foreground">
+        {t("pendingReconciliation")}
+      </span>
+    );
   if (timestamp !== undefined) {
     return (
       <time dateTime={new Date(timestamp).toISOString()}>
@@ -57,14 +64,16 @@ export function ActivityTime({
 }
 
 export function ActivityDuration({
-  durationMs,
+  activity,
 }: {
-  durationMs: number | null;
+  activity: CoachActivityListItem;
 }) {
   const t = useTranslations("Coaches.detail");
   return (
     <span className="whitespace-nowrap tabular-nums">
-      {formatActivityDuration(durationMs, t)}
+      {isAwaitingActivityReconciliation(activity)
+        ? t("durationUndetermined")
+        : formatActivityDuration(activity.durationMs, t)}
     </span>
   );
 }

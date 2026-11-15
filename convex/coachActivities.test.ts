@@ -3,6 +3,7 @@ import type {
   GenericDatabaseWriter,
   GenericDataModel,
   FunctionArgs,
+  FunctionReturnType,
 } from "convex/server";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -243,6 +244,297 @@ async function timeEdit(
     },
   };
 }
+
+const closureScope = {
+  organizationSlug: "school",
+  beforeDate: "2026-11-06",
+};
+const closureOperator = {
+  ...closureScope,
+  migrationId: "test-reconciliation",
+  operator: "operator@example.com",
+};
+
+async function staleActivity(f: Awaited<ReturnType<typeof setup>>) {
+  vi.setSystemTime(now - 86400000);
+  const id = await f.existingOpen();
+  vi.setSystemTime(now);
+  return id;
+}
+
+async function closurePreview(f: Awaited<ReturnType<typeof setup>>) {
+  const page = await f.t.query(
+    internal.coachActivityMigrations.previewAdministrativeClosures,
+    {
+      ...closureScope,
+      cursor: null,
+    },
+  );
+  return page.candidates.map(({ activityId, snapshot }) => ({
+    activityId,
+    snapshot,
+  }));
+}
+
+test("administrative closure releases the coach without inventing checkout evidence or duration", async () => {
+  const f = await setup();
+  const id = await staleActivity(f);
+  const before = await f.get(id);
+  const targets = await closurePreview(f);
+  expect(JSON.parse(targets[0].snapshot)).toMatchObject({
+    _id: id,
+    status: "in_progress",
+  });
+  expect(
+    await f.t.mutation(internal.coachActivityMigrations.closeAdministratively, {
+      ...closureOperator,
+      targets,
+    }),
+  ).toEqual([{ activityId: id, result: "wouldClose" }]);
+  expect(await f.get(id)).toEqual(before);
+  await expect(f.checkIn()).rejects.toThrow("activity in progress");
+  expect(
+    await f.t.mutation(internal.coachActivityMigrations.closeAdministratively, {
+      ...closureOperator,
+      targets,
+      dryRun: false,
+    }),
+  ).toEqual([{ activityId: id, result: "closed" }]);
+  const closed = (await f.get(id))!;
+  expect(closed).toMatchObject({
+    ...before,
+    completed: true,
+    status: "completed",
+    administrativeClosure: {
+      migrationId: closureOperator.migrationId,
+      closedAt: now,
+      operator: closureOperator.operator,
+    },
+  });
+  for (const key of ["checkOutAt", "endTime", "checkOutImageStorageId"])
+    expect(closed).not.toHaveProperty(key);
+  expect(coachActivityDurationMs(closed)).toBeNull();
+  expect(
+    await f.owner.query(api.coachActivities.getSummary, { coachId: f.coachId }),
+  ).toEqual({ activityCount: 1, totalMinutes: 0 });
+  const period = await f.owner.query(api.coachActivities.getPeriodByCoach, {
+    coachId: f.coachId,
+    range: { from: "2026-11-05", to: "2026-11-06" },
+  });
+  expect(period).toMatchObject({
+    status: "ready",
+    summary: {
+      pendingCount: 0,
+      unknownDurationCount: 1,
+      totalDurationMs: 0,
+    },
+    activities: [{ _id: id, checkOutOrder: null, durationMs: null }],
+  });
+  expect(
+    (
+      await f.owner.query(api.coachActivities.listHistoryByCoach, {
+        coachId: f.coachId,
+        paginationOpts: { numItems: 5, cursor: null },
+      })
+    ).page.map((item) => item._id),
+  ).toEqual([id]);
+  expect(
+    await f.owner.query(api.coachActivities.getOpenActivityId, {
+      coachId: f.coachId,
+    }),
+  ).toBeNull();
+  await expect(f.checkIn()).resolves.toBeDefined();
+  await expect(
+    f.owner.mutation(api.coachActivities.checkOut, {
+      activityId: id,
+      imageStorageId: await f.image(),
+    }),
+  ).rejects.toThrow("not open for checkout");
+});
+
+test("only an administrator reconciles a marked closure, preserving provenance and a nullable before value", async () => {
+  const f = await setup();
+  const id = await staleActivity(f);
+  const targets = await closurePreview(f);
+  await f.t.mutation(internal.coachActivityMigrations.closeAdministratively, {
+    ...closureOperator,
+    targets,
+    dryRun: false,
+  });
+  const original = (await f.get(id))!;
+  await f.admin.mutation(api.coachActivities.update, {
+    activityId: id,
+    title: "Metadata only",
+    placeId: f.placeId,
+  });
+  expect((await f.get(id))!.checkOutAt).toBeUndefined();
+  const edit = await timeEdit(f, id, {
+    checkOut: { dateTime: "2026-11-05T11:30" },
+  });
+  for (const client of [f.owner, f.otherCoach, f.otherAdmin])
+    await expect(
+      client.mutation(api.coachActivities.update, edit),
+    ).rejects.toThrow();
+  await f.admin.mutation(api.coachActivities.update, edit);
+  const after = (await f.get(id))!;
+  expect(after).toMatchObject({
+    checkOutAt: now - 86400000 + 5400000,
+    endTime: "11:30",
+    updatedBy: f.adminId,
+    administrativeClosure: original.administrativeClosure,
+    imageStorageId: original.imageStorageId,
+  });
+  expect(after.checkOutImageStorageId).toBeUndefined();
+  expect(
+    await f.t.mutation(internal.coachActivityMigrations.closeAdministratively, {
+      ...closureOperator,
+      targets,
+      dryRun: false,
+    }),
+  ).toEqual([{ activityId: id, result: "alreadyClosed" }]);
+  expect(await f.get(id)).toEqual(after);
+  expect(
+    await f.owner.query(api.coachActivities.getSummary, { coachId: f.coachId }),
+  ).toEqual({ activityCount: 1, totalMinutes: 90 });
+  expect(
+    (
+      await f.admin.query(api.coachActivityAdjustments.listByActivity, {
+        activityId: id,
+        paginationOpts: { numItems: 5, cursor: null },
+      })
+    ).page,
+  ).toMatchObject([
+    {
+      before: { checkInAt: original.checkInAt, checkOutAt: null },
+      after: { checkInAt: original.checkInAt, checkOutAt: after.checkOutAt },
+      adjustedBy: f.adminId,
+    },
+  ]);
+  await expect(
+    f.admin.mutation(
+      api.coachActivities.update,
+      await timeEdit(f, id, { checkOut: null }),
+    ),
+  ).rejects.toThrow("Cannot add or remove checkout");
+});
+
+test("closure preview is bounded, scoped by actual entry date and organization, and excludes earlier manual records", async () => {
+  const f = await setup();
+  const old = await staleActivity(f);
+  await f.legacy();
+  await f.existingOpen();
+  const foreign = await staleActivity(f);
+  for (let i = 0; i < 52; i++) await staleActivity(f);
+  await f.t.run(async (ctx) => {
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("bySlug", (q) => q.eq("slug", "other"))
+      .unique();
+    const coach = await ctx.db.insert("coaches", {
+      organizationId: org!._id,
+      userId: f.ownerId,
+      programId: f.programId,
+      positionId: f.positionId,
+      isArchived: false,
+      createdBy: f.adminId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await ctx.db.patch("coachActivities", foreign, { coachId: coach });
+  });
+  const ids: Id<"coachActivities">[] = [];
+  let cursor: string | null = null;
+  for (;;) {
+    const page: FunctionReturnType<
+      typeof internal.coachActivityMigrations.previewAdministrativeClosures
+    > = await f.t.query(
+      internal.coachActivityMigrations.previewAdministrativeClosures,
+      { ...closureScope, cursor },
+    );
+    expect(page.candidates.length).toBeLessThanOrEqual(50);
+    ids.push(...page.candidates.map((item) => item.activityId));
+    if (page.isDone) break;
+    cursor = page.continueCursor;
+  }
+  expect(ids).toHaveLength(53);
+  expect(ids).toContain(old);
+  expect(ids).not.toContain(foreign);
+  const foreignSnapshot = await f.t.run(async (ctx) =>
+    JSON.stringify(await ctx.db.get("coachActivities", foreign)),
+  );
+  expect(
+    await f.t.mutation(internal.coachActivityMigrations.closeAdministratively, {
+      ...closureOperator,
+      targets: [{ activityId: foreign, snapshot: foreignSnapshot }],
+      dryRun: false,
+    }),
+  ).toEqual([{ activityId: foreign, result: "wrongOrganization" }]);
+  await expect(
+    f.t.mutation(internal.coachActivityMigrations.closeAdministratively, {
+      ...closureOperator,
+      targets: ids.map((activityId) => ({ activityId, snapshot: "" })),
+      dryRun: false,
+    }),
+  ).rejects.toThrow("at most 50");
+  await expect(
+    f.t.query(internal.coachActivityMigrations.previewAdministrativeClosures, {
+      ...closureScope,
+      beforeDate: "2026-11-07",
+      cursor: null,
+    }),
+  ).rejects.toThrow("cutoff");
+});
+
+test("a reviewed closure list cannot change a modified, already completed, foreign or deleted record", async () => {
+  const f = await setup();
+  const changed = await staleActivity(f);
+  const completed = await staleActivity(f);
+  const deleted = await staleActivity(f);
+  const targets = await closurePreview(f);
+  await f.owner.mutation(api.coachActivities.update, {
+    activityId: changed,
+    title: "Changed without advancing time",
+    placeId: f.placeId,
+  });
+  await f.owner.mutation(api.coachActivities.checkOut, {
+    activityId: completed,
+    imageStorageId: await f.image(),
+  });
+  await f.t.run((ctx) => ctx.db.delete("coachActivities", deleted));
+  const result = await f.t.mutation(
+    internal.coachActivityMigrations.closeAdministratively,
+    { ...closureOperator, targets, dryRun: false },
+  );
+  expect(result).toEqual(
+    expect.arrayContaining([
+      { activityId: changed, result: "changed" },
+      { activityId: completed, result: "changed" },
+      { activityId: deleted, result: "missing" },
+    ]),
+  );
+  const refreshed = await closurePreview(f);
+  await f.t.mutation(internal.coachActivityMigrations.closeAdministratively, {
+    ...closureOperator,
+    targets: refreshed,
+    dryRun: false,
+  });
+  expect(
+    await f.t.mutation(internal.coachActivityMigrations.closeAdministratively, {
+      ...closureOperator,
+      migrationId: "retry",
+      targets: refreshed,
+      dryRun: false,
+    }),
+  ).toEqual([{ activityId: changed, result: "alreadyClosed" }]);
+  await expect(
+    f.t.mutation(internal.coachActivityMigrations.closeAdministratively, {
+      ...closureOperator,
+      targets: [...refreshed, ...refreshed],
+      dryRun: false,
+    }),
+  ).rejects.toThrow("distinct");
+  expect((await f.get(completed))!.administrativeClosure).toBeUndefined();
+});
 
 test("administrators correct both times atomically with evidence and period totals preserved", async () => {
   const f = await setup();

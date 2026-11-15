@@ -1,6 +1,7 @@
 import { ConvexError, v, type Infer } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { isAwaitingActivityReconciliation } from "./coachActivityClosure";
 import {
   coachActivityDateTime,
   resolveActivityTimeInput,
@@ -28,7 +29,10 @@ export const activityTimeAdjustmentFields = {
   adjustedAt: v.number(),
 };
 
-function resolveTime(input: Infer<typeof localTime>, original: number) {
+function resolveTime(
+  input: Infer<typeof localTime>,
+  original: number | undefined,
+) {
   const result = resolveActivityTimeInput(input, original);
   if (result === "invalid") throw new ConvexError("Invalid activity time");
   if (result === "ambiguous") throw new ConvexError("Ambiguous activity time");
@@ -50,12 +54,15 @@ export async function recordActivityTimeAdjustment(
     throw new ConvexError("Activity times have changed");
   if (
     (activity.status !== "in_progress" && activity.status !== "completed") ||
-    (activity.checkOutAt === undefined) !== (input.checkOut === null)
+    (activity.checkOutAt !== undefined && input.checkOut === null) ||
+    (activity.checkOutAt === undefined &&
+      input.checkOut !== null &&
+      !isAwaitingActivityReconciliation(activity))
   )
     throw new ConvexError("Cannot add or remove checkout");
   const checkInAt = resolveTime(input.checkIn, activity.checkInAt);
   const checkOutAt = input.checkOut
-    ? resolveTime(input.checkOut, activity.checkOutAt!)
+    ? resolveTime(input.checkOut, activity.checkOutAt)
     : undefined;
   const now = Date.now();
   if (checkInAt > now || (checkOutAt !== undefined && checkOutAt > now))

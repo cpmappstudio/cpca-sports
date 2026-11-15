@@ -443,6 +443,92 @@ test("invalid administrative times show an inline error and block saving", () =>
   );
 });
 
+test("administrative closure can be reconciled from the same editor without a photo or required reason", async () => {
+  state.activity = {
+    ...activity(),
+    status: "completed",
+    completed: true,
+    administrativeClosure: {
+      migrationId: "test",
+      closedAt: Date.now(),
+      operator: "operator@example.com",
+    },
+  };
+  const result = view("edit", vi.fn(), true);
+  expect(
+    result.getByText(messages.timeAdjustment.reconciliationHelp),
+  ).toBeTruthy();
+  const checkout = result.getByLabelText(
+    messages.timeAdjustment.checkOut,
+  ) as HTMLInputElement;
+  expect(checkout.value).toBe("");
+  expect(checkout.required).toBe(false);
+  fireEvent.change(checkout, { target: { value: "2026-11-06T11:30" } });
+  fireEvent.click(result.getByRole("button", { name: "Guardar cambios" }));
+  await waitFor(() =>
+    expect(state.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        timeAdjustment: expect.objectContaining({
+          expectedCheckOutAt: null,
+          checkOut: { dateTime: "2026-11-06T11:30" },
+        }),
+      }),
+    ),
+  );
+  expect(state.generateUploadUrl).not.toHaveBeenCalled();
+  expect(state.checkOut).not.toHaveBeenCalled();
+});
+
+test("clearing an existing checkout leaves the field available and prevents saving until corrected", () => {
+  state.activity = {
+    ...activity(),
+    status: "completed",
+    completed: true,
+    checkOutAt: activity().checkInAt! + 3600000,
+  };
+  const result = view("edit", vi.fn(), true);
+  const checkout = result.getByLabelText(
+    messages.timeAdjustment.checkOut,
+  ) as HTMLInputElement;
+  fireEvent.change(checkout, { target: { value: "" } });
+  expect(result.getByLabelText(messages.timeAdjustment.checkOut)).toBe(
+    checkout,
+  );
+  expect(result.getByRole("alert").textContent).toBe(
+    messages.activityDialog.errors.invalidTime,
+  );
+  fireEvent.click(result.getByRole("button", { name: "Guardar cambios" }));
+  expect(state.update).not.toHaveBeenCalled();
+  fireEvent.change(checkout, { target: { value: "2026-11-06T11:30" } });
+  expect(result.queryByRole("alert")).toBeNull();
+});
+
+test("metadata edits do not force reconciliation, and coaches never receive the time editor", async () => {
+  state.activity = {
+    ...activity(),
+    status: "completed",
+    completed: true,
+    administrativeClosure: {
+      migrationId: "test",
+      closedAt: Date.now(),
+      operator: "operator@example.com",
+    },
+  };
+  const admin = view("edit", vi.fn(), true);
+  fireEvent.change(admin.getByLabelText(/Título/), {
+    target: { value: "Cambio de datos" },
+  });
+  fireEvent.click(admin.getByRole("button", { name: "Guardar cambios" }));
+  await waitFor(() => expect(state.update).toHaveBeenCalled());
+  expect(state.update.mock.calls[0][0]).not.toHaveProperty("timeAdjustment");
+  admin.unmount();
+  const owner = view("edit");
+  expect(owner.queryByLabelText(messages.timeAdjustment.checkOut)).toBeNull();
+  expect(
+    owner.queryByText(messages.timeAdjustment.reconciliationHelp),
+  ).toBeNull();
+});
+
 test("a stale administrative edit keeps the draft and explains how to reload current times", async () => {
   state.update.mockRejectedValueOnce(
     new ConvexError("Activity times have changed"),

@@ -5,13 +5,16 @@ import { useQuery } from "convex/react";
 import { useLocale, useTranslations } from "next-intl";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import type { CoachActivity } from "@/lib/coaches/types";
 import { formatActivityTimestamp } from "@/lib/coaches/activity-time";
 import { Button } from "@/components/ui/button";
 
 export function ActivityTimeHistory({
   activityId,
+  administrativeClosure,
 }: {
   activityId: Id<"coachActivities">;
+  administrativeClosure?: CoachActivity["administrativeClosure"];
 }) {
   const t = useTranslations("Coaches.timeAdjustment");
   const locale = useLocale();
@@ -36,6 +39,11 @@ export function ActivityTimeHistory({
       </summary>
       {open ? (
         <div className="mt-4 space-y-4">
+          {administrativeClosure ? (
+            <p className="break-words text-sm text-muted-foreground">
+              {t("administrativeClosure")}
+            </p>
+          ) : null}
           {result === undefined ? (
             <p className="text-sm text-muted-foreground" role="status">
               {t("loading")}

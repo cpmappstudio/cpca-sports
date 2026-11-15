@@ -4,6 +4,7 @@ import type {
   TDocumentDefinitions,
 } from "pdfmake/interfaces";
 import { COACH_ACTIVITY_TIME_ZONE } from "@/convex/lib/coachActivityTime";
+import { isAwaitingActivityReconciliation } from "@/convex/lib/coachActivityClosure";
 import { formatActivityDate } from "./activity-period";
 import {
   formatActivityTimestamp,
@@ -54,25 +55,34 @@ export function buildActivityReport(
   );
   for (const activity of activities) {
     const open = activity.status === "in_progress";
+    const awaitingReconciliation = isAwaitingActivityReconciliation(activity);
     tableBody.push([
       { text: activity.title, bold: true },
       activity.placeName,
       activity.checkInOrder === null
         ? t("report.notRecorded")
         : formatActivityTimestamp(activity.checkInOrder, locale),
-      activity.checkOutOrder === null
-        ? t("report.notRecorded")
-        : formatActivityTimestamp(activity.checkOutOrder, locale),
+      awaitingReconciliation
+        ? t("detail.pendingReconciliation")
+        : activity.checkOutOrder === null
+          ? t("report.notRecorded")
+          : formatActivityTimestamp(activity.checkOutOrder, locale),
       {
-        text: open ? t("report.pending") : duration(activity.durationMs),
+        text: open
+          ? t("report.pending")
+          : awaitingReconciliation
+            ? t("detail.durationUndetermined")
+            : duration(activity.durationMs),
         alignment: "right",
       },
       t(
         open
           ? "detail.inProgress"
-          : activity.durationMs === null
-            ? "report.incomplete"
-            : "report.completed",
+          : awaitingReconciliation
+            ? "detail.pendingReconciliation"
+            : activity.durationMs === null
+              ? "report.incomplete"
+              : "report.completed",
       ),
     ]);
   }

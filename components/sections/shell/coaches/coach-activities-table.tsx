@@ -94,7 +94,7 @@ export function CoachActivitiesTable({
                   <p className="text-xs text-muted-foreground">
                     {t("duration")}
                   </p>
-                  <ActivityDuration durationMs={row.original.durationMs} />
+                  <ActivityDuration activity={row.original} />
                 </div>
               </>
             ) : null}
@@ -150,9 +150,7 @@ export function CoachActivitiesTable({
               header: t("duration"),
               enableSorting: false,
               meta: metadata,
-              cell: ({ row }) => (
-                <ActivityDuration durationMs={row.original.durationMs} />
-              ),
+              cell: ({ row }) => <ActivityDuration activity={row.original} />,
             },
           ] satisfies ColumnDef<CoachActivityListItem, unknown>[])
         : []),

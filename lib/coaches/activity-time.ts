@@ -11,10 +11,12 @@ export function activityTimeAdjustmentPreview(
     input.checkIn,
     input.expectedCheckInAt,
   );
-  const checkOutAt =
-    input.checkOut && input.expectedCheckOutAt !== null
-      ? resolveActivityTimeInput(input.checkOut, input.expectedCheckOutAt)
-      : null;
+  const checkOutAt = input.checkOut
+    ? resolveActivityTimeInput(
+        input.checkOut,
+        input.expectedCheckOutAt ?? undefined,
+      )
+    : null;
   if (typeof checkInAt !== "number")
     return {
       changed: true,

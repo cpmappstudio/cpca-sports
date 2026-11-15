@@ -125,7 +125,9 @@
     "periodActivityTime": "Tiempo del período",
     "durationUnavailable": "No disponible",
     "emptyPeriodHistory": "No hay actividades completadas ni registros anteriores en el período seleccionado.",
-    "emptyPeriodOpenActivities": "No hay actividades en curso en el período seleccionado."
+    "emptyPeriodOpenActivities": "No hay actividades en curso en el período seleccionado.",
+    "pendingReconciliation": "Pendiente de conciliación",
+    "durationUndetermined": "Sin determinar"
   },
   "activityDialog": {
     "checkInTitle": "Hacer check-in",
@@ -300,6 +302,8 @@
     "exitTime": "Salida: {time}",
     "pendingCheckoutShort": "Salida pendiente",
     "previous": "Anterior",
-    "next": "Siguiente"
+    "next": "Siguiente",
+    "reconciliationHelp": "Cierre administrativo pendiente de conciliación. Registra la fecha y hora reales de salida para determinar la duración.",
+    "administrativeClosure": "Actividad cerrada administrativamente."
   }
 }
