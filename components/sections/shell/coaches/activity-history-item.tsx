@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ActivityActions } from "./activity-actions";
+import { ActivityTimeHistory } from "./activity-time-history";
 import {
   Item,
   ItemActions,
@@ -81,11 +82,13 @@ export function ActivityHistoryItem({
   onEdit,
   onDelete,
   onCheckout,
+  isAdmin = false,
 }: {
   activity: CoachActivity;
   onEdit: () => void;
   onDelete: () => void;
   onCheckout?: () => void;
+  isAdmin?: boolean;
 }) {
   const t = useTranslations("Coaches.detail");
   const locale = useLocale();
@@ -174,6 +177,9 @@ export function ActivityHistoryItem({
           ) : null}
         </div>
       </ItemContent>
+      {isAdmin && isNew ? (
+        <ActivityTimeHistory key={activity._id} activityId={activity._id} />
+      ) : null}
       {isOpen && onCheckout ? (
         <ItemFooter className="pt-1">
           <Button

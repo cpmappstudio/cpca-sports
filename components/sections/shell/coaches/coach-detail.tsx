@@ -272,6 +272,7 @@ export function CoachDetailView({
           key={detail.coach._id}
           coachId={detail.coach._id}
           isArchived={detail.coach.isArchived}
+          isAdmin={detail.isAdmin}
           periodSelection={periodSelection}
           onPeriodChange={setPeriodSelection}
           periodResult={periodResult}

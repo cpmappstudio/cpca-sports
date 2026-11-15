@@ -11,6 +11,7 @@
 import type * as applications from "../applications.js";
 import type * as clerk from "../clerk.js";
 import type * as coachActivities from "../coachActivities.js";
+import type * as coachActivityAdjustments from "../coachActivityAdjustments.js";
 import type * as coachActivityMigrations from "../coachActivityMigrations.js";
 import type * as coachOptions from "../coachOptions.js";
 import type * as coaches from "../coaches.js";
@@ -32,6 +33,7 @@ import type * as lib_applicationTable from "../lib/applicationTable.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_auth_types from "../lib/auth_types.js";
 import type * as lib_coachAccess from "../lib/coachAccess.js";
+import type * as lib_coachActivityAdjustments from "../lib/coachActivityAdjustments.js";
 import type * as lib_coachActivityListing from "../lib/coachActivityListing.js";
 import type * as lib_coachActivityPeriod from "../lib/coachActivityPeriod.js";
 import type * as lib_coachActivityTime from "../lib/coachActivityTime.js";
@@ -73,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   applications: typeof applications;
   clerk: typeof clerk;
   coachActivities: typeof coachActivities;
+  coachActivityAdjustments: typeof coachActivityAdjustments;
   coachActivityMigrations: typeof coachActivityMigrations;
   coachOptions: typeof coachOptions;
   coaches: typeof coaches;
@@ -94,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/auth_types": typeof lib_auth_types;
   "lib/coachAccess": typeof lib_coachAccess;
+  "lib/coachActivityAdjustments": typeof lib_coachActivityAdjustments;
   "lib/coachActivityListing": typeof lib_coachActivityListing;
   "lib/coachActivityPeriod": typeof lib_coachActivityPeriod;
   "lib/coachActivityTime": typeof lib_coachActivityTime;

@@ -143,7 +143,6 @@
     "timeZoneNotice": "Time zone: {timeZone}",
     "automaticTimeTitle": "Automatic date and time",
     "automaticTime": "Your check-in and checkout dates and times are recorded automatically when you confirm each one.",
-    "fixedEvidence": "Recorded photos, dates and times are preserved.",
     "progress": "Activity progress",
     "steps": {
       "details": "Details",
@@ -173,8 +172,18 @@
       "imageAlreadyUsed": "This photo is already associated with another record. Take a new photo.",
       "invalidImage": "The captured photo could not be used. Take it again.",
       "uploadError": "The photo could not be uploaded. Your capture is kept so you can retry.",
-      "saveError": "The activity could not be saved. Check your connection and try again."
-    }
+      "saveError": "The activity could not be saved. Check your connection and try again.",
+      "adminRequired": "Only administrators can adjust activity times.",
+      "legacyTimeAdjustment": "Earlier record times cannot be adjusted from this form.",
+      "timesChanged": "The times changed while you were editing. Close and reopen the editor to review the current values.",
+      "checkoutUnchanged": "This adjustment cannot add or remove checkout. Use the checkout flow to complete an open activity.",
+      "invalidTime": "Enter a valid date and time.",
+      "ambiguousTime": "This time occurs twice because of a clock change. Select the correct occurrence.",
+      "futureTime": "Enter a date and time that are not in the future.",
+      "checkoutBeforeCheckin": "Checkout must be at or after check-in."
+    },
+    "editAdminDescription": "Update the activity details and, if needed, correct the recorded times.",
+    "timeAdjustmentPermission": "Only administrators can adjust recorded times."
   },
   "programOptions": {
     "positions": "Positions",
@@ -273,5 +282,24 @@
     "page": "Page {page, number} of {pages, number}",
     "totalPrecision": "Durations are added together before being displayed in whole hours and minutes.",
     "fileName": "activities-{name}-{from}-{to}-{locale}.pdf"
+  },
+  "timeAdjustment": {
+    "title": "Recorded times",
+    "checkIn": "Check-in date and time",
+    "checkOut": "Checkout date and time",
+    "repeatedTime": "Which occurrence is correct?",
+    "chooseOccurrence": "Select the correct occurrence",
+    "duration": "Duration: {duration}",
+    "history": "Adjustment history",
+    "loading": "Loading adjustments…",
+    "emptyHistory": "This activity has no time adjustments.",
+    "administrator": "Administrator",
+    "before": "Before adjustment",
+    "after": "After adjustment",
+    "entryTime": "Check-in: {time}",
+    "exitTime": "Checkout: {time}",
+    "pendingCheckoutShort": "Awaiting checkout",
+    "previous": "Previous",
+    "next": "Next"
   }
 }

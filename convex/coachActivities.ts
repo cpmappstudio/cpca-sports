@@ -7,6 +7,11 @@ import { mutation, query } from "./_generated/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireCoachAccess } from "./lib/coachAccess";
+import { internal } from "./_generated/api";
+import {
+  activityTimeAdjustmentValidator,
+  recordActivityTimeAdjustment,
+} from "./lib/coachActivityAdjustments";
 import {
   COACH_ACTIVITY_TIME_ZONE,
   coachActivityDateTime,
@@ -405,15 +410,27 @@ export const update = mutation({
     placeId: v.id("programCoachOptions"),
     title: v.string(),
     description: v.optional(v.string()),
+    timeAdjustment: v.optional(activityTimeAdjustmentValidator),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const activity = await ctx.db.get("coachActivities", args.activityId);
     if (!activity) throw new ConvexError("Activity not found");
-    const { user } = await requireCoachAccess(ctx, activity.coachId);
+    const { user, isAdmin } = await requireCoachAccess(ctx, activity.coachId);
+    if (args.timeAdjustment && !isAdmin)
+      throw new ConvexError("Admin access required");
     if (!args.title.trim()) throw new ConvexError("Title is required");
     const place = await assertPlace(ctx, args.placeId, activity.programId);
+    const timeChanges = args.timeAdjustment
+      ? await recordActivityTimeAdjustment(
+          ctx,
+          activity,
+          args.timeAdjustment,
+          user._id,
+        )
+      : {};
     const changes = {
+      ...timeChanges,
       placeId: place._id,
       placeName: place.name,
       title: args.title.trim(),
@@ -441,6 +458,13 @@ export const remove = mutation({
       await ctx.storage.delete(activity.checkOutImageStorageId);
     }
     await ctx.db.delete(activity._id);
+    await ctx.scheduler.runAfter(
+      0,
+      internal.coachActivityAdjustments.removeForActivity,
+      {
+        activityId: activity._id,
+      },
+    );
     return null;
   },
 });

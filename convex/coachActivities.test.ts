@@ -14,6 +14,8 @@ import {
   coachActivityDateTime,
   coachActivityDurationMs,
   legacyActivityTimestamp,
+  activityLocalDateTime,
+  resolveActivityTimeInput,
 } from "./lib/coachActivityTime";
 
 const modules = import.meta.glob("./**/*.ts");
@@ -213,6 +215,375 @@ async function setup() {
     existingOpen,
   };
 }
+
+async function timeEdit(
+  f: Awaited<ReturnType<typeof setup>>,
+  activityId: Id<"coachActivities">,
+  overrides: Partial<
+    NonNullable<
+      FunctionArgs<typeof api.coachActivities.update>["timeAdjustment"]
+    >
+  > = {},
+) {
+  const activity = (await f.get(activityId))!;
+  return {
+    activityId,
+    placeId: activity.placeId,
+    title: activity.title,
+    description: activity.description,
+    timeAdjustment: {
+      expectedCheckInAt: activity.checkInAt!,
+      expectedCheckOutAt: activity.checkOutAt ?? null,
+      checkIn: { dateTime: activityLocalDateTime(activity.checkInAt!) },
+      checkOut:
+        activity.checkOutAt === undefined
+          ? null
+          : { dateTime: activityLocalDateTime(activity.checkOutAt) },
+      ...overrides,
+    },
+  };
+}
+
+test("administrators correct both times atomically with evidence and period totals preserved", async () => {
+  const f = await setup();
+  const id = await f.checkIn();
+  vi.setSystemTime(now + 3 * 86400000);
+  await f.owner.mutation(api.coachActivities.checkOut, {
+    activityId: id,
+    imageStorageId: await f.image(),
+  });
+  const before = (await f.get(id))!;
+  await f.admin.mutation(api.coachActivities.update, {
+    ...(await timeEdit(f, id, {
+      checkIn: { dateTime: "2026-11-05T08:00" },
+      checkOut: { dateTime: "2026-11-05T10:00" },
+    })),
+    title: "Reconciled activity",
+  });
+  const after = (await f.get(id))!;
+  expect(after).toMatchObject({
+    title: "Reconciled activity",
+    checkInAt: Date.parse("2026-11-05T13:00:00Z"),
+    checkOutAt: Date.parse("2026-11-05T15:00:00Z"),
+    activityDate: "2026-11-05",
+    startTime: "08:00",
+    endTime: "10:00",
+    status: "completed",
+    completed: true,
+    imageStorageId: before.imageStorageId,
+    checkOutImageStorageId: before.checkOutImageStorageId,
+    createdAt: before.createdAt,
+    createdBy: before.createdBy,
+    updatedBy: f.adminId,
+  });
+  expect(
+    await f.owner.query(api.coachActivities.getSummary, { coachId: f.coachId }),
+  ).toEqual({ activityCount: 1, totalMinutes: 120 });
+  const period = await f.owner.query(api.coachActivities.getPeriodByCoach, {
+    coachId: f.coachId,
+    range: { from: "2026-11-05", to: "2026-11-05" },
+  });
+  expect(period).toMatchObject({
+    status: "ready",
+    summary: { totalDurationMs: 7200000, activityCount: 1 },
+    activities: [{ _id: id, durationMs: 7200000 }],
+  });
+  expect(
+    await f.owner.query(api.coachActivities.getPeriodByCoach, {
+      coachId: f.coachId,
+      range: { from: "2026-11-06", to: "2026-11-06" },
+    }),
+  ).toMatchObject({ activities: [] });
+  const history = await f.admin.query(
+    api.coachActivityAdjustments.listByActivity,
+    { activityId: id, paginationOpts: { numItems: 5, cursor: null } },
+  );
+  expect(history.page).toMatchObject([
+    {
+      before: { checkInAt: before.checkInAt, checkOutAt: before.checkOutAt },
+      after: { checkInAt: after.checkInAt, checkOutAt: after.checkOutAt },
+      adjustedBy: f.adminId,
+      adjustedByName: "admin Test",
+      adjustedAt: Date.now(),
+    },
+  ]);
+  expect(history.page[0]).not.toHaveProperty("reason");
+  const ordered = await f.owner.query(api.coachActivities.listHistoryByCoach, {
+    coachId: f.coachId,
+    sort: { field: "checkIn", direction: "asc" },
+    paginationOpts: { numItems: 5, cursor: null },
+  });
+  expect(ordered.page[0].checkInOrder).toBe(after.checkInAt);
+  expect(ordered.page[0].checkOutOrder).toBe(after.checkOutAt);
+});
+
+test("coaches, foreign administrators and inactive administrators cannot adjust times or read the history", async () => {
+  const f = await setup();
+  const id = await f.checkIn();
+  const before = await f.get(id);
+  const edit = {
+    ...(await timeEdit(f, id, { checkIn: { dateTime: "2026-11-06T09:00" } })),
+    title: "Unauthorized",
+  };
+  for (const client of [f.owner, f.otherCoach, f.otherAdmin, f.t]) {
+    await expect(
+      client.mutation(api.coachActivities.update, edit),
+    ).rejects.toThrow();
+    await expect(
+      client.query(api.coachActivityAdjustments.listByActivity, {
+        activityId: id,
+        paginationOpts: { numItems: 5, cursor: null },
+      }),
+    ).rejects.toThrow();
+  }
+  await f.t.run((ctx) => ctx.db.patch("users", f.adminId, { isActive: false }));
+  await expect(
+    f.admin.mutation(api.coachActivities.update, edit),
+  ).rejects.toThrow("inactive");
+  expect(await f.get(id)).toEqual(before);
+});
+
+test("entry-only adjustment keeps an open activity pending and does not bypass checkout", async () => {
+  const f = await setup();
+  const id = await f.checkIn();
+  await f.admin.mutation(
+    api.coachActivities.update,
+    await timeEdit(f, id, { checkIn: { dateTime: "2026-11-06T09:00" } }),
+  );
+  expect(await f.get(id)).toMatchObject({
+    status: "in_progress",
+    completed: false,
+    checkInAt: now - 3600000,
+  });
+  expect((await f.get(id))?.checkOutAt).toBeUndefined();
+  await expect(f.checkIn()).rejects.toThrow("activity in progress");
+  await expect(
+    f.admin.mutation(
+      api.coachActivities.update,
+      await timeEdit(f, id, { checkOut: { dateTime: "2026-11-06T09:30" } }),
+    ),
+  ).rejects.toThrow("Cannot add or remove checkout");
+  await f.owner.mutation(api.coachActivities.checkOut, {
+    activityId: id,
+    imageStorageId: await f.image(),
+  });
+  await expect(
+    f.admin.mutation(
+      api.coachActivities.update,
+      await timeEdit(f, id, { checkOut: null }),
+    ),
+  ).rejects.toThrow("Cannot add or remove checkout");
+});
+
+test.each([
+  ["2026-11-06T11:00", "future"],
+  ["2026-02-30T09:00", "Invalid activity time"],
+  ["2026-03-08T02:30", "Invalid activity time"],
+  ["2026-11-01T01:30", "Ambiguous activity time"],
+])(
+  "invalid time correction %s is rejected without partial metadata or audit writes",
+  async (dateTime, error) => {
+    const f = await setup();
+    const id = await f.checkIn();
+    const before = await f.get(id);
+    await expect(
+      f.admin.mutation(api.coachActivities.update, {
+        ...(await timeEdit(f, id, { checkIn: { dateTime } })),
+        title: "Must not save",
+      }),
+    ).rejects.toThrow(error);
+    expect(await f.get(id)).toEqual(before);
+    expect(
+      await f.t.run((ctx) =>
+        ctx.db.query("coachActivityTimeAdjustments").collect(),
+      ),
+    ).toEqual([]);
+  },
+);
+
+test("end before start is rejected and concurrent corrections cannot overwrite one another", async () => {
+  const f = await setup();
+  const id = await f.checkIn();
+  vi.setSystemTime(now + 3600000);
+  await f.owner.mutation(api.coachActivities.checkOut, {
+    activityId: id,
+    imageStorageId: await f.image(),
+  });
+  await expect(
+    f.admin.mutation(
+      api.coachActivities.update,
+      await timeEdit(f, id, { checkOut: { dateTime: "2026-11-06T09:00" } }),
+    ),
+  ).rejects.toThrow("Checkout cannot precede check-in");
+  const stale = await timeEdit(f, id, {
+    checkIn: { dateTime: "2026-11-06T08:00" },
+  });
+  await f.admin.mutation(
+    api.coachActivities.update,
+    await timeEdit(f, id, { checkIn: { dateTime: "2026-11-06T09:00" } }),
+  );
+  await expect(
+    f.admin.mutation(api.coachActivities.update, stale),
+  ).rejects.toThrow("Activity times have changed");
+  expect((await f.get(id))?.checkInAt).toBe(now - 3600000);
+  expect(
+    await f.t.run((ctx) =>
+      ctx.db.query("coachActivityTimeAdjustments").collect(),
+    ),
+  ).toHaveLength(1);
+});
+
+test("checkout during an administrative edit requires reloading instead of silently changing status", async () => {
+  const f = await setup();
+  const id = await f.checkIn();
+  const stale = await timeEdit(f, id, {
+    checkIn: { dateTime: "2026-11-06T09:00" },
+  });
+  await f.owner.mutation(api.coachActivities.checkOut, {
+    activityId: id,
+    imageStorageId: await f.image(),
+  });
+  await expect(
+    f.admin.mutation(api.coachActivities.update, stale),
+  ).rejects.toThrow("Activity times have changed");
+});
+
+test("unchanged times retain milliseconds and create no adjustment; archived coaches can be reconciled", async () => {
+  const f = await setup();
+  vi.setSystemTime(now + 45234);
+  const id = await f.checkIn();
+  const before = (await f.get(id))!;
+  await f.admin.mutation(api.coachActivities.update, await timeEdit(f, id));
+  expect((await f.get(id))?.checkInAt).toBe(before.checkInAt);
+  expect(
+    await f.t.run((ctx) =>
+      ctx.db.query("coachActivityTimeAdjustments").collect(),
+    ),
+  ).toEqual([]);
+  await f.admin.mutation(api.coaches.setArchived, {
+    coachId: f.coachId,
+    isArchived: true,
+  });
+  await f.admin.mutation(
+    api.coachActivities.update,
+    await timeEdit(f, id, { checkIn: { dateTime: "2026-11-06T09:00" } }),
+  );
+  expect((await f.get(id))?.checkInAt).toBe(now - 3600000);
+});
+
+test("repeated New York times require an explicit occurrence and preserve an unchanged repeated timestamp", async () => {
+  const f = await setup();
+  const id = await f.checkIn();
+  await f.admin.mutation(
+    api.coachActivities.update,
+    await timeEdit(f, id, {
+      checkIn: { dateTime: "2026-11-01T01:30", offsetMinutes: -300 },
+    }),
+  );
+  const later = Date.parse("2026-11-01T06:30:00Z");
+  expect((await f.get(id))?.checkInAt).toBe(later);
+  expect(
+    resolveActivityTimeInput({ dateTime: "2026-11-01T01:30" }, later),
+  ).toBe(later);
+  await f.admin.mutation(
+    api.coachActivities.update,
+    await timeEdit(f, id, {
+      checkIn: { dateTime: "2026-11-01T01:30", offsetMinutes: -240 },
+    }),
+  );
+  expect((await f.get(id))?.checkInAt).toBe(later - 3600000);
+});
+
+test("adjustment history is paginated and removed with its activity", async () => {
+  const f = await setup();
+  const id = await f.checkIn();
+  for (const hour of ["09", "08", "07"]) {
+    vi.setSystemTime(Date.now() + 1);
+    await f.admin.mutation(
+      api.coachActivities.update,
+      await timeEdit(f, id, { checkIn: { dateTime: `2026-11-06T${hour}:00` } }),
+    );
+  }
+  const args = {
+    activityId: id,
+    paginationOpts: { numItems: 2, cursor: null as string | null },
+  };
+  const first = await f.admin.query(
+    api.coachActivityAdjustments.listByActivity,
+    args,
+  );
+  await f.t.run((ctx) =>
+    ctx.db.patch("coachActivityTimeAdjustments", first.page[0]._id, {
+      reason: "Existing development value",
+    }),
+  );
+  const compatible = await f.admin.query(
+    api.coachActivityAdjustments.listByActivity,
+    args,
+  );
+  expect(compatible.page[0]).not.toHaveProperty("reason");
+  expect(first.page).toHaveLength(2);
+  expect(first.isDone).toBe(false);
+  const second = await f.admin.query(
+    api.coachActivityAdjustments.listByActivity,
+    { ...args, paginationOpts: { numItems: 2, cursor: first.continueCursor } },
+  );
+  expect(second.page).toHaveLength(1);
+  expect(second.page[0]._id).not.toBe(first.page[0]._id);
+  await f.owner.mutation(api.coachActivities.remove, { activityId: id });
+  await f.t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  expect(
+    await f.t.run((ctx) =>
+      ctx.db.query("coachActivityTimeAdjustments").collect(),
+    ),
+  ).toEqual([]);
+});
+
+test("earlier manual activity cannot be converted into a camera activity by adjusting times", async () => {
+  const f = await setup();
+  const id = await f.legacy(true);
+  await expect(
+    f.admin.mutation(api.coachActivities.update, {
+      activityId: id,
+      placeId: f.placeId,
+      title: "Manual",
+      timeAdjustment: {
+        expectedCheckInAt: now,
+        expectedCheckOutAt: null,
+        checkIn: { dateTime: "2026-11-06T09:00" },
+        checkOut: null,
+      },
+    }),
+  ).rejects.toThrow("Earlier activity times cannot be adjusted");
+});
+
+test("deleting a coach also cleans up adjustment histories in bounded batches", async () => {
+  const f = await setup();
+  const id = await f.checkIn();
+  await f.admin.mutation(
+    api.coachActivities.update,
+    await timeEdit(f, id, { checkIn: { dateTime: "2026-11-06T09:00" } }),
+  );
+  await f.t.run(async (ctx) => {
+    const record = (await ctx.db
+      .query("coachActivityTimeAdjustments")
+      .first())!;
+    const { _id, _creationTime, ...data } = record;
+    void _id;
+    void _creationTime;
+    for (let i = 0; i < 101; i++)
+      await ctx.db.insert("coachActivityTimeAdjustments", data);
+  });
+  expect(
+    await f.admin.mutation(api.coaches.deleteLocal, { coachId: f.coachId }),
+  ).toBe(true);
+  await f.t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  expect(
+    await f.t.run((ctx) =>
+      ctx.db.query("coachActivityTimeAdjustments").collect(),
+    ),
+  ).toEqual([]);
+});
 
 test("check-in uses server time in Poinciana and leaves checkout unset", async () => {
   const f = await setup();

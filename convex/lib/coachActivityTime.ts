@@ -37,31 +37,61 @@ export function legacyActivityTimestamp(
   date: string,
   time: string | undefined,
 ): number | null {
+  return activityTimeCandidates(date, time)[0]?.timestamp ?? null;
+}
+
+export function activityTimeCandidates(date: string, time: string | undefined) {
   if (
     !time ||
     !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
     clockMilliseconds(time) === null
   )
-    return null;
+    return [];
   const localClock = `${date}T${time.length === 5 ? `${time}:00` : time}`;
   const wallTime = Date.parse(`${localClock}Z`);
   if (
     !Number.isFinite(wallTime) ||
     new Date(wallTime).toISOString().slice(0, 19) !== localClock
   )
-    return null;
+    return [];
   const dayMs = 86400000;
-  let result: number | null = null;
-  // Sample both sides of a Poinciana offset change and verify the local clock.
+  const candidates = new Map<number, number>();
+  // Sample both sides of an offset change and verify the local clock.
   for (const sample of [wallTime - dayMs, wallTime + dayMs]) {
     const offset = Date.parse(`${poincianaClock(sample)}Z`) - sample;
     const candidate = wallTime - offset;
     if (poincianaClock(candidate) === localClock) {
-      // A repeated legacy hour uses its earlier occurrence; a missing hour stays unknown.
-      result = result === null ? candidate : Math.min(result, candidate);
+      candidates.set(candidate, offset / 60000);
     }
   }
-  return result;
+  return [...candidates]
+    .sort(([a], [b]) => a - b)
+    .map(([timestamp, offsetMinutes]) => ({ timestamp, offsetMinutes }));
+}
+
+export function activityLocalDateTime(timestamp: number) {
+  const { activityDate, time } = coachActivityDateTime(timestamp);
+  return `${activityDate}T${time}`;
+}
+
+export function resolveActivityTimeInput(
+  input: { dateTime: string; offsetMinutes?: number },
+  original: number,
+): number | "invalid" | "ambiguous" {
+  if (
+    input.dateTime === activityLocalDateTime(original) &&
+    input.offsetMinutes === undefined
+  )
+    return original;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(input.dateTime)) return "invalid";
+  const [date, time] = input.dateTime.split("T");
+  const candidates = activityTimeCandidates(date, time).filter(
+    (candidate) =>
+      input.offsetMinutes === undefined ||
+      candidate.offsetMinutes === input.offsetMinutes,
+  );
+  if (!candidates.length) return "invalid";
+  return candidates.length > 1 ? "ambiguous" : candidates[0].timestamp;
 }
 
 export function coachActivityDurationMs(activity: {

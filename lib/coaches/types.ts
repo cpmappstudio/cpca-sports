@@ -14,6 +14,10 @@ export type CoachActivityListItem = FunctionReturnType<
   typeof api.coachActivities.listOpenByCoach
 >["page"][number];
 
+export type CoachActivityTimeAdjustment = NonNullable<
+  FunctionArgs<typeof api.coachActivities.update>["timeAdjustment"]
+>;
+
 export type CoachActivitySort = NonNullable<
   FunctionArgs<typeof api.coachActivities.listOpenByCoach>["sort"]
 >;

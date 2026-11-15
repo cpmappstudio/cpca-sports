@@ -42,6 +42,7 @@ type ActivityTab = "open" | "history";
 export function CoachActivities({
   coachId,
   isArchived,
+  isAdmin = false,
   periodSelection,
   onPeriodChange,
   periodResult,
@@ -49,6 +50,7 @@ export function CoachActivities({
 }: {
   coachId: Id<"coaches">;
   isArchived: boolean;
+  isAdmin?: boolean;
   periodSelection: CoachActivityPeriodSelection;
   onPeriodChange: (selection: CoachActivityPeriodSelection) => void;
   periodResult?: CoachActivityPeriod;
@@ -353,6 +355,7 @@ export function CoachActivities({
             ) : (
               <ActivityHistoryItem
                 activity={selected}
+                isAdmin={isAdmin}
                 onEdit={() => edit(selected._id)}
                 onDelete={() => askDelete(selected._id)}
                 onCheckout={() => checkout(selected._id)}
@@ -365,6 +368,7 @@ export function CoachActivities({
         <ActivityDialog
           open
           coachId={coachId}
+          isAdmin={isAdmin}
           action={dialog.action}
           activityId={dialog.activityId}
           onOpenChange={(value) => {

@@ -1,4 +1,52 @@
-import { COACH_ACTIVITY_TIME_ZONE } from "@/convex/lib/coachActivityTime";
+import {
+  COACH_ACTIVITY_TIME_ZONE,
+  resolveActivityTimeInput,
+} from "@/convex/lib/coachActivityTime";
+import type { CoachActivityTimeAdjustment } from "./types";
+
+export function activityTimeAdjustmentPreview(
+  input: CoachActivityTimeAdjustment,
+) {
+  const checkInAt = resolveActivityTimeInput(
+    input.checkIn,
+    input.expectedCheckInAt,
+  );
+  const checkOutAt =
+    input.checkOut && input.expectedCheckOutAt !== null
+      ? resolveActivityTimeInput(input.checkOut, input.expectedCheckOutAt)
+      : null;
+  if (typeof checkInAt !== "number")
+    return {
+      changed: true,
+      durationMs: null,
+      error: checkInAt === "ambiguous" ? "ambiguousTime" : "invalidTime",
+      errorField: "checkIn",
+    } as const;
+  if (checkOutAt !== null && typeof checkOutAt !== "number")
+    return {
+      changed: true,
+      durationMs: null,
+      error: checkOutAt === "ambiguous" ? "ambiguousTime" : "invalidTime",
+      errorField: "checkOut",
+    } as const;
+  const changed =
+    checkInAt !== input.expectedCheckInAt ||
+    checkOutAt !== input.expectedCheckOutAt;
+  const durationMs = checkOutAt === null ? null : checkOutAt - checkInAt;
+  const result = { changed, durationMs };
+  if (changed && durationMs !== null && durationMs < 0)
+    return {
+      ...result,
+      error: "checkoutBeforeCheckin",
+      errorField: "checkOut",
+    } as const;
+  const now = Date.now();
+  if (changed && checkInAt > now)
+    return { ...result, error: "futureTime", errorField: "checkIn" } as const;
+  if (changed && checkOutAt !== null && checkOutAt > now)
+    return { ...result, error: "futureTime", errorField: "checkOut" } as const;
+  return { ...result, error: null, errorField: null } as const;
+}
 
 export function formatActivityTimestamp(timestamp: number, locale: string) {
   return new Intl.DateTimeFormat(locale, {
